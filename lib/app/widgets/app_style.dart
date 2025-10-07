@@ -384,7 +384,7 @@ class AppStyle {
     color: AppColors.grey,
   );
   static TextStyle get reportCardRowTitle => GoogleFonts.poppins(
-    fontSize: _fontSize13,
+    fontSize: _fontSize14,
     fontWeight: FontWeight.w400,
     color: AppColors.grey,
   );

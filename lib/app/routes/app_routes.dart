@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:rudra/app/modules/myreport/my_report_list_binding.dart';
 import 'package:rudra/app/modules/myreport/my_report_list_view.dart';
+import 'package:rudra/app/modules/myreport/my_report_view/my_report_form_view.dart';
 
 import '../modules/add_executive/add_executive_binding.dart';
 import '../modules/add_executive/add_executive_view.dart';
@@ -12,6 +13,7 @@ import '../modules/home/home_binding.dart';
 import '../modules/home/home_view.dart';
 import '../modules/login/login_binding.dart';
 import '../modules/login/login_view.dart';
+import '../modules/myreport/my_report_view/report_form_binding.dart';
 import '../modules/notification/notification_binding.dart';
 import '../modules/notification/notification_view.dart';
 import '../modules/onboarding/onboarding_binding.dart';
@@ -48,32 +50,22 @@ class AppRoutes {
   static const String surveyQuestion = '/survey-question';
   static const String surveyInterviewer = '/survey-interviewer';
   static const String myreport = '/myreport-list';
+  static const String myreportform = '/myreport-form';
   static List<GetPage> routes = [
-    GetPage(
-      name: splash,
-      page: () => const SplashView(),
-    ),
+    GetPage(name: splash, page: () => const SplashView()),
     GetPage(
       name: onboarding,
       page: () => const OnboardingView(),
       binding: OnboardingBinding(),
     ),
-    GetPage(
-      name: otp,
-      page: () => const OtpView(),
-      binding: OtpBinding(),
-    ),
+    GetPage(name: otp, page: () => const OtpView(), binding: OtpBinding()),
     // Add when login module is ready:
     GetPage(
       name: login,
       page: () => const LoginView(),
       binding: LoginBinding(),
     ),
-    GetPage(
-      name: home,
-      page: () => const HomeView(),
-      binding: HomeBinding(),
-    ),
+    GetPage(name: home, page: () => const HomeView(), binding: HomeBinding()),
     GetPage(
       name: profile,
       page: () => const ProfileView(),
@@ -120,10 +112,15 @@ class AppRoutes {
       page: () => const SurveyInterviewerView(),
       binding: SurveyInterviewerBinding(),
     ),
-      GetPage(
+    GetPage(
       name: myreport,
       page: () => const MyReportListView(),
       binding: MyReportListBinding(),
+    ),
+    GetPage(
+      name: myreportform,
+      page: () => const MyReportFormView(),
+      binding: ReportFormBinding(),
     ),
   ];
 }

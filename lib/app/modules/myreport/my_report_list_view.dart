@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:rudra/app/modules/myreport/my_report_list_controller.dart';
+import 'package:rudra/app/routes/app_routes.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../utils/app_colors.dart';
 import '../../utils/responsive_utils.dart';
+import '../../widgets/app_button_style.dart';
 import '../../widgets/app_style.dart';
 
 class MyReportListView extends StatelessWidget {
@@ -29,21 +31,7 @@ class MyReportListView extends StatelessWidget {
           ),
           child: Column(
             children: [
-              TextFormField(
-                controller: controller.searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search....',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  suffixIcon: const Icon(Icons.search),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                ),
-                onChanged: controller.searchReports,
-              ),
+              _buildSerachField(controller),
               const SizedBox(height: 16),
               Obx(
                 () => controller.isLoading.value
@@ -51,106 +39,152 @@ class MyReportListView extends StatelessWidget {
                     : controller.filteredReportList.isEmpty
                     ? const Center(child: Text('No reports found'))
                     : Column(
-                        children: controller.filteredReportList
-                            .asMap()
-                            .entries
-                            .map((entry) {
-                              final report = entry.value;
-                              return Card(
-                                margin: const EdgeInsets.only(bottom: 16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(16),
+                        children: controller.filteredReportList.asMap().entries.map((
+                          entry,
+                        ) {
+                          final report = entry.value;
+                          return GestureDetector(
+                           onTap: () => Get.toNamed(
+                                  AppRoutes.myreportform,
+                                  arguments: {'report': report},
+                                ),
+                            child: Card(
+                              margin: const EdgeInsets.only(bottom: 16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          report.title,
+                                          style: AppStyle
+                                              .reportCardTitle
+                                              .responsive
+                                              .copyWith(
+                                                fontSize:
+                                                    ResponsiveHelper.getResponsiveFontSize(
+                                                      16,
+                                                    ),
+                                              ),
+                                        ),
+                                        SizedBox(
+                                          height: ResponsiveHelper.spacing(5),
+                                        ),
+                                        Text(
+                                          report.subtitle,
+                                          style: AppStyle
+                                              .reportCardSubTitle
+                                              .responsive
+                                              .copyWith(
+                                                fontSize:
+                                                    ResponsiveHelper.getResponsiveFontSize(
+                                                      13,
+                                                    ),
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: AppColors.grey.withOpacity(0.1),
+                                      borderRadius: const BorderRadius.only(
+                                        bottomRight: Radius.circular(10),
+                                        bottomLeft: Radius.circular(10),
+                                      ),
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 12,
+                                      ),
                                       child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
                                         children: [
-                                          Text(
-                                            report.title,
-                                            style: AppStyle.reportCardTitle,
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                'Survey ID',
+                                                style: AppStyle
+                                                    .reportCardRowTitle
+                                                    .responsive
+                                                    .copyWith(
+                                                      fontSize:
+                                                          ResponsiveHelper.getResponsiveFontSize(
+                                                            13,
+                                                          ),
+                                                    ),
+                                              ),
+                                              Text(
+                                                report.surveyId,
+                                                style: AppStyle
+                                                    .reportCardRowCount
+                                                    .responsive
+                                                    .copyWith(
+                                                      fontSize:
+                                                          ResponsiveHelper.getResponsiveFontSize(
+                                                            13,
+                                                          ),
+                                                    ),
+                                              ),
+                                            ],
                                           ),
                                           SizedBox(
-                                            height: ResponsiveHelper.spacing(5),
+                                            height: ResponsiveHelper.spacing(1),
                                           ),
-                                          Text(
-                                            report.subtitle,
-                                            style: AppStyle.reportCardSubTitle,
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                'Response',
+                                                style:
+                                                    AppStyle.reportCardRowTitle,
+                                              ),
+                                              Text(
+                                                report.responseCount,
+                                                style:
+                                                    AppStyle.reportCardRowCount,
+                                              ),
+                                            ],
                                           ),
                                         ],
                                       ),
                                     ),
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        color: AppColors.grey.withOpacity(0.1),
-                                        borderRadius: const BorderRadius.only(
-                                          bottomRight: Radius.circular(10),
-                                          bottomLeft: Radius.circular(10),
-                                        ),
-                                      ),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 12,
-                                        ),
-                                        child: Column(
-                                          children: [
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                Text(
-                                                  'Survey ID',
-                                                  style: AppStyle
-                                                      .reportCardRowTitle,
-                                                ),
-                                                Text(
-                                                  report.surveyId,
-                                                  style: AppStyle
-                                                      .reportCardRowCount,
-                                                ),
-                                              ],
-                                            ),
-                                            SizedBox(
-                                              height: ResponsiveHelper.spacing(
-                                                1,
-                                              ),
-                                            ),
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                Text(
-                                                  'Response',
-                                                  style: AppStyle
-                                                      .reportCardRowTitle,
-                                                ),
-                                                Text(
-                                                  report.responseCount,
-                                                  style: AppStyle
-                                                      .reportCardRowCount,
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            })
-                            .toList(),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  TextFormField _buildSerachField(MyReportListController controller) {
+    return TextFormField(
+      controller: controller.searchController,
+      decoration: InputDecoration(
+        hintText: 'Search....',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        suffixIcon: const Icon(Icons.search),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+      ),
+      onChanged: controller.searchReports,
     );
   }
 

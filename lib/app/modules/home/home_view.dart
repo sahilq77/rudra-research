@@ -58,7 +58,7 @@ class _HomeViewState extends State<HomeView> {
                   'Dashboard Overview',
                   style: AppStyle.heading1PoppinsBlack.responsive.copyWith(
                     fontSize: ResponsiveHelper.getResponsiveFontSize(18),
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 SizedBox(height: ResponsiveHelper.spacing(16)),
@@ -207,15 +207,10 @@ class _HomeViewState extends State<HomeView> {
 
   Widget _buildDashboardCard(Map<String, dynamic> stat) {
     return Container(
-      padding: ResponsiveHelper.paddingSymmetric(
-        horizontal: 12,
-        vertical: 14,
-      ),
+      padding: ResponsiveHelper.paddingSymmetric(horizontal: 12, vertical: 14),
       decoration: BoxDecoration(
         color: stat['color'],
-        borderRadius: BorderRadius.circular(
-          ResponsiveHelper.spacing(16),
-        ),
+        borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(16)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -247,10 +242,7 @@ class _HomeViewState extends State<HomeView> {
                   ),
                 ),
                 padding: EdgeInsets.all(ResponsiveHelper.spacing(8)),
-                child: Image.asset(
-                  stat['imagePath'],
-                  fit: BoxFit.contain,
-                ),
+                child: Image.asset(stat['imagePath'], fit: BoxFit.contain),
               ),
             ],
           ),
@@ -326,15 +318,10 @@ class _HomeViewState extends State<HomeView> {
   Widget _buildSurveyCard(Map<String, dynamic> survey, int index) {
     return Container(
       margin: EdgeInsets.only(bottom: ResponsiveHelper.spacing(12)),
-      padding: ResponsiveHelper.paddingSymmetric(
-        horizontal: 16,
-        vertical: 16,
-      ),
+      padding: ResponsiveHelper.paddingSymmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(
-          ResponsiveHelper.spacing(12),
-        ),
+        borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(12)),
         border: Border.all(
           color: AppColors.lightGrey.withOpacity(0.2),
           width: 1,
@@ -399,10 +386,12 @@ class _HomeViewState extends State<HomeView> {
                         'Live',
                         style: AppStyle.bodySmallPoppinsPrimary.responsive
                             .copyWith(
-                          color: const Color(0xFFFF4444),
-                          fontSize: ResponsiveHelper.getResponsiveFontSize(11),
-                          fontWeight: FontWeight.w600,
-                        ),
+                              color: const Color(0xFFFF4444),
+                              fontSize: ResponsiveHelper.getResponsiveFontSize(
+                                11,
+                              ),
+                              fontWeight: FontWeight.w600,
+                            ),
                       ),
                     ],
                   ),
@@ -423,9 +412,9 @@ class _HomeViewState extends State<HomeView> {
                     'Start Survey',
                     style: AppStyle.buttonTextSmallPoppinsWhite.responsive
                         .copyWith(
-                      fontSize: ResponsiveHelper.getResponsiveFontSize(14),
-                      fontWeight: FontWeight.w500,
-                    ),
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(14),
+                          fontWeight: FontWeight.w500,
+                        ),
                   ),
                 ),
               ),
@@ -440,9 +429,9 @@ class _HomeViewState extends State<HomeView> {
                     'Assign Target',
                     style: AppStyle.buttonTextSmallPoppinsBlack.responsive
                         .copyWith(
-                      fontSize: ResponsiveHelper.getResponsiveFontSize(14),
-                      fontWeight: FontWeight.w500,
-                    ),
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(14),
+                          fontWeight: FontWeight.w500,
+                        ),
                   ),
                 ),
               ),
@@ -487,10 +476,7 @@ class _HomeViewState extends State<HomeView> {
           return BottomNavigationBarItem(
             icon: Padding(
               padding: EdgeInsets.only(bottom: ResponsiveHelper.spacing(4)),
-              child: Icon(
-                item['icon'],
-                size: ResponsiveHelper.spacing(24),
-              ),
+              child: Icon(item['icon'], size: ResponsiveHelper.spacing(24)),
             ),
             label: item['label'],
           );

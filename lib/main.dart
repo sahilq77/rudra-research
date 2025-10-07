@@ -92,10 +92,7 @@ class MyApp extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
-            side: const BorderSide(
-              color: Colors.black,
-              width: 1.0,
-            ),
+            side: const BorderSide(color: Colors.black, width: 1.0),
             minimumSize: const Size(double.infinity, 0),
           ),
         ),
