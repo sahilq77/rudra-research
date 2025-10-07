@@ -82,6 +82,14 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
           ],
         ),
       ],
+      bottom: PreferredSize(
+        preferredSize: Size.fromHeight(0),
+        child: Divider(
+          color: AppColors.grey.withOpacity(0.5),
+          // thickness: 2,
+          height: 0,
+        ),
+      ),
     );
   }
 

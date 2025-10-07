@@ -54,13 +54,10 @@ class _AddExecutiveViewState extends State<AddExecutiveView> {
                 _buildTextFormField(
                   controller: controller.firstNameController,
                   label: 'First Name',
-                  validator: (value) => TextValidator.combineValidators(
-                    value,
-                    [
-                      TextValidator.isEmpty,
-                      TextValidator.isAlphabetic,
-                    ],
-                  ),
+                  validator: (value) => TextValidator.combineValidators(value, [
+                    TextValidator.isEmpty,
+                    TextValidator.isAlphabetic,
+                  ]),
                   inputFormatters: [SecureTextInputFormatter.deny()],
                   keyboardType: TextInputType.name,
                 ),
@@ -68,13 +65,10 @@ class _AddExecutiveViewState extends State<AddExecutiveView> {
                 _buildTextFormField(
                   controller: controller.lastNameController,
                   label: 'Last Name',
-                  validator: (value) => TextValidator.combineValidators(
-                    value,
-                    [
-                      TextValidator.isEmpty,
-                      TextValidator.isAlphabetic,
-                    ],
-                  ),
+                  validator: (value) => TextValidator.combineValidators(value, [
+                    TextValidator.isEmpty,
+                    TextValidator.isAlphabetic,
+                  ]),
                   inputFormatters: [SecureTextInputFormatter.deny()],
                   keyboardType: TextInputType.name,
                 ),
@@ -98,10 +92,7 @@ class _AddExecutiveViewState extends State<AddExecutiveView> {
                   keyboardType: TextInputType.phone,
                 ),
                 SizedBox(height: ResponsiveHelper.spacing(16)),
-                _buildDateField(
-                  label: 'Date of Birth',
-                  isDob: true,
-                ),
+                _buildDateField(label: 'Date of Birth', isDob: true),
                 SizedBox(height: ResponsiveHelper.spacing(16)),
                 _buildTextFormField(
                   controller: controller.addressController,
@@ -122,10 +113,7 @@ class _AddExecutiveViewState extends State<AddExecutiveView> {
                 SizedBox(height: ResponsiveHelper.spacing(16)),
                 _buildImageUpload(),
                 SizedBox(height: ResponsiveHelper.spacing(16)),
-                _buildDateField(
-                  label: 'Joining Date',
-                  isDob: false,
-                ),
+                _buildDateField(label: 'Joining Date', isDob: false),
                 SizedBox(height: ResponsiveHelper.spacing(16)),
                 _buildRoleDropdown(),
                 SizedBox(height: ResponsiveHelper.spacing(32)),
@@ -151,6 +139,14 @@ class _AddExecutiveViewState extends State<AddExecutiveView> {
         style: AppStyle.heading1PoppinsBlack.responsive.copyWith(
           fontSize: ResponsiveHelper.getResponsiveFontSize(18),
           fontWeight: FontWeight.w600,
+        ),
+      ),
+      bottom: PreferredSize(
+        preferredSize: Size.fromHeight(0),
+        child: Divider(
+          color: AppColors.grey.withOpacity(0.5),
+          // thickness: 2,
+          height: 0,
         ),
       ),
     );
@@ -191,10 +187,7 @@ class _AddExecutiveViewState extends State<AddExecutiveView> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(8)),
-          borderSide: const BorderSide(
-            color: AppColors.primary,
-            width: 1.5,
-          ),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
         contentPadding: ResponsiveHelper.paddingSymmetric(
           horizontal: 16,
@@ -207,10 +200,7 @@ class _AddExecutiveViewState extends State<AddExecutiveView> {
     );
   }
 
-  Widget _buildDateField({
-    required String label,
-    required bool isDob,
-  }) {
+  Widget _buildDateField({required String label, required bool isDob}) {
     final controller = isDob
         ? this.controller.dobController
         : this.controller.joiningDateController;
@@ -239,10 +229,7 @@ class _AddExecutiveViewState extends State<AddExecutiveView> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(8)),
-          borderSide: const BorderSide(
-            color: AppColors.primary,
-            width: 1.5,
-          ),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
         contentPadding: ResponsiveHelper.paddingSymmetric(
           horizontal: 16,
@@ -272,48 +259,52 @@ class _AddExecutiveViewState extends State<AddExecutiveView> {
         SizedBox(height: ResponsiveHelper.spacing(8)),
         GestureDetector(
           onTap: controller.showImageSourceBottomSheet,
-          child: Obx(() => Container(
-                width: double.infinity,
-                height: ResponsiveHelper.spacing(120),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: AppColors.lightGrey.withOpacity(0.3),
-                    width: 1,
-                  ),
-                  borderRadius:
-                      BorderRadius.circular(ResponsiveHelper.spacing(8)),
+          child: Obx(
+            () => Container(
+              width: double.infinity,
+              height: ResponsiveHelper.spacing(120),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: AppColors.lightGrey.withOpacity(0.3),
+                  width: 1,
                 ),
-                child: controller.selectedImage.value != null
-                    ? ClipRRect(
-                        borderRadius:
-                            BorderRadius.circular(ResponsiveHelper.spacing(8)),
-                        child: Image.file(
-                          controller.selectedImage.value!,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
-                        ),
-                      )
-                    : Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.cloud_upload,
-                            size: ResponsiveHelper.spacing(40),
-                            color: AppColors.grey,
-                          ),
-                          SizedBox(height: ResponsiveHelper.spacing(8)),
-                          Text(
-                            'Upload Image',
-                            style: AppStyle.bodyRegularPoppinsGrey.responsive
-                                .copyWith(
-                              fontSize:
-                                  ResponsiveHelper.getResponsiveFontSize(14),
-                            ),
-                          ),
-                        ],
+                borderRadius: BorderRadius.circular(
+                  ResponsiveHelper.spacing(8),
+                ),
+              ),
+              child: controller.selectedImage.value != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(
+                        ResponsiveHelper.spacing(8),
                       ),
-              )),
+                      child: Image.file(
+                        controller.selectedImage.value!,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                      ),
+                    )
+                  : Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.cloud_upload,
+                          size: ResponsiveHelper.spacing(40),
+                          color: AppColors.grey,
+                        ),
+                        SizedBox(height: ResponsiveHelper.spacing(8)),
+                        Text(
+                          'Upload Image',
+                          style: AppStyle.bodyRegularPoppinsGrey.responsive
+                              .copyWith(
+                                fontSize:
+                                    ResponsiveHelper.getResponsiveFontSize(14),
+                              ),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
         ),
       ],
     );
@@ -377,10 +368,7 @@ class _AddExecutiveViewState extends State<AddExecutiveView> {
 
   Widget _buildBottomButton() {
     return Container(
-      padding: ResponsiveHelper.paddingSymmetric(
-        horizontal: 16,
-        vertical: 12,
-      ),
+      padding: ResponsiveHelper.paddingSymmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.white,
         boxShadow: [
@@ -391,27 +379,30 @@ class _AddExecutiveViewState extends State<AddExecutiveView> {
           ),
         ],
       ),
-      child: Obx(() => ElevatedButton(
-            onPressed:
-                controller.isLoading.value ? null : controller.addExecutive,
-            style: AppButtonStyles.elevatedLargeBlack(),
-            child: controller.isLoading.value
-                ? SizedBox(
-                    height: ResponsiveHelper.spacing(20),
-                    width: ResponsiveHelper.spacing(20),
-                    child: const CircularProgressIndicator(
-                      color: AppColors.white,
-                      strokeWidth: 2,
-                    ),
-                  )
-                : Text(
-                    'Add Executive',
-                    style: AppStyle.buttonTextPoppinsWhite.responsive.copyWith(
-                      fontSize: ResponsiveHelper.getResponsiveFontSize(16),
-                      fontWeight: FontWeight.w600,
-                    ),
+      child: Obx(
+        () => ElevatedButton(
+          onPressed: controller.isLoading.value
+              ? null
+              : controller.addExecutive,
+          style: AppButtonStyles.elevatedLargeBlack(),
+          child: controller.isLoading.value
+              ? SizedBox(
+                  height: ResponsiveHelper.spacing(20),
+                  width: ResponsiveHelper.spacing(20),
+                  child: const CircularProgressIndicator(
+                    color: AppColors.white,
+                    strokeWidth: 2,
                   ),
-          )),
+                )
+              : Text(
+                  'Add Executive',
+                  style: AppStyle.buttonTextPoppinsWhite.responsive.copyWith(
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(16),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+        ),
+      ),
     );
   }
 }

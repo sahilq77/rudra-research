@@ -35,6 +35,14 @@ class _SurveyQuestionViewState extends State<SurveyQuestionView> {
         backgroundColor: AppColors.white,
         elevation: 0,
         surfaceTintColor: AppColors.white,
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(0),
+          child: Divider(
+            color: AppColors.grey.withOpacity(0.5),
+            // thickness: 2,
+            height: 0,
+          ),
+        ),
       ),
       backgroundColor: AppColors.white,
       body: Obx(
@@ -72,8 +80,9 @@ class _SurveyQuestionViewState extends State<SurveyQuestionView> {
                             children: [
                               CircleAvatar(
                                 radius: 24,
-                                backgroundColor:
-                                    AppColors.grey.withOpacity(0.2),
+                                backgroundColor: AppColors.grey.withOpacity(
+                                  0.2,
+                                ),
                                 child: const Icon(
                                   Icons.person,
                                   color: AppColors.grey,
@@ -87,13 +96,15 @@ class _SurveyQuestionViewState extends State<SurveyQuestionView> {
                                   Text(
                                     questionData['posterName'],
                                     style: AppStyle
-                                        .bodyBoldPoppinsBlack.responsive,
+                                        .bodyBoldPoppinsBlack
+                                        .responsive,
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
                                     questionData['date'],
                                     style: AppStyle
-                                        .labelSecondaryPoppinsGrey.responsive,
+                                        .labelSecondaryPoppinsGrey
+                                        .responsive,
                                   ),
                                 ],
                               ),
@@ -147,7 +158,8 @@ class _SurveyQuestionViewState extends State<SurveyQuestionView> {
                                         child: Text(
                                           questionData['options'][index],
                                           style: AppStyle
-                                              .bodySmallPoppinsBlack.responsive,
+                                              .bodySmallPoppinsBlack
+                                              .responsive,
                                         ),
                                       ),
                                     ],

@@ -34,6 +34,14 @@ class _SurveyDetailsViewState extends State<SurveyDetailsView> {
           style: AppStyle.heading1PoppinsBlack.responsive,
         ),
         backgroundColor: AppColors.white,
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(0),
+          child: Divider(
+            color: AppColors.grey.withOpacity(0.5),
+            // thickness: 2,
+            height: 0,
+          ),
+        ),
       ),
       backgroundColor: AppColors.white,
       body: Obx(
@@ -41,8 +49,10 @@ class _SurveyDetailsViewState extends State<SurveyDetailsView> {
           onRefresh: controller.refreshPage,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding:
-                ResponsiveHelper.paddingSymmetric(horizontal: 16, vertical: 16),
+            padding: ResponsiveHelper.paddingSymmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
             child: Form(
               key: controller.formKey,
               child: Column(
@@ -63,22 +73,34 @@ class _SurveyDetailsViewState extends State<SurveyDetailsView> {
                   ),
                   const SizedBox(height: 16),
                   _buildReadOnlyField(
-                      label: 'Select State', value: controller.state),
+                    label: 'Select State',
+                    value: controller.state,
+                  ),
                   const SizedBox(height: 16),
                   _buildReadOnlyField(
-                      label: 'Region', value: controller.region),
+                    label: 'Region',
+                    value: controller.region,
+                  ),
                   const SizedBox(height: 16),
                   _buildReadOnlyField(
-                      label: 'Select District', value: controller.district),
+                    label: 'Select District',
+                    value: controller.district,
+                  ),
                   const SizedBox(height: 16),
                   _buildReadOnlyField(
-                      label: 'Select Loksabha', value: controller.loksabha),
+                    label: 'Select Loksabha',
+                    value: controller.loksabha,
+                  ),
                   const SizedBox(height: 16),
                   _buildReadOnlyField(
-                      label: 'Select Assembly', value: controller.assembly),
+                    label: 'Select Assembly',
+                    value: controller.assembly,
+                  ),
                   const SizedBox(height: 16),
                   _buildReadOnlyField(
-                      label: 'Select Ward/Zp', value: controller.wardZp),
+                    label: 'Select Ward/Zp',
+                    value: controller.wardZp,
+                  ),
                   const SizedBox(height: 16),
                   _buildDropdownField(
                     label: 'Select Area/Village',
@@ -116,10 +138,7 @@ class _SurveyDetailsViewState extends State<SurveyDetailsView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: AppStyle.labelPrimaryPoppinsGrey.responsive,
-        ),
+        Text(label, style: AppStyle.labelPrimaryPoppinsGrey.responsive),
         const SizedBox(height: 8),
         DropdownSearch<String>(
           selectedItem: value,
@@ -131,13 +150,13 @@ class _SurveyDetailsViewState extends State<SurveyDetailsView> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
             ),
           ),
-          popupProps: const PopupProps.menu(
-            showSearchBox: true,
-          ),
+          popupProps: const PopupProps.menu(showSearchBox: true),
         ),
       ],
     );
@@ -147,20 +166,17 @@ class _SurveyDetailsViewState extends State<SurveyDetailsView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: AppStyle.labelPrimaryPoppinsGrey.responsive,
-        ),
+        Text(label, style: AppStyle.labelPrimaryPoppinsGrey.responsive),
         const SizedBox(height: 8),
         TextFormField(
           initialValue: value,
           readOnly: true,
           decoration: InputDecoration(
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
             ),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
         ),
       ],

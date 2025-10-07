@@ -1,4 +1,6 @@
 import 'package:get/get.dart';
+import 'package:rudra/app/modules/myreport/my_report_list_binding.dart';
+import 'package:rudra/app/modules/myreport/my_report_list_view.dart';
 
 import '../modules/add_executive/add_executive_binding.dart';
 import '../modules/add_executive/add_executive_view.dart';
@@ -45,6 +47,7 @@ class AppRoutes {
   static const String surveyDetails = '/survey-details';
   static const String surveyQuestion = '/survey-question';
   static const String surveyInterviewer = '/survey-interviewer';
+  static const String myreport = '/myreport-list';
   static List<GetPage> routes = [
     GetPage(
       name: splash,
@@ -116,6 +119,11 @@ class AppRoutes {
       name: surveyInterviewer,
       page: () => const SurveyInterviewerView(),
       binding: SurveyInterviewerBinding(),
+    ),
+      GetPage(
+      name: myreport,
+      page: () => const MyReportListView(),
+      binding: MyReportListBinding(),
     ),
   ];
 }

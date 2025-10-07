@@ -122,7 +122,7 @@ class MyApp extends StatelessWidget {
           color: AppColors.primary,
         ),
       ),
-      initialRoute: AppRoutes.splash,
+      initialRoute: AppRoutes.myreport,
       getPages: AppRoutes.routes,
       builder: (context, child) {
         return ColorfulSafeArea(

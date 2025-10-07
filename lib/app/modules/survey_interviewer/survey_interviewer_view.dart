@@ -41,6 +41,14 @@ class _SurveyInterviewerViewState extends State<SurveyInterviewerView> {
         backgroundColor: AppColors.white,
         elevation: 0,
         surfaceTintColor: AppColors.white,
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(0),
+          child: Divider(
+            color: AppColors.grey.withOpacity(0.5),
+            // thickness: 2,
+            height: 0,
+          ),
+        ),
       ),
       backgroundColor: AppColors.white,
       body: Obx(
@@ -192,11 +200,7 @@ class _SurveyInterviewerViewState extends State<SurveyInterviewerView> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Image.asset(
-                  AppImages.thanks,
-                  width: 80,
-                  height: 80,
-                ),
+                Image.asset(AppImages.thanks, width: 80, height: 80),
                 const SizedBox(height: 16),
                 // Thanks Badge
                 Container(
@@ -270,8 +274,9 @@ class _SurveyInterviewerViewState extends State<SurveyInterviewerView> {
                         onPressed: () {
                           controller.resetForm();
                           Get.back(); // Close dialog
-                          Get.offAllNamed(AppRoutes
-                              .surveyDetails); // Navigate to next survey
+                          Get.offAllNamed(
+                            AppRoutes.surveyDetails,
+                          ); // Navigate to next survey
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.defaultBlack,
@@ -317,10 +322,7 @@ class _SurveyInterviewerViewState extends State<SurveyInterviewerView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: AppStyle.labelPrimaryPoppinsBlack.responsive,
-        ),
+        Text(label, style: AppStyle.labelPrimaryPoppinsBlack.responsive),
         const SizedBox(height: 10),
         DropdownSearch<String>(
           selectedItem: value.isEmpty ? null : value,
@@ -354,10 +356,7 @@ class _SurveyInterviewerViewState extends State<SurveyInterviewerView> {
               ),
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(
-                  color: Colors.red,
-                  width: 1,
-                ),
+                borderSide: const BorderSide(color: Colors.red, width: 1),
               ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
@@ -420,10 +419,7 @@ class _SurveyInterviewerViewState extends State<SurveyInterviewerView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: AppStyle.labelPrimaryPoppinsBlack.responsive,
-        ),
+        Text(label, style: AppStyle.labelPrimaryPoppinsBlack.responsive),
         const SizedBox(height: 10),
         TextFormField(
           controller: controller,
@@ -457,10 +453,7 @@ class _SurveyInterviewerViewState extends State<SurveyInterviewerView> {
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(
-                color: Colors.red,
-                width: 1,
-              ),
+              borderSide: const BorderSide(color: Colors.red, width: 1),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,

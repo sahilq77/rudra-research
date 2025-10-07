@@ -34,9 +34,7 @@ class _AssignExecutiveViewState extends State<AssignExecutiveView> {
         child: Obx(() {
           if (controller.isLoading.value) {
             return const Center(
-              child: CircularProgressIndicator(
-                color: AppColors.primary,
-              ),
+              child: CircularProgressIndicator(color: AppColors.primary),
             );
           }
           return _buildBody();
@@ -61,16 +59,21 @@ class _AssignExecutiveViewState extends State<AssignExecutiveView> {
           fontWeight: FontWeight.w600,
         ),
       ),
+      bottom: PreferredSize(
+        preferredSize: Size.fromHeight(0),
+        child: Divider(
+          color: AppColors.grey.withOpacity(0.5),
+          // thickness: 2,
+          height: 0,
+        ),
+      ),
     );
   }
 
   Widget _buildBody() {
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: ResponsiveHelper.paddingSymmetric(
-        horizontal: 16,
-        vertical: 16,
-      ),
+      padding: ResponsiveHelper.paddingSymmetric(horizontal: 16, vertical: 16),
       child: Column(
         children: [
           _buildSearchField(),
@@ -94,9 +97,7 @@ class _AssignExecutiveViewState extends State<AssignExecutiveView> {
       child: TextFormField(
         controller: controller.searchController,
         onChanged: controller.searchExecutives,
-        inputFormatters: [
-          SecureTextInputFormatter.deny(),
-        ],
+        inputFormatters: [SecureTextInputFormatter.deny()],
         decoration: InputDecoration(
           hintText: 'Search.....',
           hintStyle: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
@@ -150,8 +151,9 @@ class _AssignExecutiveViewState extends State<AssignExecutiveView> {
   Widget _buildExecutiveCard(int index) {
     final executive = controller.filteredExecutives[index];
     final isSelected = executive.isSelected;
-    final borderColor =
-        isSelected ? AppColors.primary : AppColors.lightGrey.withOpacity(0.3);
+    final borderColor = isSelected
+        ? AppColors.primary
+        : AppColors.lightGrey.withOpacity(0.3);
 
     return InkWell(
       onTap: () => controller.toggleSelect(executive.id),
@@ -165,10 +167,7 @@ class _AssignExecutiveViewState extends State<AssignExecutiveView> {
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(12)),
-          border: Border.all(
-            color: borderColor,
-            width: isSelected ? 2.0 : 1.0,
-          ),
+          border: Border.all(color: borderColor, width: isSelected ? 2.0 : 1.0),
         ),
         child: Row(
           children: [
@@ -191,11 +190,11 @@ class _AssignExecutiveViewState extends State<AssignExecutiveView> {
                 children: [
                   Text(
                     executive.name,
-                    style:
-                        AppStyle.headingSmallPoppinsBlack.responsive.copyWith(
-                      fontSize: ResponsiveHelper.getResponsiveFontSize(16),
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: AppStyle.headingSmallPoppinsBlack.responsive
+                        .copyWith(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(16),
+                          fontWeight: FontWeight.w600,
+                        ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -206,28 +205,30 @@ class _AssignExecutiveViewState extends State<AssignExecutiveView> {
                         width: ResponsiveHelper.spacing(100),
                         child: Text(
                           'Mobile Number',
-                          style:
-                              AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
-                            fontSize:
-                                ResponsiveHelper.getResponsiveFontSize(12),
-                          ),
+                          style: AppStyle.bodySmallPoppinsGrey.responsive
+                              .copyWith(
+                                fontSize:
+                                    ResponsiveHelper.getResponsiveFontSize(12),
+                              ),
                         ),
                       ),
                       Text(
                         ' : ',
-                        style:
-                            AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
-                          fontSize: ResponsiveHelper.getResponsiveFontSize(12),
-                        ),
+                        style: AppStyle.bodySmallPoppinsGrey.responsive
+                            .copyWith(
+                              fontSize: ResponsiveHelper.getResponsiveFontSize(
+                                12,
+                              ),
+                            ),
                       ),
                       Expanded(
                         child: Text(
                           executive.mobile,
-                          style:
-                              AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
-                            fontSize:
-                                ResponsiveHelper.getResponsiveFontSize(12),
-                          ),
+                          style: AppStyle.bodySmallPoppinsGrey.responsive
+                              .copyWith(
+                                fontSize:
+                                    ResponsiveHelper.getResponsiveFontSize(12),
+                              ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -241,28 +242,30 @@ class _AssignExecutiveViewState extends State<AssignExecutiveView> {
                         width: ResponsiveHelper.spacing(100),
                         child: Text(
                           'Designation',
-                          style:
-                              AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
-                            fontSize:
-                                ResponsiveHelper.getResponsiveFontSize(12),
-                          ),
+                          style: AppStyle.bodySmallPoppinsGrey.responsive
+                              .copyWith(
+                                fontSize:
+                                    ResponsiveHelper.getResponsiveFontSize(12),
+                              ),
                         ),
                       ),
                       Text(
                         ' : ',
-                        style:
-                            AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
-                          fontSize: ResponsiveHelper.getResponsiveFontSize(12),
-                        ),
+                        style: AppStyle.bodySmallPoppinsGrey.responsive
+                            .copyWith(
+                              fontSize: ResponsiveHelper.getResponsiveFontSize(
+                                12,
+                              ),
+                            ),
                       ),
                       Expanded(
                         child: Text(
                           executive.designation,
-                          style:
-                              AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
-                            fontSize:
-                                ResponsiveHelper.getResponsiveFontSize(12),
-                          ),
+                          style: AppStyle.bodySmallPoppinsGrey.responsive
+                              .copyWith(
+                                fontSize:
+                                    ResponsiveHelper.getResponsiveFontSize(12),
+                              ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -285,10 +288,7 @@ class _AssignExecutiveViewState extends State<AssignExecutiveView> {
 
   Widget _buildBottomButton() {
     return Container(
-      padding: ResponsiveHelper.paddingSymmetric(
-        horizontal: 16,
-        vertical: 12,
-      ),
+      padding: ResponsiveHelper.paddingSymmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.white,
         boxShadow: [
@@ -300,8 +300,9 @@ class _AssignExecutiveViewState extends State<AssignExecutiveView> {
         ],
       ),
       child: Obx(() {
-        final selectedCount =
-            controller.filteredExecutives.where((e) => e.isSelected).length;
+        final selectedCount = controller.filteredExecutives
+            .where((e) => e.isSelected)
+            .length;
         return ElevatedButton(
           onPressed: selectedCount > 0
               ? () => _showConfirmDialog(selectedCount)
@@ -369,9 +370,11 @@ class _AssignExecutiveViewState extends State<AssignExecutiveView> {
                         'Cancel',
                         style: AppStyle.buttonTextSmallPoppinsBlack.responsive
                             .copyWith(
-                          fontSize: ResponsiveHelper.getResponsiveFontSize(14),
-                          fontWeight: FontWeight.w600,
-                        ),
+                              fontSize: ResponsiveHelper.getResponsiveFontSize(
+                                14,
+                              ),
+                              fontWeight: FontWeight.w600,
+                            ),
                       ),
                     ),
                   ),
@@ -387,9 +390,11 @@ class _AssignExecutiveViewState extends State<AssignExecutiveView> {
                         'Yes',
                         style: AppStyle.buttonTextSmallPoppinsWhite.responsive
                             .copyWith(
-                          fontSize: ResponsiveHelper.getResponsiveFontSize(14),
-                          fontWeight: FontWeight.w600,
-                        ),
+                              fontSize: ResponsiveHelper.getResponsiveFontSize(
+                                14,
+                              ),
+                              fontWeight: FontWeight.w600,
+                            ),
                       ),
                     ),
                   ),

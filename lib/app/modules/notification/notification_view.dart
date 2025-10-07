@@ -28,9 +28,7 @@ class _NotificationViewState extends State<NotificationView> {
         child: Obx(() {
           if (controller.isLoading.value) {
             return const Center(
-              child: CircularProgressIndicator(
-                color: AppColors.primary,
-              ),
+              child: CircularProgressIndicator(color: AppColors.primary),
             );
           }
 
@@ -45,9 +43,8 @@ class _NotificationViewState extends State<NotificationView> {
               vertical: 16,
             ),
             itemCount: controller.notifications.length,
-            separatorBuilder: (context, index) => SizedBox(
-              height: ResponsiveHelper.spacing(12),
-            ),
+            separatorBuilder: (context, index) =>
+                SizedBox(height: ResponsiveHelper.spacing(12)),
             itemBuilder: (context, index) {
               final notification = controller.notifications[index];
               return _buildNotificationItem(notification);
@@ -79,10 +76,11 @@ class _NotificationViewState extends State<NotificationView> {
       ),
       centerTitle: false,
       bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(1),
-        child: Container(
-          height: 1,
-          color: AppColors.grey.withOpacity(0.2),
+        preferredSize: Size.fromHeight(0),
+        child: Divider(
+          color: AppColors.grey.withOpacity(0.5),
+          // thickness: 2,
+          height: 0,
         ),
       ),
     );
@@ -102,10 +100,7 @@ class _NotificationViewState extends State<NotificationView> {
               ? AppColors.white
               : AppColors.lightGrey.withOpacity(0.15),
           borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(12)),
-          border: Border.all(
-            color: AppColors.grey.withOpacity(0.2),
-            width: 1,
-          ),
+          border: Border.all(color: AppColors.grey.withOpacity(0.2), width: 1),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
