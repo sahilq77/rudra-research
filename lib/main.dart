@@ -2,7 +2,6 @@ import 'package:colorful_safe_area/colorful_safe_area.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-
 import 'app/routes/app_routes.dart';
 import 'app/utils/app_colors.dart';
 import 'app/utils/app_utility.dart';
@@ -112,14 +111,15 @@ class MyApp extends StatelessWidget {
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
-            side: const BorderSide(color: AppColors.grey),
+            side: BorderSide(color: AppColors.grey.withOpacity(0.5)),
           ),
         ),
         progressIndicatorTheme: const ProgressIndicatorThemeData(
           color: AppColors.primary,
         ),
       ),
-      initialRoute: AppRoutes.myreport,
+
+      initialRoute: AppRoutes.myteam,
       getPages: AppRoutes.routes,
       builder: (context, child) {
         return ColorfulSafeArea(

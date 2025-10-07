@@ -393,4 +393,16 @@ class AppStyle {
     fontWeight: FontWeight.w500,
     color: AppColors.defaultBlack,
   );
+
+  //my team card text style
+  static TextStyle get myTeamCardTitle => GoogleFonts.poppins(
+    fontSize: _fontSize14,
+    fontWeight: FontWeight.w600,
+    color: AppColors.defaultBlack,
+  );
+  static TextStyle get myTeamRowCount => GoogleFonts.poppins(
+    fontSize: _fontSize14,
+    fontWeight: FontWeight.w600,
+    color: AppColors.white,
+  );
 }
