@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:rudra/app/modules/my_team/my_team_binding.dart';
+import 'package:rudra/app/modules/my_team/my_team_detail_list/my_team_detail_binding.dart';
 import 'package:rudra/app/modules/my_team/my_team_view.dart';
 import 'package:rudra/app/modules/myreport/my_report_list_binding.dart';
 import 'package:rudra/app/modules/myreport/my_report_list_view.dart';
@@ -18,6 +19,7 @@ import '../modules/home/home_binding.dart';
 import '../modules/home/home_view.dart';
 import '../modules/login/login_binding.dart';
 import '../modules/login/login_view.dart';
+import '../modules/my_team/my_team_detail_list/my_team_detail_list_view.dart';
 import '../modules/myreport/my_report_survey_view.dart/my_report_survey_chart_binding.dart';
 
 import '../modules/myreport/my_report_view/report_form_binding.dart';
@@ -59,6 +61,8 @@ class AppRoutes {
   static const String myreportform = '/myreport-form';
   static const String myreportChart = '/myreport-chart';
   static const String myteam = '/myteam';
+ static const String myteamdetail = '/myteam-detail';
+  
 
   static List<GetPage> routes = [
     GetPage(name: splash, page: () => const SplashView()),
@@ -141,5 +145,11 @@ class AppRoutes {
       page: () => const MyTeamView(),
       binding: MyTeamBinding(),
     ),
+ GetPage(
+      name: myteamdetail,
+      page: () => const MyTeamDetailListView(),
+      binding: MyTeamDetailBinding(),
+    ),
+    
   ];
 }

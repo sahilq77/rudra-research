@@ -405,4 +405,11 @@ class AppStyle {
     fontWeight: FontWeight.w600,
     color: AppColors.white,
   );
+
+  //my team card text style
+  static TextStyle get myteamCardRowTitle => GoogleFonts.inter(
+    fontSize: _fontSize12,
+    fontWeight: FontWeight.w500,
+    color: AppColors.grey,
+  );
 }

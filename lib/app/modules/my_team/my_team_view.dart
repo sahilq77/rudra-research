@@ -35,8 +35,8 @@ class MyTeamView extends StatelessWidget {
                     final report = controller.filteredReportList[index];
                     return GestureDetector(
                       onTap: () => Get.toNamed(
-                        AppRoutes.myreportform,
-                        arguments: {'report': report},
+                        AppRoutes.myteamdetail,
+                        // arguments: {'report': report},
                       ),
                       child: Card(
                         margin: const EdgeInsets.only(bottom: 16),
