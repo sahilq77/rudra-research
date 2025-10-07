@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:rudra/app/modules/myreport/my_report_view/report_form_controller.dart';
+import 'package:rudra/app/routes/app_routes.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../data/models/my_report/my_report_model.dart';
@@ -94,7 +95,9 @@ class MyReportFormView extends StatelessWidget {
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ElevatedButton(
-          onPressed: () {},
+          onPressed: () {
+            Get.toNamed(AppRoutes.myreportChart);
+          },
           style: AppButtonStyles.elevatedLargeBlack(),
           child: FittedBox(
             fit: BoxFit.scaleDown,
