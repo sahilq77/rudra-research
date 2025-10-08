@@ -259,7 +259,7 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
 
     return Container(
       margin: EdgeInsets.only(bottom: ResponsiveHelper.spacing(12)),
-      padding: ResponsiveHelper.paddingSymmetric(horizontal: 16, vertical: 16),
+
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(12)),
@@ -270,86 +270,112 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
       ),
       child: Column(
         children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: ResponsiveHelper.spacing(20),
-                backgroundColor: AppColors.lightGrey.withOpacity(0.3),
-                child: Text(
-                  executor.executorName.isNotEmpty
-                      ? executor.executorName[0].toUpperCase()
-                      : 'E',
-                  style: AppStyle.bodyBoldPoppinsBlack.responsive.copyWith(
-                    fontSize: ResponsiveHelper.getResponsiveFontSize(16),
+          Padding(
+            padding: ResponsiveHelper.paddingSymmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: ResponsiveHelper.spacing(20),
+                  backgroundColor: AppColors.lightGrey.withOpacity(0.3),
+                  child: Text(
+                    executor.executorName.isNotEmpty
+                        ? executor.executorName[0].toUpperCase()
+                        : 'E',
+                    style: AppStyle.bodyBoldPoppinsBlack.responsive.copyWith(
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(16),
+                    ),
                   ),
                 ),
-              ),
-              SizedBox(width: ResponsiveHelper.spacing(12)),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      executor.executorName,
-                      style: AppStyle.bodyBoldPoppinsBlack.responsive.copyWith(
-                        fontSize: ResponsiveHelper.getResponsiveFontSize(15),
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: ResponsiveHelper.spacing(2)),
-                    Text(
-                      'Status : ${executor.isAssigned ? "Assigned" : "Not Assign"}',
-                      style: AppStyle.bodySmallPoppinsPrimary.responsive
-                          .copyWith(
-                            fontSize: ResponsiveHelper.getResponsiveFontSize(
-                              11,
+                SizedBox(width: ResponsiveHelper.spacing(12)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        executor.executorName,
+                        style: AppStyle.bodyBoldPoppinsBlack.responsive
+                            .copyWith(
+                              fontSize: ResponsiveHelper.getResponsiveFontSize(
+                                15,
+                              ),
+                              fontWeight: FontWeight.w600,
                             ),
-                            color: executor.isAssigned
-                                ? Colors.green
-                                : AppColors.primary,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                width: ResponsiveHelper.spacing(30),
-                height: ResponsiveHelper.spacing(30),
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.defaultBlack,
-                ),
-                child: IconButton(
-                  padding: EdgeInsets.zero,
-                  icon: Icon(
-                    Icons.phone,
-                    color: AppColors.white,
-                    size: ResponsiveHelper.spacing(20),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: ResponsiveHelper.spacing(2)),
+                      Text(
+                        'Status : ${executor.isAssigned ? "Assigned" : "Not Assign"}',
+                        style: AppStyle.bodySmallPoppinsPrimary.responsive
+                            .copyWith(
+                              fontSize: ResponsiveHelper.getResponsiveFontSize(
+                                11,
+                              ),
+                              color: executor.isAssigned
+                                  ? Colors.green
+                                  : AppColors.primary,
+                            ),
+                      ),
+                    ],
                   ),
-                  onPressed: () => controller.makeCall(executor.id),
                 ),
-              ),
-            ],
+                Container(
+                  width: ResponsiveHelper.spacing(30),
+                  height: ResponsiveHelper.spacing(30),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.defaultBlack,
+                  ),
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    icon: Icon(
+                      Icons.phone,
+                      color: AppColors.white,
+                      size: ResponsiveHelper.spacing(20),
+                    ),
+                    onPressed: () => controller.makeCall(executor.id),
+                  ),
+                ),
+              ],
+            ),
           ),
           SizedBox(height: ResponsiveHelper.spacing(16)),
-          _buildTargetInfo(
-            'Today Completed Target',
-            executor.todayCompletedTarget,
+          Container(
+            padding: ResponsiveHelper.paddingSymmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.grey.withOpacity(0.1),
+              borderRadius: const BorderRadius.only(
+                bottomRight: Radius.circular(10),
+                bottomLeft: Radius.circular(10),
+              ),
+            ),
+            child: Column(
+              children: [
+                _buildTargetInfo(
+                  'Today Completed Target',
+                  executor.todayCompletedTarget,
+                ),
+                SizedBox(height: ResponsiveHelper.spacing(5)),
+                _buildTargetInfo(
+                  'Total Assigned Target',
+                  executor.totalAssignedTarget,
+                ),
+                SizedBox(height: ResponsiveHelper.spacing(5)),
+                _buildTargetInfo(
+                  'Total Completed Target',
+                  executor.totalAssignedTarget,
+                ),
+                SizedBox(height: ResponsiveHelper.spacing(5)),
+                _buildCounterRow(index, countController),
+              ],
+            ),
           ),
-          SizedBox(height: ResponsiveHelper.spacing(8)),
-          _buildTargetInfo(
-            'Total Assigned Target',
-            executor.totalAssignedTarget,
-          ),
-          SizedBox(height: ResponsiveHelper.spacing(8)),
-          _buildTargetInfo(
-            'Total Completed Target',
-            executor.totalAssignedTarget,
-          ),
-          SizedBox(height: ResponsiveHelper.spacing(8)),
-          _buildCounterRow(index, countController),
         ],
       ),
     );

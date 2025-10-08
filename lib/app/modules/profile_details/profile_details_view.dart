@@ -21,16 +21,17 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
   Widget build(BuildContext context) {
     ResponsiveHelper.init(context);
     return Scaffold(
+      appBar: _buildAppbar(),
       backgroundColor: AppColors.white,
       body: RefreshIndicator(
         onRefresh: controller.onRefresh,
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            _buildAppBar(),
             SliverToBoxAdapter(
               child: Column(
                 children: [
+                  SizedBox(height: ResponsiveHelper.spacing(24)),
                   _buildProfileHeader(),
                   SizedBox(height: ResponsiveHelper.spacing(24)),
                   _buildProfileInfoCard(),
@@ -43,33 +44,6 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildAppBar() {
-    return SliverAppBar(
-      backgroundColor: AppColors.white,
-      elevation: 0,
-      pinned: false,
-      floating: false,
-      expandedHeight: 0,
-      toolbarHeight: ResponsiveHelper.spacing(56),
-      leading: IconButton(
-        icon: Icon(
-          Icons.arrow_back,
-          color: AppColors.defaultBlack,
-          size: ResponsiveHelper.spacing(24),
-        ),
-        onPressed: () => Get.back(),
-      ),
-      title: Text(
-        'Profile',
-        style: AppStyle.heading1PoppinsBlack.responsive.copyWith(
-          fontSize: ResponsiveHelper.getResponsiveFontSize(18),
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      centerTitle: false,
     );
   }
 
@@ -98,10 +72,7 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
                   Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.white,
-                        width: 4,
-                      ),
+                      border: Border.all(color: AppColors.white, width: 4),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.1),
@@ -253,10 +224,7 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
   Widget _buildPerformanceCard() {
     return Container(
       margin: ResponsiveHelper.paddingSymmetric(horizontal: 16),
-      padding: ResponsiveHelper.paddingSymmetric(
-        horizontal: 16,
-        vertical: 20,
-      ),
+      padding: ResponsiveHelper.paddingSymmetric(horizontal: 16, vertical: 20),
       decoration: BoxDecoration(
         color: AppColors.lightGrey.withOpacity(0.15),
         borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(16)),
@@ -274,44 +242,45 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              Obx(() => Container(
-                    padding: ResponsiveHelper.paddingSymmetric(
-                      horizontal: 12,
-                      vertical: 6,
+              Obx(
+                () => Container(
+                  padding: ResponsiveHelper.paddingSymmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(
+                      ResponsiveHelper.spacing(8),
                     ),
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      borderRadius: BorderRadius.circular(
-                        ResponsiveHelper.spacing(8),
-                      ),
-                      border: Border.all(
-                        color: AppColors.grey.withOpacity(0.3),
-                        width: 1,
-                      ),
+                    border: Border.all(
+                      color: AppColors.grey.withOpacity(0.3),
+                      width: 1,
                     ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: controller.selectedPeriod.value,
-                        isDense: true,
-                        icon: Icon(
-                          Icons.keyboard_arrow_down,
-                          size: ResponsiveHelper.spacing(20),
-                          color: AppColors.defaultBlack,
-                        ),
-                        style:
-                            AppStyle.bodySmallPoppinsBlack.responsive.copyWith(
-                          fontSize: ResponsiveHelper.getResponsiveFontSize(12),
-                        ),
-                        items: controller.periodOptions.map((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
-                        onChanged: controller.onPeriodChanged,
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: controller.selectedPeriod.value,
+                      isDense: true,
+                      icon: Icon(
+                        Icons.keyboard_arrow_down,
+                        size: ResponsiveHelper.spacing(20),
+                        color: AppColors.defaultBlack,
                       ),
+                      style: AppStyle.bodySmallPoppinsBlack.responsive.copyWith(
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(12),
+                      ),
+                      items: controller.periodOptions.map((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
+                      onChanged: controller.onPeriodChanged,
                     ),
-                  )),
+                  ),
+                ),
+              ),
             ],
           ),
           SizedBox(height: ResponsiveHelper.spacing(20)),
@@ -326,13 +295,15 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
                 ),
                 onPressed: controller.onPreviousMonth,
               ),
-              Obx(() => Text(
-                    controller.currentMonth.value,
-                    style: AppStyle.bodyRegularPoppinsBlack.responsive.copyWith(
-                      fontSize: ResponsiveHelper.getResponsiveFontSize(14),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  )),
+              Obx(
+                () => Text(
+                  controller.currentMonth.value,
+                  style: AppStyle.bodyRegularPoppinsBlack.responsive.copyWith(
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(14),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
               IconButton(
                 icon: Icon(
                   Icons.chevron_right,
@@ -478,16 +449,33 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
     );
   }
 
+  AppBar _buildAppbar() {
+    return AppBar(
+      iconTheme: const IconThemeData(color: Colors.black),
+      backgroundColor: AppColors.white,
+      elevation: 0,
+      centerTitle: false,
+      title: Text(
+        'Profile',
+        style: AppStyle.heading1PoppinsBlack.responsive.copyWith(
+          fontSize: ResponsiveHelper.getResponsiveFontSize(18),
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(0),
+        child: Divider(color: AppColors.grey.withOpacity(0.5), height: 0),
+      ),
+    );
+  }
+
   Widget _buildLegendItem(String label, Color color) {
     return Row(
       children: [
         Container(
           width: ResponsiveHelper.spacing(12),
           height: ResponsiveHelper.spacing(12),
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         SizedBox(width: ResponsiveHelper.spacing(8)),
         Text(

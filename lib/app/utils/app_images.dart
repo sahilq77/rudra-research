@@ -11,4 +11,7 @@ class AppImages {
   static const String myNotification = 'assets/images/notification.svg';
   static const String autoRefresh = 'assets/images/autorefresh.svg';
   static const String thanks = 'assets/images/thanks.png';
+
+  //Profile screen Icons
+  static const String userIcon = 'assets/images/icons/user-icon.svg';
 }
