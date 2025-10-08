@@ -136,30 +136,33 @@ class HomeController extends GetxController {
           break;
         case 1:
           AppLogger.d('My Report tab selected', tag: 'HomeController');
-          Get.snackbar(
-            'Coming Soon',
-            'My Report feature will be available soon',
-            snackPosition: SnackPosition.TOP,
-            duration: const Duration(seconds: 2),
-          );
+          Get.toNamed(AppRoutes.myreport);
+          // Get.snackbar(
+          //   'Coming Soon',
+          //   'My Report feature will be available soon',
+          //   snackPosition: SnackPosition.TOP,
+          //   duration: const Duration(seconds: 2),
+          // );
           break;
         case 2:
           AppLogger.d('My Team tab selected', tag: 'HomeController');
-          Get.snackbar(
-            'Coming Soon',
-            'My Team feature will be available soon',
-            snackPosition: SnackPosition.TOP,
-            duration: const Duration(seconds: 2),
-          );
+          Get.toNamed(AppRoutes.myteam);
+          // Get.snackbar(
+          //   'Coming Soon',
+          //   'My Team feature will be available soon',
+          //   snackPosition: SnackPosition.TOP,
+          //   duration: const Duration(seconds: 2),
+          // );
           break;
         case 3:
           AppLogger.d('My Survey tab selected', tag: 'HomeController');
-          Get.snackbar(
-            'Coming Soon',
-            'My Survey feature will be available soon',
-            snackPosition: SnackPosition.TOP,
-            duration: const Duration(seconds: 2),
-          );
+           Get.toNamed(AppRoutes.mySurvey);
+          // Get.snackbar(
+          //   'Coming Soon',
+          //   'My Survey feature will be available soon',
+          //   snackPosition: SnackPosition.TOP,
+          //   duration: const Duration(seconds: 2),
+          // );
           break;
         case 4:
           AppLogger.d('Profile tab selected', tag: 'HomeController');

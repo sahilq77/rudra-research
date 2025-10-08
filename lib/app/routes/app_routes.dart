@@ -1,4 +1,7 @@
 import 'package:get/get.dart';
+import 'package:rudra/app/modules/my_survey/my_survey_view.dart';
+import 'package:rudra/app/modules/my_survey/my_survey_binding.dart';
+import 'package:rudra/app/modules/my_survey/my_survey_detail_list/my_survey_detail_list_binding.dart';
 import 'package:rudra/app/modules/my_team/my_team_binding.dart';
 import 'package:rudra/app/modules/my_team/my_team_detail_list/my_team_detail_binding.dart';
 import 'package:rudra/app/modules/my_team/my_team_view.dart';
@@ -19,6 +22,7 @@ import '../modules/home/home_binding.dart';
 import '../modules/home/home_view.dart';
 import '../modules/login/login_binding.dart';
 import '../modules/login/login_view.dart';
+import '../modules/my_survey/my_survey_detail_list/my_survey_deatil_list_view.dart';
 import '../modules/my_team/my_team_detail_list/my_team_detail_list_view.dart';
 import '../modules/myreport/my_report_survey_view.dart/my_report_survey_chart_binding.dart';
 
@@ -61,8 +65,9 @@ class AppRoutes {
   static const String myreportform = '/myreport-form';
   static const String myreportChart = '/myreport-chart';
   static const String myteam = '/myteam';
- static const String myteamdetail = '/myteam-detail';
-  
+  static const String myteamdetail = '/myteam-detail';
+  static const String mySurvey = '/mysurvey';
+  static const String mySurveyDetailList = '/mysurvey-detail-list';
 
   static List<GetPage> routes = [
     GetPage(name: splash, page: () => const SplashView()),
@@ -125,6 +130,7 @@ class AppRoutes {
       page: () => const SurveyInterviewerView(),
       binding: SurveyInterviewerBinding(),
     ),
+    //My Report
     GetPage(
       name: myreport,
       page: () => const MyReportListView(),
@@ -140,16 +146,29 @@ class AppRoutes {
       page: () => const MyReportSurveyView(),
       binding: MyReportSurveyChartBinding(),
     ),
+
+    //My Team
     GetPage(
       name: myteam,
       page: () => const MyTeamView(),
       binding: MyTeamBinding(),
     ),
- GetPage(
+    GetPage(
       name: myteamdetail,
       page: () => const MyTeamDetailListView(),
       binding: MyTeamDetailBinding(),
     ),
-    
+
+    //My Survey
+    GetPage(
+      name: mySurvey,
+      page: () => const MySurveyView(),
+      binding: MySurveyBinding(),
+    ),
+    GetPage(
+      name: mySurveyDetailList,
+      page: () => const MySurveyDeatilListView(),
+      binding: MySurveyDetailListBinding(),
+    ),
   ];
 }
