@@ -22,7 +22,7 @@ class AppStyle {
 
   static TextStyle get heading2PoppinsBlack => GoogleFonts.poppins(
     fontSize: _fontSize18,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w600,
     color: AppColors.defaultBlack,
   );
 
@@ -41,7 +41,7 @@ class AppStyle {
 
   static TextStyle get heading2PoppinsPrimary => GoogleFonts.poppins(
     fontSize: _fontSize18,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w600,
     color: AppColors.primary,
   );
 
@@ -60,7 +60,7 @@ class AppStyle {
 
   static TextStyle get heading2PoppinsWhite => GoogleFonts.poppins(
     fontSize: _fontSize18,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w600,
     color: AppColors.white,
   );
 
@@ -79,7 +79,7 @@ class AppStyle {
 
   static TextStyle get heading2PoppinsGrey => GoogleFonts.poppins(
     fontSize: _fontSize18,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w600,
     color: AppColors.grey,
   );
 
@@ -156,7 +156,7 @@ class AppStyle {
 
   static TextStyle get bodySmallPoppinsBlack => GoogleFonts.poppins(
     fontSize: _fontSize12,
-    fontWeight: FontWeight.w400,
+    fontWeight: FontWeight.w500,
     color: AppColors.defaultBlack,
   );
 
@@ -272,7 +272,7 @@ class AppStyle {
   // Button Text Styles (Poppins - Black)
   static TextStyle get buttonTextPoppinsBlack => GoogleFonts.poppins(
     fontSize: _fontSize18,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w600,
     color: AppColors.defaultBlack,
   );
 
@@ -285,7 +285,7 @@ class AppStyle {
   // Button Text Styles (Poppins - Primary)
   static TextStyle get buttonTextPoppinsPrimary => GoogleFonts.poppins(
     fontSize: _fontSize18,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w600,
     color: AppColors.primary,
   );
 
@@ -298,7 +298,7 @@ class AppStyle {
   // Button Text Styles (Poppins - White)
   static TextStyle get buttonTextPoppinsWhite => GoogleFonts.poppins(
     fontSize: _fontSize18,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w600,
     color: AppColors.white,
   );
 
@@ -311,7 +311,7 @@ class AppStyle {
   // Button Text Styles (Poppins - Grey)
   static TextStyle get buttonTextPoppinsGrey => GoogleFonts.poppins(
     fontSize: _fontSize18,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w600,
     color: AppColors.grey,
   );
 

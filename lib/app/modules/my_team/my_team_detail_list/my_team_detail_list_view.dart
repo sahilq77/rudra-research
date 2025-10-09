@@ -44,7 +44,9 @@ class MyTeamDetailListView extends StatelessWidget {
                           itemBuilder: (context, index) {
                             final user = controller.filteredReportList[index];
                             return GestureDetector(
-                              onTap: () {},
+                              onTap: () {
+                                Get.toNamed(AppRoutes.profileDetails);
+                              },
                               child: Card(
                                 margin: const EdgeInsets.only(bottom: 16),
                                 child: ListTile(

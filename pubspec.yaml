@@ -46,6 +46,7 @@ dependencies:
   fl_chart: ^0.69.2
   image_picker: ^1.1.2
   shimmer: ^3.0.0
+  easy_stepper: ^0.8.5
 
 dev_dependencies:
   flutter_test:

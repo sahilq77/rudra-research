@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:rudra/app/modules/myreport/my_report_survey_view.dart/my_report_survey_chart_controller.dart';
 import 'package:shimmer/shimmer.dart';
 
-
 import '../../../utils/app_colors.dart';
 import '../../../utils/responsive_utils.dart'
     show ResponsiveHelper, AppStyleResponsive;
@@ -25,151 +24,149 @@ class MyReportSurveyView extends StatelessWidget {
         onRefresh: controller.refreshData,
         backgroundColor: AppColors.white,
         child: Obx(
-          () => controller.isLoading.value
-              ? _buildShimmerEffect(context)
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16.0),
-                  itemCount: controller.surveyData.length,
-                  itemBuilder: (context, index) {
-                    final data = controller.surveyData[index];
-                    final total = data.sections.fold(0.0, (sum, s) => sum + s.value);
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 24.0),
-                      child: Card(
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        width: 24,
-                                        height: 24,
-                                        color: Colors.black,
-                                        margin: const EdgeInsets.only(right: 8),
-                                        child: Center(
-                                          child: Text(
-                                            '${index + 1}',
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ),
+          () => ListView.builder(
+            padding: const EdgeInsets.all(16.0),
+            itemCount: controller.surveyData.length,
+            itemBuilder: (context, index) {
+              final data = controller.surveyData[index];
+              final total = data.sections.fold(0.0, (sum, s) => sum + s.value);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 24.0),
+                child: Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 24,
+                                  height: 24,
+                                  color: Colors.black,
+                                  margin: const EdgeInsets.only(right: 8),
+                                  child: Center(
+                                    child: Text(
+                                      '${index + 1}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
                                       ),
-                                      Text(
-                                        data.title,
-                                        style: AppStyle.reportCardTitle.responsive
-                                            .copyWith(
-                                              fontSize:
-                                                  ResponsiveHelper.getResponsiveFontSize(
-                                                    16,
-                                                  ),
-                                            ),
-                                      ),
-                                    ],
-                                  ),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                        'Total Count',
-                                        style: AppStyle.reportCardRowCount.responsive
-                                            .copyWith(
-                                              fontSize:
-                                                  ResponsiveHelper.getResponsiveFontSize(
-                                                    12,
-                                                  ),
-                                            ),
-                                      ),
-                                      Text(
-                                        '$total',
-                                        style: AppStyle.reportCardRowCount.responsive
-                                            .copyWith(
-                                              fontSize:
-                                                  ResponsiveHelper.getResponsiveFontSize(
-                                                    12,
-                                                  ),
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                              Divider(),
-                              SizedBox(
-                                height: 200,
-                                child: PieChart(
-                                  PieChartData(
-                                    sections: data.sections.asMap().entries.map((
-                                      entry,
-                                    ) {
-                                      final idx = entry.key;
-                                      final section = entry.value;
-                                      return PieChartSectionData(
-                                        color: section.color,
-                                        value: section.value,
-                                        radius: 60,
-                                        titleStyle: const TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
-                                      );
-                                    }).toList(),
-                                    sectionsSpace: 2,
-                                    centerSpaceRadius: 30,
-                                    pieTouchData: PieTouchData(
-                                      touchCallback:
-                                          (FlTouchEvent event, pieTouchResponse) {
-                                        // Optional: Handle touch interactions
-                                      },
                                     ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 16),
-                              ...data.sections.map(
-                                (section) => Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 4.0),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        width: 12,
-                                        height: 12,
-                                        color: section.color,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        section.label,
-                                        style: AppStyle.reportCardRowCount.responsive
-                                            .copyWith(
-                                              fontSize:
-                                                  ResponsiveHelper.getResponsiveFontSize(
-                                                    12,
-                                                  ),
-                                              fontWeight: FontWeight.w600,
+                                Text(
+                                  data.title,
+                                  style: AppStyle.reportCardTitle.responsive
+                                      .copyWith(
+                                        fontSize:
+                                            ResponsiveHelper.getResponsiveFontSize(
+                                              16,
                                             ),
                                       ),
-                                    ],
-                                  ),
                                 ),
+                              ],
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'Total Count',
+                                  style: AppStyle.reportCardRowCount.responsive
+                                      .copyWith(
+                                        fontSize:
+                                            ResponsiveHelper.getResponsiveFontSize(
+                                              12,
+                                            ),
+                                      ),
+                                ),
+                                Text(
+                                  '$total',
+                                  style: AppStyle.reportCardRowCount.responsive
+                                      .copyWith(
+                                        fontSize:
+                                            ResponsiveHelper.getResponsiveFontSize(
+                                              12,
+                                            ),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        Divider(),
+                        SizedBox(
+                          height: 200,
+                          child: PieChart(
+                            PieChartData(
+                              sections: data.sections.asMap().entries.map((
+                                entry,
+                              ) {
+                                final idx = entry.key;
+                                final section = entry.value;
+                                return PieChartSectionData(
+                                  color: section.color,
+                                  value: section.value,
+                                  radius: 60,
+                                  titleStyle: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                );
+                              }).toList(),
+                              sectionsSpace: 2,
+                              centerSpaceRadius: 30,
+                              pieTouchData: PieTouchData(
+                                touchCallback:
+                                    (FlTouchEvent event, pieTouchResponse) {
+                                      // Optional: Handle touch interactions
+                                    },
                               ),
-                            ],
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  },
+                        const SizedBox(height: 16),
+                        ...data.sections.map(
+                          (section) => Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4.0),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 12,
+                                  height: 12,
+                                  color: section.color,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  section.label,
+                                  style: AppStyle.reportCardRowCount.responsive
+                                      .copyWith(
+                                        fontSize:
+                                            ResponsiveHelper.getResponsiveFontSize(
+                                              12,
+                                            ),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -232,10 +229,7 @@ class MyReportSurveyView extends StatelessWidget {
                       ],
                     ),
                     const Divider(),
-                    Container(
-                      height: 200,
-                      color: Colors.white,
-                    ),
+                    Container(height: 200, color: Colors.white),
                     const SizedBox(height: 16),
                     ...List.generate(
                       3, // Simulate 3 section labels

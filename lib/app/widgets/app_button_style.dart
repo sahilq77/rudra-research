@@ -12,7 +12,7 @@ class AppButtonStyles {
   static const double _heightExtraSmall = 32.0;
 
   // Button Border Radius
-  static const double _radiusLarge = 12.0;
+  static const double _radiusLarge = 8.0;
   static const double _radiusMedium = 8.0;
   static const double _radiusSmall = 6.0;
   static const double _radiusExtraSmall = 4.0;

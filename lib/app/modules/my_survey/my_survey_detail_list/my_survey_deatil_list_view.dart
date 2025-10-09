@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 
 import '../../../common/custominputformatters/number_input_formatter.dart';
 import '../../../common/custominputformatters/securetext_input_formatter.dart';
+import '../../../routes/app_routes.dart';
 import '../../../utils/app_colors.dart';
 import '../../../utils/app_images.dart';
 import '../../../utils/responsive_utils.dart';
@@ -67,9 +68,9 @@ class _MySurveyDeatilListViewState extends State<MySurveyDeatilListView> {
           icon: const Icon(Icons.add, color: AppColors.defaultBlack),
           onSelected: (value) {
             if (value == 'assign') {
-              // Get.toNamed(AppRoutes.assignExecutive);
+              Get.toNamed(AppRoutes.assignExecutive);
             } else {
-              //Get.toNamed(AppRoutes.addExecutive);
+            Get.toNamed(AppRoutes.addExecutive);
             }
           },
           itemBuilder: (context) => [

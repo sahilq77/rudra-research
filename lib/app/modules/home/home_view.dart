@@ -57,7 +57,7 @@ class _HomeViewState extends State<HomeView> {
                 ResponsiveHelper.safeText(
                   'Dashboard Overview',
                   style: AppStyle.heading1PoppinsBlack.responsive.copyWith(
-                    fontSize: ResponsiveHelper.getResponsiveFontSize(18),
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(17),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -207,7 +207,7 @@ class _HomeViewState extends State<HomeView> {
 
   Widget _buildDashboardCard(Map<String, dynamic> stat) {
     return Container(
-      padding: ResponsiveHelper.paddingSymmetric(horizontal: 12, vertical: 14),
+      padding: ResponsiveHelper.paddingSymmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
         color: stat['color'],
         borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(16)),
@@ -218,23 +218,24 @@ class _HomeViewState extends State<HomeView> {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
+
+            ///  crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: ResponsiveHelper.safeText(
                   stat['value'],
                   style: AppStyle.heading1PoppinsBlack.responsive.copyWith(
                     color: stat['textColor'],
-                    fontSize: ResponsiveHelper.getResponsiveFontSize(22),
-                    fontWeight: FontWeight.bold,
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(20),
+                    fontWeight: FontWeight.w600,
                     // height: 1.1,
                   ),
                   maxLines: 1,
                 ),
               ),
               Container(
-                width: ResponsiveHelper.spacing(40),
-                height: ResponsiveHelper.spacing(40),
+                width: ResponsiveHelper.spacing(50),
+                height: ResponsiveHelper.spacing(50),
                 decoration: BoxDecoration(
                   // color: Colors.white.withOpacity(0.5),
                   borderRadius: BorderRadius.circular(
@@ -270,7 +271,7 @@ class _HomeViewState extends State<HomeView> {
         ResponsiveHelper.safeText(
           'Live Surveys',
           style: AppStyle.heading1PoppinsBlack.responsive.copyWith(
-            fontSize: ResponsiveHelper.getResponsiveFontSize(18),
+            fontSize: ResponsiveHelper.getResponsiveFontSize(17),
             fontWeight: FontWeight.w600,
           ),
         ),
