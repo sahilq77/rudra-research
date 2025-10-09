@@ -1,6 +1,8 @@
 // lib/app/modules/profile/profile_view.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import 'package:rudra/app/utils/app_images.dart';
 
 import '../../../utils/app_colors.dart';
 import '../../../utils/responsive_utils.dart';
@@ -99,10 +101,7 @@ class _ProfileViewState extends State<ProfileView> {
                   Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.white,
-                        width: 4,
-                      ),
+                      border: Border.all(color: AppColors.white, width: 4),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.1),
@@ -201,22 +200,25 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   Widget _buildMenuItem(item) {
-    final IconData iconData;
+    final String iconData;
     switch (item.icon) {
       case 'person':
-        iconData = Icons.person_outline;
+        iconData = AppImages.userIcon;
         break;
       case 'notifications':
-        iconData = Icons.notifications_none;
+        iconData = AppImages.bellIcon;
         break;
       case 'assignment':
-        iconData = Icons.help_outline;
+        iconData = AppImages.myTeamIcon;
+        break;
+      case 'assignment':
+        iconData = AppImages.mySurveyIcon;
         break;
       case 'logout':
-        iconData = Icons.logout;
+        iconData = AppImages.logoutIcon;
         break;
       default:
-        iconData = Icons.circle_outlined;
+        iconData = AppImages.logoutIcon;
     }
 
     return InkWell(
@@ -229,23 +231,25 @@ class _ProfileViewState extends State<ProfileView> {
         ),
         child: Row(
           children: [
-            Icon(
-              iconData,
-              color: item.isLogout ? AppColors.primary : AppColors.defaultBlack,
-              size: ResponsiveHelper.spacing(24),
-            ),
+            SvgPicture.asset(iconData),
+            // Icon(
+            //   iconData,
+            //   color: item.isLogout ? AppColors.primary : AppColors.defaultBlack,
+            //   size: ResponsiveHelper.spacing(24),
+            // ),
             SizedBox(width: ResponsiveHelper.spacing(16)),
             Expanded(
               child: Text(
                 item.title,
-                style: (item.isLogout
-                        ? AppStyle.bodyRegularPoppinsPrimary
-                        : AppStyle.bodyRegularPoppinsBlack)
-                    .responsive
-                    .copyWith(
-                      fontSize: ResponsiveHelper.getResponsiveFontSize(15),
-                      fontWeight: FontWeight.w500,
-                    ),
+                style:
+                    (item.isLogout
+                            ? AppStyle.bodyRegularPoppinsPrimary
+                            : AppStyle.bodyRegularPoppinsBlack)
+                        .responsive
+                        .copyWith(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(15),
+                          fontWeight: FontWeight.w500,
+                        ),
               ),
             ),
             Icon(

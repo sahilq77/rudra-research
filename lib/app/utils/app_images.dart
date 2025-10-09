@@ -13,5 +13,10 @@ class AppImages {
   static const String thanks = 'assets/images/thanks.png';
 
   //Profile screen Icons
-  static const String userIcon = 'assets/images/icons/user-icon.svg';
+  static const String userIcon = 'assets/icons/user-icon.svg';
+  static const String bellIcon = 'assets/icons/bell-icon.svg';
+  static const String myTeamIcon = 'assets/icons/myteam-icon.svg';
+  static const String mySurveyIcon = 'assets/icons/my-survey-icon.svg';
+  static const String logoutIcon = 'assets/icons/logout-icon.svg';
+  
 }
