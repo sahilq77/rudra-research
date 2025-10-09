@@ -11,7 +11,6 @@ import '../../../utils/responsive_utils.dart';
 import '../../../widgets/app_button_style.dart';
 import '../../../widgets/app_style.dart';
 
-
 class ExecutiveHomeView extends StatefulWidget {
   const ExecutiveHomeView({super.key});
 
@@ -407,7 +406,7 @@ class _ExecutiveHomeViewState extends State<ExecutiveHomeView> {
               Expanded(
                 child: ElevatedButton(
                   onPressed: () {
-                    Get.toNamed(AppRoutes.surveyDetails);
+                    Get.toNamed(AppRoutes.executiveSurveyDetail);
                   },
                   style: AppButtonStyles.elevatedLargeBlack(),
                   child: Text(
@@ -420,23 +419,23 @@ class _ExecutiveHomeViewState extends State<ExecutiveHomeView> {
                   ),
                 ),
               ),
-              SizedBox(width: ResponsiveHelper.spacing(12)),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {
-                    Get.toNamed(AppRoutes.assignedSurveyTarget);
-                  },
-                  style: AppButtonStyles.outlinedLargeBlack(),
-                  child: Text(
-                    'Assign Target',
-                    style: AppStyle.buttonTextSmallPoppinsBlack.responsive
-                        .copyWith(
-                          fontSize: ResponsiveHelper.getResponsiveFontSize(14),
-                          fontWeight: FontWeight.w500,
-                        ),
-                  ),
-                ),
-              ),
+              // SizedBox(width: ResponsiveHelper.spacing(12)),
+              // Expanded(
+              //   child: OutlinedButton(
+              //     onPressed: () {
+              //       Get.toNamed(AppRoutes.assignedSurveyTarget);
+              //     },
+              //     style: AppButtonStyles.outlinedLargeBlack(),
+              //     child: Text(
+              //       'Assign Target',
+              //       style: AppStyle.buttonTextSmallPoppinsBlack.responsive
+              //           .copyWith(
+              //             fontSize: ResponsiveHelper.getResponsiveFontSize(14),
+              //             fontWeight: FontWeight.w500,
+              //           ),
+              //     ),
+              //   ),
+              // ),
             ],
           ),
         ],

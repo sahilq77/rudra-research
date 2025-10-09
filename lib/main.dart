@@ -2,6 +2,7 @@ import 'package:colorful_safe_area/colorful_safe_area.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:rudra/app/modules/executive_module/executive_home/executive_home_view.dart';
 import 'package:rudra/app/modules/manager_module/survey_detail_multiple/survey_details_multiple_view.dart';
 import 'app/routes/app_routes.dart';
 import 'app/utils/app_colors.dart';
@@ -120,7 +121,7 @@ class MyApp extends StatelessWidget {
         ),
       ),
 
-      initialRoute: AppRoutes.surveyDetailsPreview,
+      initialRoute: AppRoutes.executiveHome,
       getPages: AppRoutes.routes,
       builder: (context, child) {
         return ColorfulSafeArea(

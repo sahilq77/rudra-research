@@ -50,20 +50,20 @@ class ExecutiveHomeController extends GetxController {
         'imagePath': AppImages.targetCompleted,
         'textColor': Colors.black,
       },
-      {
-        'title': 'Number Of Surveys In Progress',
-        'value': '1500',
-        'color': const Color(0xFFD6EBFF), // Light Blue
-        'imagePath': AppImages.surveyInProgress,
-        'textColor': Colors.black,
-      },
-      {
-        'title': 'Number Of Pending Surveys',
-        'value': '500',
-        'color': const Color(0xFFFFE9D5), // Light Orange
-        'imagePath': AppImages.pendingSurvey,
-        'textColor': Colors.black,
-      },
+      // {
+      //   'title': 'Number Of Surveys In Progress',
+      //   'value': '1500',
+      //   'color': const Color(0xFFD6EBFF), // Light Blue
+      //   'imagePath': AppImages.surveyInProgress,
+      //   'textColor': Colors.black,
+      // },
+      // {
+      //   'title': 'Number Of Pending Surveys',
+      //   'value': '500',
+      //   'color': const Color(0xFFFFE9D5), // Light Orange
+      //   'imagePath': AppImages.pendingSurvey,
+      //   'textColor': Colors.black,
+      // },
     ];
 
     // Manager sees all 4 stats
@@ -94,7 +94,7 @@ class ExecutiveHomeController extends GetxController {
   ];
 
   String get userName {
-    return 'Hi, ${AppUtility.fullName ?? 'Pradeep'}';
+    return 'Hi, ${AppUtility.fullName ?? 'Abhay'}';
   }
 
   String get userRoleText {
@@ -156,7 +156,7 @@ class ExecutiveHomeController extends GetxController {
           break;
         case 3:
           AppLogger.d('My Survey tab selected', tag: 'ExecutiveHomeController');
-           Get.toNamed(AppRoutes.mySurvey);
+          Get.toNamed(AppRoutes.mySurvey);
           // Get.snackbar(
           //   'Coming Soon',
           //   'My Survey feature will be available soon',
@@ -174,10 +174,13 @@ class ExecutiveHomeController extends GetxController {
       switch (index) {
         case 0:
           // Already on Home, do nothing
+          Get.toNamed(AppRoutes.executiveHome);
           AppLogger.d('Home tab selected', tag: 'ExecutiveHomeController');
           break;
         case 1:
           AppLogger.d('My Survey tab selected', tag: 'ExecutiveHomeController');
+          Get.toNamed(AppRoutes.executiveMySurvey);
+
           Get.snackbar(
             'Coming Soon',
             'My Survey feature will be available soon',
