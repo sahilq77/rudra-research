@@ -5,6 +5,8 @@ import 'package:rudra/app/modules/executive_module/executive_my_survey/executive
 import 'package:rudra/app/modules/executive_module/executive_my_survey/executive_my_survey_view.dart';
 import 'package:rudra/app/modules/executive_module/executive_survey_detail/executive_survey_detail_binding.dart';
 import 'package:rudra/app/modules/executive_module/executive_survey_detail/executive_survey_detail_view.dart';
+import 'package:rudra/app/modules/executive_module/executive_survey_detail/executive_survey_interviewer_view/executive_survey_interviewer_binding.dart';
+import 'package:rudra/app/modules/executive_module/executive_survey_detail/executive_survey_question/executive_survey_question_binding.dart';
 import 'package:rudra/app/modules/manager_module/my_survey/my_survey_view.dart';
 import 'package:rudra/app/modules/manager_module/my_survey/my_survey_binding.dart';
 import 'package:rudra/app/modules/manager_module/my_survey/my_survey_detail_list/my_survey_detail_list_binding.dart';
@@ -19,6 +21,8 @@ import 'package:rudra/app/modules/manager_module/myreport/my_report_survey_view.
 import 'package:rudra/app/modules/manager_module/myreport/my_report_view/my_report_form_view.dart';
 
 import '../modules/executive_module/executive_home/executive_home_view.dart';
+import '../modules/executive_module/executive_survey_detail/executive_survey_interviewer_view/executive_survey_interviewer_view.dart';
+import '../modules/executive_module/executive_survey_detail/executive_survey_question/executive_survey_question_view.dart';
 import '../modules/manager_module/add_executive/add_executive_binding.dart';
 import '../modules/manager_module/add_executive/add_executive_view.dart';
 import '../modules/manager_module/assign_executive/assign_executive_binding.dart';
@@ -82,6 +86,8 @@ class AppRoutes {
   static const String executiveHome = '/executive-home';
   static const String executiveMySurvey = '/executive-my-survey';
   static const String executiveSurveyDetail = '/executive-survey-detail';
+  static const String executiveSurveyQuestion = '/executive-survey-question';
+  static const String executiveSurveyInterviewer = '/executive-survey-interviewer';
 
   static List<GetPage> routes = [
     GetPage(name: splash, page: () => const SplashView()),
@@ -207,5 +213,16 @@ class AppRoutes {
       page: () => ExecutiveSurveyDetailView(),
       binding: ExecutiveSurveyDetailBinding(),
     ),
+    GetPage(
+      name: executiveSurveyQuestion,
+      page: () => ExecutiveSurveyQuestionView(),
+      binding: ExecutiveSurveyQuestionBinding(),
+    ),
+      GetPage(
+      name: executiveSurveyInterviewer,
+      page: () => ExecutiveSurveyInterviewerView(),
+      binding: ExecutiveSurveyInterviewerBinding(),
+    ),
+    
   ];
 }

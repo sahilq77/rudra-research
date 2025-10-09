@@ -26,11 +26,14 @@ class ExecutiveSurveyDetailController extends GetxController {
 
   void nextPage() {
     if (formKey.currentState!.validate()) {
-      Get.toNamed(AppRoutes.surveyQuestion, arguments: {
-        'language': selectedLanguage.value,
-        'area': selectedArea.value,
-        // Pass other auto-fetched if needed
-      });
+      Get.toNamed(
+        AppRoutes.executiveSurveyQuestion,
+        arguments: {
+          'language': selectedLanguage.value,
+          'area': selectedArea.value,
+          // Pass other auto-fetched if needed
+        },
+      );
     }
   }
 
