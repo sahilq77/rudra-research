@@ -3,6 +3,8 @@ import 'package:rudra/app/modules/Manager_module/survey_detail_multiple/survey_d
 import 'package:rudra/app/modules/executive_module/executive_home/executive_home_binding.dart';
 import 'package:rudra/app/modules/executive_module/executive_my_survey/executive_my_survey_binding.dart';
 import 'package:rudra/app/modules/executive_module/executive_my_survey/executive_my_survey_view.dart';
+import 'package:rudra/app/modules/executive_module/executive_profile/executive_profile_binding.dart';
+import 'package:rudra/app/modules/executive_module/executive_profile/executive_profile_view.dart';
 import 'package:rudra/app/modules/executive_module/executive_survey_detail/executive_survey_detail_binding.dart';
 import 'package:rudra/app/modules/executive_module/executive_survey_detail/executive_survey_detail_view.dart';
 import 'package:rudra/app/modules/executive_module/executive_survey_detail/executive_survey_interviewer_view/executive_survey_interviewer_binding.dart';
@@ -87,7 +89,9 @@ class AppRoutes {
   static const String executiveMySurvey = '/executive-my-survey';
   static const String executiveSurveyDetail = '/executive-survey-detail';
   static const String executiveSurveyQuestion = '/executive-survey-question';
-  static const String executiveSurveyInterviewer = '/executive-survey-interviewer';
+  static const String executiveSurveyInterviewer =
+      '/executive-survey-interviewer';
+  static const String executivProfile = '/executive-profile';
 
   static List<GetPage> routes = [
     GetPage(name: splash, page: () => const SplashView()),
@@ -218,11 +222,15 @@ class AppRoutes {
       page: () => ExecutiveSurveyQuestionView(),
       binding: ExecutiveSurveyQuestionBinding(),
     ),
-      GetPage(
+    GetPage(
       name: executiveSurveyInterviewer,
       page: () => ExecutiveSurveyInterviewerView(),
       binding: ExecutiveSurveyInterviewerBinding(),
     ),
-    
+    GetPage(
+      name: executivProfile,
+      page: () => ExecutiveProfileView(),
+      binding: ExecutiveProfileBinding(),
+    ),
   ];
 }
