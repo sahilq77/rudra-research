@@ -1,10 +1,10 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:rudra/app/modules/executive_profile_details/executive_profile_detail_controller.dart';
-import '../../utils/app_colors.dart';
-import '../../utils/responsive_utils.dart';
-import '../../widgets/app_style.dart';
+import 'package:rudra/app/modules/executive_module/executive_profile_details/executive_profile_detail_controller.dart';
+import '../../../utils/app_colors.dart';
+import '../../../utils/responsive_utils.dart';
+import '../../../widgets/app_style.dart';
 
 
 class ExecutiveProfileDetailView extends StatefulWidget {

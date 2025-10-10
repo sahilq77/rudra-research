@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:rudra/app/data/models/profile_details/performance_data_model.dart';
 import 'package:rudra/app/utils/app_logger.dart';
 import 'package:rudra/app/utils/app_utility.dart';
-import '../../data/models/profile_details/profile_details_model.dart';
+import '../../../data/models/profile_details/profile_details_model.dart';
 
 class ExecutiveProfileDetailController extends GetxController {
   final RxBool isLoading = false.obs;

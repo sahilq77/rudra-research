@@ -121,7 +121,7 @@ class MyApp extends StatelessWidget {
         ),
       ),
 
-      initialRoute: AppRoutes.executiveHome,
+      initialRoute: AppRoutes.executiveNotification,
       getPages: AppRoutes.routes,
       builder: (context, child) {
         return ColorfulSafeArea(
