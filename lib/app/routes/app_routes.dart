@@ -29,6 +29,8 @@ import 'package:rudra/app/modules/validator_module/validator_home/validator_home
 import 'package:rudra/app/modules/validator_module/validator_home/validator_home_view.dart';
 import 'package:rudra/app/modules/validator_module/validator_my_survey/validator_my_survey_binding.dart';
 import 'package:rudra/app/modules/validator_module/validator_my_survey/validator_my_survey_view.dart';
+import 'package:rudra/app/modules/validator_module/validator_profile/validator_profile_binding.dart';
+import 'package:rudra/app/modules/validator_module/validator_profile/validator_profile_view.dart';
 import 'package:rudra/app/modules/validator_module/validator_start_survey/validator_start_survey_list_binding.dart';
 import 'package:rudra/app/modules/validator_module/validator_start_survey/validator_start_survey_list_view.dart';
 import 'package:rudra/app/modules/validator_module/validator_start_survey_detail/validator_start_survey_binding.dart';
@@ -119,6 +121,8 @@ class AppRoutes {
       '/validator-start-survey-detail';
   static const String validatorSubmitSurvey = '/validator-submit';
   static const String validatorMySurvey = '/validator-my-survey';
+
+  static const String validatorProfile = '/validator-my-profile';
 
   static List<GetPage> routes = [
     GetPage(name: splash, page: () => const SplashView()),
@@ -290,6 +294,11 @@ class AppRoutes {
       name: validatorMySurvey,
       page: () => ValidatorMySurveyView(),
       binding: ValidatorMySurveyBinding(),
+    ),
+    GetPage(
+      name: validatorProfile,
+      page: () => ValidatorProfileView(),
+      binding: ValidatorProfileBinding(),
     ),
   ];
 }
