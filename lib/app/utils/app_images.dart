@@ -18,5 +18,10 @@ class AppImages {
   static const String myTeamIcon = 'assets/icons/myteam-icon.svg';
   static const String mySurveyIcon = 'assets/icons/my-survey-icon.svg';
   static const String logoutIcon = 'assets/icons/logout-icon.svg';
-  
+
+  //Bottom Navigation screen Icons
+  static const String homeIcon = 'assets/icons/home-i.svg';
+  static const String reportIcon = 'assets/icons/report-i.svg';
+  static const String myTeambIcon = 'assets/icons/my-team-i.svg';
+  static const String profileIcon = 'assets/icons/profile-i.svg';
 }

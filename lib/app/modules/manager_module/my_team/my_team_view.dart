@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:rudra/bottom_navigation/bottom_navigation_controller.dart';
+import 'package:rudra/bottom_navigation/bottom_navigation_view.dart';
 import 'package:shimmer/shimmer.dart';
 
 import '../../../utils/app_colors.dart';
@@ -16,76 +18,83 @@ class MyTeamView extends StatelessWidget {
   Widget build(BuildContext context) {
     // Initialize the controller
     final MyTeamController controller = Get.put(MyTeamController());
+    final BottomNavigationController bottomController = Get.put(
+      BottomNavigationController(),
+    );
     ResponsiveHelper.init(context);
 
-    return Scaffold(
-      appBar: _buildAppbar(),
-      body: RefreshIndicator(
-        onRefresh: controller.refreshData,
-        child: Obx(
-          () => controller.isLoading.value
-              ? _buildShimmerEffect()
-              : controller.filteredReportList.isEmpty
-              ? const Center(child: Text('No reports found'))
-              : ListView.builder(
-                  physics: AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(16.0),
-                  itemCount: controller.filteredReportList.length,
-                  itemBuilder: (context, index) {
-                    final report = controller.filteredReportList[index];
-                    return GestureDetector(
-                      onTap: () => Get.toNamed(
-                        AppRoutes.myteamdetail,
-                        // arguments: {'report': report},
-                      ),
-                      child: Card(
-                        margin: const EdgeInsets.only(bottom: 16),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Text(
-                                report.title,
-                                style: AppStyle.myTeamCardTitle.responsive
-                                    .copyWith(
-                                      fontSize:
-                                          ResponsiveHelper.getResponsiveFontSize(
-                                            14,
-                                          ),
-                                    ),
-                              ),
-                            ),
-                            Container(
-                              height: ResponsiveHelper.screenHeight * 0.08,
-                              width: ResponsiveHelper.screenWidth * 0.15,
-                              decoration: BoxDecoration(
-                                color: AppColors.defaultBlack,
-                                borderRadius: const BorderRadius.only(
-                                  topRight: Radius.circular(10),
-                                  bottomRight: Radius.circular(10),
-                                ),
-                              ),
-                              child: Center(
+    return WillPopScope(
+      onWillPop: () => bottomController.onWillPop(),
+      child: Scaffold(
+        appBar: _buildAppbar(),
+        body: RefreshIndicator(
+          onRefresh: controller.refreshData,
+          child: Obx(
+            () => controller.isLoading.value
+                ? _buildShimmerEffect()
+                : controller.filteredReportList.isEmpty
+                ? const Center(child: Text('No reports found'))
+                : ListView.builder(
+                    physics: AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16.0),
+                    itemCount: controller.filteredReportList.length,
+                    itemBuilder: (context, index) {
+                      final report = controller.filteredReportList[index];
+                      return GestureDetector(
+                        onTap: () => Get.toNamed(
+                          AppRoutes.myteamdetail,
+                          // arguments: {'report': report},
+                        ),
+                        child: Card(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(16.0),
                                 child: Text(
-                                  "04",
-                                  style: AppStyle.myTeamRowCount.responsive
+                                  report.title,
+                                  style: AppStyle.myTeamCardTitle.responsive
                                       .copyWith(
                                         fontSize:
                                             ResponsiveHelper.getResponsiveFontSize(
-                                              15,
+                                              14,
                                             ),
                                       ),
                                 ),
                               ),
-                            ),
-                          ],
+                              Container(
+                                height: ResponsiveHelper.screenHeight * 0.08,
+                                width: ResponsiveHelper.screenWidth * 0.15,
+                                decoration: BoxDecoration(
+                                  color: AppColors.defaultBlack,
+                                  borderRadius: const BorderRadius.only(
+                                    topRight: Radius.circular(10),
+                                    bottomRight: Radius.circular(10),
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    "04",
+                                    style: AppStyle.myTeamRowCount.responsive
+                                        .copyWith(
+                                          fontSize:
+                                              ResponsiveHelper.getResponsiveFontSize(
+                                                15,
+                                              ),
+                                        ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
+                      );
+                    },
+                  ),
+          ),
         ),
+         bottomNavigationBar: CustomBottomBar(),
       ),
     );
   }

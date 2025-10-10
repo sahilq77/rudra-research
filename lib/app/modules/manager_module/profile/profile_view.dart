@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:rudra/app/utils/app_images.dart';
+import 'package:rudra/bottom_navigation/bottom_navigation_view.dart';
 
+import '../../../../bottom_navigation/bottom_navigation_controller.dart';
 import '../../../utils/app_colors.dart';
 import '../../../utils/responsive_utils.dart';
 import '../../../widgets/app_style.dart';
@@ -18,30 +20,38 @@ class ProfileView extends StatefulWidget {
 
 class _ProfileViewState extends State<ProfileView> {
   final ProfileController controller = Get.find();
+  final BottomNavigationController bottomController = Get.put(
+    BottomNavigationController(),
+  );
 
   @override
   Widget build(BuildContext context) {
     ResponsiveHelper.init(context);
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      body: RefreshIndicator(
-        onRefresh: controller.onRefresh,
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            _buildAppBar(),
-            SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  _buildProfileHeader(),
-                  SizedBox(height: ResponsiveHelper.spacing(24)),
-                  _buildMenuList(),
-                  SizedBox(height: ResponsiveHelper.spacing(24)),
-                ],
+    return WillPopScope(
+      onWillPop: () => bottomController.onWillPop(),
+
+      child: Scaffold(
+        backgroundColor: AppColors.white,
+        body: RefreshIndicator(
+          onRefresh: controller.onRefresh,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              _buildAppBar(),
+              SliverToBoxAdapter(
+                child: Column(
+                  children: [
+                    _buildProfileHeader(),
+                    SizedBox(height: ResponsiveHelper.spacing(24)),
+                    _buildMenuList(),
+                    SizedBox(height: ResponsiveHelper.spacing(24)),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
+        bottomNavigationBar: CustomBottomBar(),
       ),
     );
   }
@@ -54,14 +64,14 @@ class _ProfileViewState extends State<ProfileView> {
       floating: false,
       expandedHeight: 0,
       toolbarHeight: ResponsiveHelper.spacing(56),
-      leading: IconButton(
-        icon: Icon(
-          Icons.arrow_back,
-          color: AppColors.defaultBlack,
-          size: ResponsiveHelper.spacing(24),
-        ),
-        onPressed: () => Get.back(),
-      ),
+      // leading: IconButton(
+      //   icon: Icon(
+      //     Icons.arrow_back,
+      //     color: AppColors.defaultBlack,
+      //     size: ResponsiveHelper.spacing(24),
+      //   ),
+      //   onPressed: () => Get.back(),
+      // ),
       title: Text(
         'Profile',
         style: AppStyle.heading1PoppinsBlack.responsive.copyWith(
