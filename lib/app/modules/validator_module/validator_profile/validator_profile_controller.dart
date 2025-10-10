@@ -15,18 +15,19 @@ class ValidatorProfileController extends GetxController {
     ProfileMenuItemModel(
       title: 'Profile',
       icon: 'person',
-      route: AppRoutes.executivProfileDetail, // Changed from '/profile-details'
+      route:
+          AppRoutes.validatorProfileDetail, // Changed from '/profile-details'
     ),
     ProfileMenuItemModel(
       title: 'Notification',
       icon: 'notifications',
       route: AppRoutes.executiveNotification, // Changed from '/notifications'
     ),
-    ProfileMenuItemModel(
-      title: 'My Survey',
-      icon: 'assignment',
-      route: AppRoutes.executiveMySurvey,
-    ),
+    // ProfileMenuItemModel(
+    //   title: 'My Survey',
+    //   icon: 'assignment',
+    //   route: AppRoutes.executiveMySurvey,
+    // ),
     ProfileMenuItemModel(
       title: 'Logout',
       icon: 'logout',
