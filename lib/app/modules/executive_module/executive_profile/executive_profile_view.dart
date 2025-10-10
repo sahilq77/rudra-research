@@ -6,6 +6,8 @@ import 'package:rudra/app/modules/executive_module/executive_profile/executive_p
 import 'package:rudra/app/utils/app_colors.dart' show AppColors;
 import 'package:rudra/app/utils/app_images.dart';
 import 'package:rudra/app/utils/responsive_utils.dart';
+import 'package:rudra/bottom_navigation/bottom_navigation_controller.dart';
+import 'package:rudra/bottom_navigation/bottom_navigation_view.dart';
 
 import '../../../widgets/app_style.dart';
 
@@ -13,35 +15,42 @@ class ExecutiveProfileView extends StatefulWidget {
   const ExecutiveProfileView({super.key});
 
   @override
-  State<ExecutiveProfileView> createState() => _ProfileViewState();
+  State<ExecutiveProfileView> createState() => _ExecutiveProfileViewState();
 }
 
-class _ProfileViewState extends State<ExecutiveProfileView> {
+class _ExecutiveProfileViewState extends State<ExecutiveProfileView> {
   final ExecutiveProfileController controller = Get.find();
+  final BottomNavigationController bottomController = Get.put(
+    BottomNavigationController(),
+  );
 
   @override
   Widget build(BuildContext context) {
     ResponsiveHelper.init(context);
-    return Scaffold(
-      appBar: _buildAppbar(),
-      backgroundColor: AppColors.white,
-      body: RefreshIndicator(
-        onRefresh: controller.onRefresh,
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  SizedBox(height: ResponsiveHelper.spacing(24)),
-                  _buildProfileHeader(),
-                  SizedBox(height: ResponsiveHelper.spacing(24)),
-                  _buildMenuList(),
-                  SizedBox(height: ResponsiveHelper.spacing(24)),
-                ],
+    return WillPopScope(
+      onWillPop: () => bottomController.onWillPop(),
+      child: Scaffold(
+        appBar: _buildAppbar(),
+        backgroundColor: AppColors.white,
+        bottomNavigationBar: CustomBottomBar(),
+        body: RefreshIndicator(
+          onRefresh: controller.onRefresh,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: Column(
+                  children: [
+                    SizedBox(height: ResponsiveHelper.spacing(24)),
+                    _buildProfileHeader(),
+                    SizedBox(height: ResponsiveHelper.spacing(24)),
+                    _buildMenuList(),
+                    SizedBox(height: ResponsiveHelper.spacing(24)),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -202,12 +211,10 @@ class _ProfileViewState extends State<ExecutiveProfileView> {
       case 'notifications':
         iconData = AppImages.bellIcon;
         break;
-      case 'assignment':
+      case 'My Survey':
         iconData = AppImages.myTeamIcon;
         break;
-      case 'assignment':
-        iconData = AppImages.mySurveyIcon;
-        break;
+
       case 'logout':
         iconData = AppImages.logoutIcon;
         break;

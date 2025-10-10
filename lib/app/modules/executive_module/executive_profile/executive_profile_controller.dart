@@ -11,23 +11,23 @@ import '../../manager_module/profile/logout_dialog.dart';
 class ExecutiveProfileController extends GetxController {
   final RxBool isLoading = false.obs;
 
-  List<ProfileMenuItemModel> get menuItems => [
-    ProfileMenuItemModel(
+  List<ExecutiveProfileMenuItemModel> get menuItems => [
+    ExecutiveProfileMenuItemModel(
       title: 'Profile',
       icon: 'person',
-      route: AppRoutes.executivProfileDetail, // Changed from '/profile-details'
+      route: AppRoutes.executivProfileDetail,
     ),
-    ProfileMenuItemModel(
+    ExecutiveProfileMenuItemModel(
       title: 'Notification',
       icon: 'notifications',
       route: AppRoutes.executiveNotification, // Changed from '/notifications'
     ),
-    ProfileMenuItemModel(
+    ExecutiveProfileMenuItemModel(
       title: 'My Survey',
-      icon: 'assignment',
+      icon: 'My Survey',
       route: AppRoutes.executiveMySurvey,
     ),
-    ProfileMenuItemModel(
+    ExecutiveProfileMenuItemModel(
       title: 'Logout',
       icon: 'logout',
       route: '',
@@ -53,22 +53,29 @@ class ExecutiveProfileController extends GetxController {
     AppLogger.d('Profile page refreshed', tag: 'ExecutiveProfileController');
   }
 
-  void onMenuItemTap(ProfileMenuItemModel item) {
+  void onMenuItemTap(ExecutiveProfileMenuItemModel item) {
     if (item.isLogout) {
       _showLogoutDialog();
-    } else if (item.route == AppRoutes.profileDetails) {
+    } else if (item.route == AppRoutes.executivProfileDetail) {
       AppLogger.d(
         'Navigate to: ${item.route}',
         tag: 'ExecutiveProfileController',
       );
-      Get.toNamed(AppRoutes.profileDetails);
-    } else if (item.route == AppRoutes.notifications) {
+      Get.toNamed(AppRoutes.executivProfileDetail);
+    } else if (item.route == AppRoutes.executiveNotification) {
       // Added this condition
       AppLogger.d(
         'Navigate to: ${item.route}',
         tag: 'ExecutiveProfileController',
       );
-      Get.toNamed(AppRoutes.notifications);
+      Get.toNamed(AppRoutes.executiveNotification);
+    } else if (item.route == AppRoutes.executiveMySurvey) {
+      // Added this condition
+      AppLogger.d(
+        'Navigate to: ${item.route}',
+        tag: 'ExecutiveProfileController',
+      );
+      Get.toNamed(AppRoutes.executiveMySurvey );
     } else if (item.route.isNotEmpty) {
       // Changed from else to else if
       AppLogger.d(
@@ -130,4 +137,18 @@ class ExecutiveProfileController extends GetxController {
       isLoading.value = false;
     }
   }
+}
+
+class ExecutiveProfileMenuItemModel {
+  final String title;
+  final String icon;
+  final String route;
+  final bool isLogout;
+
+  ExecutiveProfileMenuItemModel({
+    required this.title,
+    required this.icon,
+    required this.route,
+    this.isLogout = false,
+  });
 }

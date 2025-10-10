@@ -450,47 +450,4 @@ class _HomeViewState extends State<HomeView> {
       ),
     );
   }
-
-  Widget _buildBottomNav() {
-    final navItems = controller.bottomNavItems;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: BottomNavigationBar(
-        currentIndex: controller.currentIndex.value,
-        onTap: controller.changeTab,
-        selectedItemColor: AppColors.defaultBlack,
-        unselectedItemColor: AppColors.grey.withOpacity(0.6),
-        type: BottomNavigationBarType.fixed,
-        elevation: 0,
-        backgroundColor: AppColors.white,
-        selectedLabelStyle: AppStyle.bodySmallPoppinsBlack.responsive.copyWith(
-          fontSize: ResponsiveHelper.getResponsiveFontSize(11),
-          fontWeight: FontWeight.w600,
-        ),
-        unselectedLabelStyle: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
-          fontSize: ResponsiveHelper.getResponsiveFontSize(11),
-          fontWeight: FontWeight.w500,
-        ),
-        items: navItems.map((item) {
-          return BottomNavigationBarItem(
-            icon: Padding(
-              padding: EdgeInsets.only(bottom: ResponsiveHelper.spacing(4)),
-              child: Icon(item['icon'], size: ResponsiveHelper.spacing(24)),
-            ),
-            label: item['label'],
-          );
-        }).toList(),
-      ),
-    );
-  }
 }

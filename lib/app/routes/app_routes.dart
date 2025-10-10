@@ -29,6 +29,8 @@ import 'package:rudra/app/modules/validator_module/validator_home/validator_home
 import 'package:rudra/app/modules/validator_module/validator_home/validator_home_view.dart';
 import 'package:rudra/app/modules/validator_module/validator_my_survey/validator_my_survey_binding.dart';
 import 'package:rudra/app/modules/validator_module/validator_my_survey/validator_my_survey_view.dart';
+import 'package:rudra/app/modules/validator_module/validator_notification/validator_notification_binding.dart';
+import 'package:rudra/app/modules/validator_module/validator_notification/validator_notification_view.dart';
 import 'package:rudra/app/modules/validator_module/validator_profile/validator_profile_binding.dart';
 import 'package:rudra/app/modules/validator_module/validator_profile/validator_profile_view.dart';
 import 'package:rudra/app/modules/validator_module/validator_profile_details/validator_profile_detail_binding.dart';
@@ -126,6 +128,9 @@ class AppRoutes {
 
   static const String validatorProfile = '/validator-my-profile';
   static const String validatorProfileDetail = '/validator-my-profile-detail';
+static const String validatorNotification = '/validator-notification';
+
+  
 
   static List<GetPage> routes = [
     GetPage(name: splash, page: () => const SplashView()),
@@ -266,6 +271,13 @@ class AppRoutes {
       page: () => ExecutiveProfileView(),
       binding: ExecutiveProfileBinding(),
     ),
+   GetPage(
+      name: executivProfileDetail,
+      page: () => ExecutiveProfileDetailView(),
+      binding: ExecutiveProfileDetailBinding(),
+    ),
+
+    
     GetPage(
       name: executiveNotification,
       page: () => ExecutiveNotificationView(),
@@ -308,5 +320,11 @@ class AppRoutes {
       page: () => ValidatorProfileDetailView(),
       binding: ValidatorProfileDetailBinding(),
     ),
+     GetPage(
+      name: validatorNotification,
+      page: () => ValidatorNotificationView(),
+      binding: ValidatorNotificationBinding(),
+    ),
+
   ];
 }

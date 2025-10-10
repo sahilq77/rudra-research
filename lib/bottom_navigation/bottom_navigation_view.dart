@@ -94,7 +94,7 @@ class _CustomBottomBarState extends State<CustomBottomBar> {
         ),
 
         _buildNavItem(
-          index: 3,
+          index: 2,
           assetPath: AppImages.profileIcon,
           label: 'Profile',
           controller: controller,

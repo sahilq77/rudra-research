@@ -21,7 +21,7 @@ class ValidatorProfileController extends GetxController {
     ProfileMenuItemModel(
       title: 'Notification',
       icon: 'notifications',
-      route: AppRoutes.executiveNotification, // Changed from '/notifications'
+      route: AppRoutes.validatorNotification, // Changed from '/notifications'
     ),
     // ProfileMenuItemModel(
     //   title: 'My Survey',
@@ -57,19 +57,19 @@ class ValidatorProfileController extends GetxController {
   void onMenuItemTap(ProfileMenuItemModel item) {
     if (item.isLogout) {
       _showLogoutDialog();
-    } else if (item.route == AppRoutes.profileDetails) {
+    } else if (item.route == AppRoutes.validatorProfileDetail) {
       AppLogger.d(
         'Navigate to: ${item.route}',
         tag: 'ExecutiveProfileController',
       );
-      Get.toNamed(AppRoutes.profileDetails);
-    } else if (item.route == AppRoutes.notifications) {
+      Get.toNamed(AppRoutes.validatorProfileDetail);
+    } else if (item.route == AppRoutes.validatorNotification) {
       // Added this condition
       AppLogger.d(
         'Navigate to: ${item.route}',
         tag: 'ExecutiveProfileController',
       );
-      Get.toNamed(AppRoutes.notifications);
+      Get.toNamed(AppRoutes.validatorNotification);
     } else if (item.route.isNotEmpty) {
       // Changed from else to else if
       AppLogger.d(

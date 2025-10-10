@@ -21,11 +21,8 @@ class SplashController extends GetxController {
             } else if (AppUtility.userRole == 1) {
               Get.offNamed(AppRoutes.executiveHome);
             } else if (AppUtility.userRole == 2) {
-              //Get.offNamed(AppRoutes.validatorHome);
-              
-            } else {
-              
-            }
+              Get.offNamed(AppRoutes.validatorHome);
+            } else {}
           } else {
             Get.offNamed(AppRoutes.login);
           }

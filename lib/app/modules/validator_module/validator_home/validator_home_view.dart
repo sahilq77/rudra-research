@@ -4,6 +4,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:rudra/app/modules/executive_module/executive_home/executive_home_controller.dart';
 import 'package:rudra/app/modules/validator_module/validator_home/validator_home_controller.dart';
+import 'package:rudra/bottom_navigation/bottom_navigation_controller.dart';
+import 'package:rudra/bottom_navigation/bottom_navigation_view.dart';
 
 import '../../../routes/app_routes.dart';
 import '../../../utils/app_colors.dart';
@@ -21,14 +23,20 @@ class ValidatorHomeView extends StatefulWidget {
 
 class _ValidatorHomeViewState extends State<ValidatorHomeView> {
   final ValidatorHomeController controller = Get.find();
+  final BottomNavigationController bottomController = Get.put(
+    BottomNavigationController(),
+  );
 
   @override
   Widget build(BuildContext context) {
     ResponsiveHelper.init(context);
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      body: Obx(() => _buildBody(context)),
-      bottomNavigationBar: Obx(() => _buildBottomNav()),
+    return WillPopScope(
+      onWillPop: () => bottomController.onWillPop(),
+      child: Scaffold(
+        backgroundColor: AppColors.white,
+        body: Obx(() => _buildBody(context)),
+        bottomNavigationBar: CustomBottomBar(),
+      ),
     );
   }
 
@@ -415,7 +423,7 @@ class _ValidatorHomeViewState extends State<ValidatorHomeView> {
               Expanded(
                 child: ElevatedButton(
                   onPressed: () {
-                    Get.toNamed(AppRoutes.executiveSurveyDetail);
+                    Get.toNamed(AppRoutes.validatorStartSurveyDetail);
                   },
                   style: AppButtonStyles.elevatedLargeBlack(),
                   child: Text(

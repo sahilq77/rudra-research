@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:rudra/app/modules/executive_module/executive_home/executive_home_controller.dart';
+import 'package:rudra/bottom_navigation/bottom_navigation_view.dart';
 
+import '../../../../bottom_navigation/bottom_navigation_controller.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/app_colors.dart';
 import '../../../utils/app_images.dart';
@@ -20,14 +22,20 @@ class ExecutiveHomeView extends StatefulWidget {
 
 class _ExecutiveHomeViewState extends State<ExecutiveHomeView> {
   final ExecutiveHomeController controller = Get.find();
+  final BottomNavigationController bottomController = Get.put(
+    BottomNavigationController(),
+  );
 
   @override
   Widget build(BuildContext context) {
     ResponsiveHelper.init(context);
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      body: Obx(() => _buildBody(context)),
-      bottomNavigationBar: Obx(() => _buildBottomNav()),
+    return WillPopScope(
+      onWillPop: () => bottomController.onWillPop(),
+      child: Scaffold(
+        backgroundColor: AppColors.white,
+        body: Obx(() => _buildBody(context)),
+        bottomNavigationBar: CustomBottomBar(),
+      ),
     );
   }
 

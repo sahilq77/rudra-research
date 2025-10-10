@@ -277,7 +277,7 @@ class _ExecutiveSurveyInterviewerViewState
                           controller.resetForm();
                           Get.back(); // Close dialog
                           Get.offAllNamed(
-                            AppRoutes.surveyDetails,
+                            AppRoutes.executiveSurveyDetail,
                           ); // Navigate to next survey
                         },
                         style: ElevatedButton.styleFrom(

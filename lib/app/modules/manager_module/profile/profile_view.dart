@@ -218,10 +218,10 @@ class _ProfileViewState extends State<ProfileView> {
       case 'notifications':
         iconData = AppImages.bellIcon;
         break;
-      case 'assignment':
+      case 'My Team':
         iconData = AppImages.myTeamIcon;
         break;
-      case 'assignment':
+      case 'My Survey':
         iconData = AppImages.mySurveyIcon;
         break;
       case 'logout':

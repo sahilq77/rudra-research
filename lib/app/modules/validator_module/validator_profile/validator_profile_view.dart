@@ -7,6 +7,8 @@ import 'package:rudra/app/modules/validator_module/validator_profile/validator_p
 import 'package:rudra/app/utils/app_colors.dart' show AppColors;
 import 'package:rudra/app/utils/app_images.dart';
 import 'package:rudra/app/utils/responsive_utils.dart';
+import 'package:rudra/bottom_navigation/bottom_navigation_controller.dart';
+import 'package:rudra/bottom_navigation/bottom_navigation_view.dart';
 
 import '../../../widgets/app_style.dart';
 
@@ -19,30 +21,37 @@ class ValidatorProfileView extends StatefulWidget {
 
 class _ValidatorProfileViewState extends State<ValidatorProfileView> {
   final ValidatorProfileController controller = Get.find();
+  final BottomNavigationController bottomController = Get.put(
+    BottomNavigationController(),
+  );
 
   @override
   Widget build(BuildContext context) {
     ResponsiveHelper.init(context);
-    return Scaffold(
-      appBar: _buildAppbar(),
-      backgroundColor: AppColors.white,
-      body: RefreshIndicator(
-        onRefresh: controller.onRefresh,
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  SizedBox(height: ResponsiveHelper.spacing(24)),
-                  _buildProfileHeader(),
-                  SizedBox(height: ResponsiveHelper.spacing(24)),
-                  _buildMenuList(),
-                  SizedBox(height: ResponsiveHelper.spacing(24)),
-                ],
+    return WillPopScope(
+      onWillPop: () => bottomController.onWillPop(),
+      child: Scaffold(
+        appBar: _buildAppbar(),
+        bottomNavigationBar: CustomBottomBar(),
+        backgroundColor: AppColors.white,
+        body: RefreshIndicator(
+          onRefresh: controller.onRefresh,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: Column(
+                  children: [
+                    SizedBox(height: ResponsiveHelper.spacing(24)),
+                    _buildProfileHeader(),
+                    SizedBox(height: ResponsiveHelper.spacing(24)),
+                    _buildMenuList(),
+                    SizedBox(height: ResponsiveHelper.spacing(24)),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

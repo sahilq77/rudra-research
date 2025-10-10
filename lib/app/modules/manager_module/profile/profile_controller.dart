@@ -12,28 +12,33 @@ class ProfileController extends GetxController {
   final RxBool isLoading = false.obs;
 
   List<ProfileMenuItemModel> get menuItems => [
-        ProfileMenuItemModel(
-          title: 'Profile',
-          icon: 'person',
-          route: AppRoutes.profileDetails,
-        ),
-        ProfileMenuItemModel(
-          title: 'Notification',
-          icon: 'notifications',
-          route: AppRoutes.notifications, // Changed from '/notifications'
-        ),
-        ProfileMenuItemModel(
-          title: 'My Survey',
-          icon: 'assignment',
-          route: '/my-survey',
-        ),
-        ProfileMenuItemModel(
-          title: 'Logout',
-          icon: 'logout',
-          route: '',
-          isLogout: true,
-        ),
-      ];
+    ProfileMenuItemModel(
+      title: 'Profile',
+      icon: 'person',
+      route: AppRoutes.profileDetails,
+    ),
+    ProfileMenuItemModel(
+      title: 'Notification',
+      icon: 'notifications',
+      route: AppRoutes.notifications, // Changed from '/notifications'
+    ),
+    ProfileMenuItemModel(
+      title: 'My Team',
+      icon: 'My Team',
+      route: AppRoutes.myteam,
+    ),
+    ProfileMenuItemModel(
+      title: 'My Survey',
+      icon: 'My Survey',
+      route: AppRoutes.mySurvey,
+    ),
+    ProfileMenuItemModel(
+      title: 'Logout',
+      icon: 'logout',
+      route: '',
+      isLogout: true,
+    ),
+  ];
 
   String get userName => AppUtility.fullName ?? 'User';
 
@@ -63,15 +68,14 @@ class ProfileController extends GetxController {
       // Added this condition
       AppLogger.d('Navigate to: ${item.route}', tag: 'ProfileController');
       Get.toNamed(AppRoutes.notifications);
-    } else if (item.route.isNotEmpty) {
+    } else if (item.route == AppRoutes.myteam) {
       // Changed from else to else if
       AppLogger.d('Navigate to: ${item.route}', tag: 'ProfileController');
-      Get.snackbar(
-        'Coming Soon',
-        '${item.title} feature will be available soon',
-        snackPosition: SnackPosition.TOP,
-        duration: const Duration(seconds: 2),
-      );
+      Get.toNamed(AppRoutes.myteam);
+    } else if (item.route == AppRoutes.mySurvey) {
+      // Changed from else to else if
+      AppLogger.d('Navigate to: ${item.route}', tag: 'ProfileController');
+      Get.toNamed(AppRoutes.mySurvey);
     }
   }
 

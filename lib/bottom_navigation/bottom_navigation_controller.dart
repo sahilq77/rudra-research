@@ -40,7 +40,7 @@ class BottomNavigationController extends GetxController {
           AppRoutes.executiveMySurvey,
           AppRoutes.executivProfile,
         ];
-      case 3:
+      case 2:
         return [
           AppRoutes.validatorHome,
           AppRoutes.validatorMySurvey,
