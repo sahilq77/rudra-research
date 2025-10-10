@@ -9,6 +9,8 @@ import 'package:rudra/app/modules/executive_module/executive_survey_detail/execu
 import 'package:rudra/app/modules/executive_module/executive_survey_detail/executive_survey_detail_view.dart';
 import 'package:rudra/app/modules/executive_module/executive_survey_detail/executive_survey_interviewer_view/executive_survey_interviewer_binding.dart';
 import 'package:rudra/app/modules/executive_module/executive_survey_detail/executive_survey_question/executive_survey_question_binding.dart';
+import 'package:rudra/app/modules/executive_profile_details/executive_profile_detail_binding.dart';
+import 'package:rudra/app/modules/executive_profile_details/executive_profile_detail_view.dart';
 import 'package:rudra/app/modules/manager_module/my_survey/my_survey_view.dart';
 import 'package:rudra/app/modules/manager_module/my_survey/my_survey_binding.dart';
 import 'package:rudra/app/modules/manager_module/my_survey/my_survey_detail_list/my_survey_detail_list_binding.dart';
@@ -85,6 +87,7 @@ class AppRoutes {
   static const String surveyDetailsPreview = '/survey-details-preview';
 
   //<============================== Executive ==============================>
+
   static const String executiveHome = '/executive-home';
   static const String executiveMySurvey = '/executive-my-survey';
   static const String executiveSurveyDetail = '/executive-survey-detail';
@@ -92,6 +95,7 @@ class AppRoutes {
   static const String executiveSurveyInterviewer =
       '/executive-survey-interviewer';
   static const String executivProfile = '/executive-profile';
+  static const String executivProfileDetail = '/executive-profile-detail';
 
   static List<GetPage> routes = [
     GetPage(name: splash, page: () => const SplashView()),
@@ -231,6 +235,11 @@ class AppRoutes {
       name: executivProfile,
       page: () => ExecutiveProfileView(),
       binding: ExecutiveProfileBinding(),
+    ),
+    GetPage(
+      name: executivProfileDetail,
+      page: () => ExecutiveProfileDetailView(),
+      binding: ExecutiveProfileDetailBinding(),
     ),
   ];
 }
