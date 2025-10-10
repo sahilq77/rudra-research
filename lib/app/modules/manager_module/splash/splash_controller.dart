@@ -16,7 +16,16 @@ class SplashController extends GetxController {
         if (AppUtility.hasSeenOnboarding) {
           // Point 2: If logged in, go to home; else login
           if (AppUtility.isLoggedIn) {
-            Get.offNamed(AppRoutes.home);
+            if (AppUtility.userRole == 0) {
+              Get.offNamed(AppRoutes.home);
+            } else if (AppUtility.userRole == 1) {
+              Get.offNamed(AppRoutes.executiveHome);
+            } else if (AppUtility.userRole == 2) {
+              //Get.offNamed(AppRoutes.validatorHome);
+              
+            } else {
+              
+            }
           } else {
             Get.offNamed(AppRoutes.login);
           }

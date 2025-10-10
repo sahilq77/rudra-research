@@ -51,7 +51,14 @@ class _ExecutiveHomeViewState extends State<ExecutiveHomeView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeader(),
-              SizedBox(height: ResponsiveHelper.spacing(24)),
+
+              SizedBox(height: ResponsiveHelper.spacing(12)),
+              Divider(
+                color: AppColors.grey.withOpacity(0.5),
+                // thickness: 2,
+                height: 0,
+              ),
+              SizedBox(height: ResponsiveHelper.spacing(12)),
               // Show Dashboard Overview only for Manager and Executive
               if (!controller.isValidator) ...[
                 ResponsiveHelper.safeText(
@@ -61,6 +68,7 @@ class _ExecutiveHomeViewState extends State<ExecutiveHomeView> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
+
                 SizedBox(height: ResponsiveHelper.spacing(16)),
                 _buildDashboardGrid(),
                 SizedBox(height: ResponsiveHelper.spacing(24)),

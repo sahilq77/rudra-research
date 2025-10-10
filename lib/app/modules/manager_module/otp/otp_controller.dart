@@ -72,7 +72,19 @@ class OtpController extends GetxController {
       'dummy_plant_1',
       role,
     );
-    Get.offAllNamed(AppRoutes.home, arguments: {'userRole': role});
+    if (role == 0) {
+      // Manager
+      Get.offAllNamed(AppRoutes.home, arguments: {'userRole': role});
+      // Additional setup for manager if needed
+    } else if (role == 1) {
+      // Executive
+      Get.offAllNamed(AppRoutes.executiveHome, arguments: {'userRole': role});
+      // Additional setup for executive if needed
+      
+    } else {
+      
+    }
+    
   }
 
   void resend() {

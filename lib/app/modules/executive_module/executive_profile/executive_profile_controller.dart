@@ -8,33 +8,32 @@ import '../../../routes/app_routes.dart';
 import '../../../utils/app_utility.dart';
 import '../../manager_module/profile/logout_dialog.dart';
 
-
 class ExecutiveProfileController extends GetxController {
   final RxBool isLoading = false.obs;
 
   List<ProfileMenuItemModel> get menuItems => [
-        ProfileMenuItemModel(
-          title: 'Profile',
-          icon: 'person',
-          route: AppRoutes.profileDetails,
-        ),
-        ProfileMenuItemModel(
-          title: 'Notification',
-          icon: 'notifications',
-          route: AppRoutes.notifications, // Changed from '/notifications'
-        ),
-        ProfileMenuItemModel(
-          title: 'My Survey',
-          icon: 'assignment',
-          route: '/my-survey',
-        ),
-        ProfileMenuItemModel(
-          title: 'Logout',
-          icon: 'logout',
-          route: '',
-          isLogout: true,
-        ),
-      ];
+    ProfileMenuItemModel(
+      title: 'Profile',
+      icon: 'person',
+      route: AppRoutes.executivProfileDetail, // Changed from '/profile-details'
+    ),
+    ProfileMenuItemModel(
+      title: 'Notification',
+      icon: 'notifications',
+      route: AppRoutes.executiveNotification, // Changed from '/notifications'
+    ),
+    ProfileMenuItemModel(
+      title: 'My Survey',
+      icon: 'assignment',
+      route: AppRoutes.executiveMySurvey,
+    ),
+    ProfileMenuItemModel(
+      title: 'Logout',
+      icon: 'logout',
+      route: '',
+      isLogout: true,
+    ),
+  ];
 
   String get userName => AppUtility.fullName ?? 'User';
 
@@ -58,15 +57,24 @@ class ExecutiveProfileController extends GetxController {
     if (item.isLogout) {
       _showLogoutDialog();
     } else if (item.route == AppRoutes.profileDetails) {
-      AppLogger.d('Navigate to: ${item.route}', tag: 'ExecutiveProfileController');
+      AppLogger.d(
+        'Navigate to: ${item.route}',
+        tag: 'ExecutiveProfileController',
+      );
       Get.toNamed(AppRoutes.profileDetails);
     } else if (item.route == AppRoutes.notifications) {
       // Added this condition
-      AppLogger.d('Navigate to: ${item.route}', tag: 'ExecutiveProfileController');
+      AppLogger.d(
+        'Navigate to: ${item.route}',
+        tag: 'ExecutiveProfileController',
+      );
       Get.toNamed(AppRoutes.notifications);
     } else if (item.route.isNotEmpty) {
       // Changed from else to else if
-      AppLogger.d('Navigate to: ${item.route}', tag: 'ExecutiveProfileController');
+      AppLogger.d(
+        'Navigate to: ${item.route}',
+        tag: 'ExecutiveProfileController',
+      );
       Get.snackbar(
         'Coming Soon',
         '${item.title} feature will be available soon',
@@ -97,7 +105,10 @@ class ExecutiveProfileController extends GetxController {
       // Clear all user info and shared preferences
       await AppUtility.clearUserInfo();
 
-      AppLogger.i('User logged out successfully', tag: 'ExecutiveProfileController');
+      AppLogger.i(
+        'User logged out successfully',
+        tag: 'ExecutiveProfileController',
+      );
 
       // Navigate to login and clear all previous routes
       Get.offAllNamed(AppRoutes.login);
