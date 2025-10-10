@@ -3,14 +3,16 @@ import 'package:rudra/app/modules/Manager_module/survey_detail_multiple/survey_d
 import 'package:rudra/app/modules/executive_module/executive_home/executive_home_binding.dart';
 import 'package:rudra/app/modules/executive_module/executive_my_survey/executive_my_survey_binding.dart';
 import 'package:rudra/app/modules/executive_module/executive_my_survey/executive_my_survey_view.dart';
+import 'package:rudra/app/modules/executive_module/executive_notification/executive_notification_binding.dart';
+import 'package:rudra/app/modules/executive_module/executive_notification/executive_notification_view.dart';
 import 'package:rudra/app/modules/executive_module/executive_profile/executive_profile_binding.dart';
 import 'package:rudra/app/modules/executive_module/executive_profile/executive_profile_view.dart';
 import 'package:rudra/app/modules/executive_module/executive_survey_detail/executive_survey_detail_binding.dart';
 import 'package:rudra/app/modules/executive_module/executive_survey_detail/executive_survey_detail_view.dart';
 import 'package:rudra/app/modules/executive_module/executive_survey_detail/executive_survey_interviewer_view/executive_survey_interviewer_binding.dart';
 import 'package:rudra/app/modules/executive_module/executive_survey_detail/executive_survey_question/executive_survey_question_binding.dart';
-import 'package:rudra/app/modules/executive_profile_details/executive_profile_detail_binding.dart';
-import 'package:rudra/app/modules/executive_profile_details/executive_profile_detail_view.dart';
+import 'package:rudra/app/modules/executive_module/executive_profile_details/executive_profile_detail_binding.dart';
+import 'package:rudra/app/modules/executive_module/executive_profile_details/executive_profile_detail_view.dart';
 import 'package:rudra/app/modules/manager_module/my_survey/my_survey_view.dart';
 import 'package:rudra/app/modules/manager_module/my_survey/my_survey_binding.dart';
 import 'package:rudra/app/modules/manager_module/my_survey/my_survey_detail_list/my_survey_detail_list_binding.dart';
@@ -96,6 +98,7 @@ class AppRoutes {
       '/executive-survey-interviewer';
   static const String executivProfile = '/executive-profile';
   static const String executivProfileDetail = '/executive-profile-detail';
+  static const String executiveNotification = '/executive-notification';
 
   static List<GetPage> routes = [
     GetPage(name: splash, page: () => const SplashView()),
@@ -237,9 +240,11 @@ class AppRoutes {
       binding: ExecutiveProfileBinding(),
     ),
     GetPage(
-      name: executivProfileDetail,
-      page: () => ExecutiveProfileDetailView(),
-      binding: ExecutiveProfileDetailBinding(),
+      name: executiveNotification,
+      page: () => ExecutiveNotificationView(),
+      binding: ExecutiveNotificationBinding(),
     ),
+
+    
   ];
 }
