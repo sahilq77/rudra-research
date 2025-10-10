@@ -80,11 +80,9 @@ class OtpController extends GetxController {
       // Executive
       Get.offAllNamed(AppRoutes.executiveHome, arguments: {'userRole': role});
       // Additional setup for executive if needed
-      
     } else {
-      
+      Get.offAllNamed(AppRoutes.validatorHome, arguments: {'userRole': role});
     }
-    
   }
 
   void resend() {
