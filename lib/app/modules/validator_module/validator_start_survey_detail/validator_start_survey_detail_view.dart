@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:easy_stepper/easy_stepper.dart';
 import 'package:rudra/app/modules/validator_module/validator_start_survey_detail/validator_start_survey_controller.dart';
+import 'package:rudra/app/routes/app_routes.dart';
 
 import '../../../common/customvalidators/text_validator.dart';
 import '../../../utils/app_colors.dart';
@@ -210,7 +211,7 @@ class ValidatorStartSurveyDetailView extends StatelessWidget {
               ],
             ),
             SizedBox(height: ResponsiveHelper.screenHeight * 0.03),
-            //commets text field
+            // Comments text field
             _buildTextField(
               label: 'Add Comments',
               initialValue: "",
@@ -236,17 +237,27 @@ class ValidatorStartSurveyDetailView extends StatelessWidget {
                 if (controller.currentPage.value > 0 &&
                     controller.currentPage.value < 4)
                   SizedBox(width: ResponsiveHelper.screenWidth * 0.02),
-                if (controller.currentPage.value < 4)
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: controller.nextPage,
-                      style: AppButtonStyles.elevatedLargeBlack(),
-                      child: Text(
-                        'Next',
-                        style: AppStyle.buttonTextPoppinsWhite.responsive,
-                      ),
+                SizedBox(width: ResponsiveHelper.screenWidth * 0.02),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (controller.currentPage.value == 4) {
+                        // Validate form if necessary (e.g., for interviewer details)
+                        if (controller.formKey.currentState?.validate() ??
+                            true) {
+                          Get.toNamed(AppRoutes.validatorSubmitSurvey);
+                        }
+                      } else {
+                        controller.nextPage();
+                      }
+                    },
+                    style: AppButtonStyles.elevatedLargeBlack(),
+                    child: Text(
+                      controller.currentPage.value == 4 ? 'Submit' : 'Next',
+                      style: AppStyle.buttonTextPoppinsWhite.responsive,
                     ),
                   ),
+                ),
               ],
             ),
           ],
