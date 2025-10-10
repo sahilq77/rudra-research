@@ -121,7 +121,7 @@ class MyApp extends StatelessWidget {
         ),
       ),
 
-      initialRoute: AppRoutes.splash,
+      initialRoute: AppRoutes.validatorStartSurveyList,
       getPages: AppRoutes.routes,
       builder: (context, child) {
         return ColorfulSafeArea(

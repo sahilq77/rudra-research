@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:rudra/app/modules/manager_module/my_survey/my_survey_detail_list/my_survey_detail_list_controller.dart';
 
 import '../../../../common/custominputformatters/number_input_formatter.dart';
 import '../../../../common/custominputformatters/securetext_input_formatter.dart';
@@ -11,7 +12,7 @@ import '../../../../utils/app_images.dart';
 import '../../../../utils/responsive_utils.dart';
 import '../../../../widgets/app_button_style.dart';
 import '../../../../widgets/app_style.dart';
-import '../../assigned_survey_target/assigned_survey_target_controller.dart';
+
 
 class MySurveyDeatilListView extends StatefulWidget {
   const MySurveyDeatilListView({super.key});
@@ -21,8 +22,8 @@ class MySurveyDeatilListView extends StatefulWidget {
 }
 
 class _MySurveyDeatilListViewState extends State<MySurveyDeatilListView> {
-  final AssignedSurveyTargetController controller = Get.put(
-    AssignedSurveyTargetController(),
+  final MySurveyDetailListController controller = Get.put(
+    MySurveyDetailListController(),
   );
 
   @override

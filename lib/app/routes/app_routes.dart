@@ -25,6 +25,12 @@ import 'package:rudra/app/modules/manager_module/myreport/my_report_survey_view.
     show MyReportSurveyView;
 
 import 'package:rudra/app/modules/manager_module/myreport/my_report_view/my_report_form_view.dart';
+import 'package:rudra/app/modules/validator_module/validator_home/validator_home_binding.dart';
+import 'package:rudra/app/modules/validator_module/validator_home/validator_home_view.dart';
+import 'package:rudra/app/modules/validator_module/validator_start_survey/validator_start_survey_list_binding.dart';
+import 'package:rudra/app/modules/validator_module/validator_start_survey/validator_start_survey_list_view.dart';
+import 'package:rudra/app/modules/validator_module/validator_start_survey_detail/validator_start_survey_binding.dart';
+import 'package:rudra/app/modules/validator_module/validator_start_survey_detail/validator_start_survey_detail_view.dart';
 
 import '../modules/executive_module/executive_home/executive_home_view.dart';
 import '../modules/executive_module/executive_survey_detail/executive_survey_interviewer_view/executive_survey_interviewer_view.dart';
@@ -99,6 +105,12 @@ class AppRoutes {
   static const String executivProfile = '/executive-profile';
   static const String executivProfileDetail = '/executive-profile-detail';
   static const String executiveNotification = '/executive-notification';
+
+  //<============================== Validator ==============================>
+
+  static const String validatorHome = '/validator-home';
+  static const String validatorStartSurveyList = '/validator-start-survey-list';
+  static const String validatorStartSurveyDetail = '/validator-start-survey-detail';
 
   static List<GetPage> routes = [
     GetPage(name: splash, page: () => const SplashView()),
@@ -244,6 +256,24 @@ class AppRoutes {
       page: () => ExecutiveNotificationView(),
       binding: ExecutiveNotificationBinding(),
     ),
+
+    //<============================== Validaor ==============================>
+    GetPage(
+      name: validatorHome,
+      page: () => ValidatorHomeView(),
+      binding: ValidatorHomeBinding(),
+    ),
+GetPage(
+      name: validatorStartSurveyList,
+      page: () => ValidatorStartSurveyListView(),
+      binding: ValidatorStartSurveyListBinding(),
+    ),
+GetPage(
+      name: validatorStartSurveyDetail,
+      page: () => ValidatorStartSurveyDetailView(),
+      binding: ValidatorStartSurveyBinding(),
+    ),
+
 
     
   ];
