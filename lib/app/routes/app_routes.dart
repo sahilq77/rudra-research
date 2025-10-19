@@ -42,6 +42,7 @@ import 'package:rudra/app/modules/validator_module/validator_start_survey_detail
 import 'package:rudra/app/modules/validator_module/validator_start_survey_detail/validator_submit_survey/validator_submit_survey_form_binding.dart';
 import 'package:rudra/app/modules/validator_module/validator_start_survey_detail/validator_submit_survey/validator_submit_survey_form_controller.dart';
 import 'package:rudra/app/modules/validator_module/validator_start_survey_detail/validator_submit_survey/validator_submit_survey_form_view.dart';
+import 'package:rudra/app/widgets/no_internet_screen.dart';
 
 import '../modules/executive_module/executive_home/executive_home_view.dart';
 import '../modules/executive_module/executive_survey_detail/executive_survey_interviewer_view/executive_survey_interviewer_view.dart';
@@ -129,6 +130,9 @@ class AppRoutes {
   static const String validatorProfile = '/validator-my-profile';
   static const String validatorProfileDetail = '/validator-my-profile-detail';
 static const String validatorNotification = '/validator-notification';
+
+
+  static const String noInternet = '/nointernet';
 
   
 
@@ -325,6 +329,12 @@ static const String validatorNotification = '/validator-notification';
       page: () => ValidatorNotificationView(),
       binding: ValidatorNotificationBinding(),
     ),
-
+//no internet
+GetPage(
+      name: noInternet,
+      page: () => NoInternetScreen(),
+      transition: Transition.fadeIn,
+    ),
+    
   ];
 }
