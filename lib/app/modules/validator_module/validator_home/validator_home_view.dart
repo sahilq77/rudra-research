@@ -423,7 +423,7 @@ class _ValidatorHomeViewState extends State<ValidatorHomeView> {
               Expanded(
                 child: ElevatedButton(
                   onPressed: () {
-                    Get.toNamed(AppRoutes.validatorStartSurveyDetail);
+                    Get.toNamed(AppRoutes.validatorStartSurveyList);
                   },
                   style: AppButtonStyles.elevatedLargeBlack(),
                   child: Text(

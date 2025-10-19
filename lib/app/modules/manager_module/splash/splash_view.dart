@@ -1,5 +1,8 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:rudra/app/data/service/notfication_services.dart';
 
 import '../../../utils/app_images.dart';
 import 'splash_controller.dart';
@@ -14,6 +17,24 @@ class SplashView extends StatefulWidget {
 
 class _SplashViewState extends State<SplashView> {
   // REMOVED: initState() - navigation now in controller
+  NotificationServices notificationServices = NotificationServices();
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+
+    notificationServices.firebaseInit(context);
+    notificationServices.setInteractMessage(context);
+    notificationServices.getDevicetoken().then((value) {
+      log('Device Token ${value}');
+      // pushtoken = value;
+    });
+
+    // Future.delayed(Duration(seconds: 3), () {
+    //   Get.offNamed(AppRoutes.welcome);
+    // });
+  }
 
   @override
   Widget build(BuildContext context) {

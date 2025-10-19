@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "204248408447",
+    "project_id": "rudra-and-research",
+    "storage_bucket": "rudra-and-research.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:204248408447:android:95ef8d09cdb08c70087a4a",
+        "android_client_info": {
+          "package_name": "com.quick.rudra.rudra"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDyOqyKFSoKTltHhPtXoLs_G_Cz2DEBlbI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
