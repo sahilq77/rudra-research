@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import 'package:rudra/app/utils/app_utility.dart';
 import 'package:rudra/bottom_navigation/bottom_navigation_controller.dart';
 import 'package:rudra/bottom_navigation/bottom_navigation_view.dart';
 
@@ -25,6 +26,12 @@ class _HomeViewState extends State<HomeView> {
   final BottomNavigationController bottomController = Get.put(
     BottomNavigationController(),
   );
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    AppUtility.initialize();
+  }
 
   @override
   Widget build(BuildContext context) {

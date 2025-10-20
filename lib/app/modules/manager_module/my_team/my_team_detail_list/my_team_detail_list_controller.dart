@@ -29,8 +29,11 @@ class MyTeamDetailListController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // Initial data fetch
-    fetchMyTeamMember(context: Get.context!, reset: true);
+    // Retrieve team_id from navigation arguments
+    final team = Get.arguments?['team'];
+    final String teamId = team?.teamId?.toString() ?? '0'; // Fallback to '0' if not found
+    // Initial data fetch with dynamic team_id
+    fetchMyTeamMember(context: Get.context!, teamId: teamId, reset: true);
     // Setup pagination listener
     scrollController.addListener(_scrollListener);
     // Setup search listener
@@ -51,7 +54,9 @@ class MyTeamDetailListController extends GetxController {
             scrollController.position.maxScrollExtent - 200 &&
         !isLoadingMore.value &&
         hasMoreData.value) {
-      fetchMyTeamMember(context: Get.context!, isPagination: true);
+      final team = Get.arguments?['team'];
+      final String teamId = team?.teamId?.toString() ?? '0';
+      fetchMyTeamMember(context: Get.context!, teamId: teamId, isPagination: true);
     }
   }
 
@@ -62,7 +67,9 @@ class MyTeamDetailListController extends GetxController {
       searchQuery.value = searchController.text.trim();
       filterTeamMembers();
       // Optionally fetch new data with search query
-      fetchMyTeamMember(context: Get.context!, reset: true);
+      final team = Get.arguments?['team'];
+      final String teamId = team?.teamId?.toString() ?? '0';
+      fetchMyTeamMember(context: Get.context!, teamId: teamId, reset: true);
     });
   }
 
@@ -86,6 +93,7 @@ class MyTeamDetailListController extends GetxController {
   // Fetch team members
   Future<void> fetchMyTeamMember({
     required BuildContext context,
+    required String teamId,
     bool reset = false,
     bool isPagination = false,
     bool forceFetch = false,
@@ -109,7 +117,7 @@ class MyTeamDetailListController extends GetxController {
       errorMessage.value = '';
 
       final jsonBody = {
-        "team_id": "2",
+        "team_id": teamId,
         "search_member": searchQuery.value,
         "offset": offset.value,
         "limit": limit,
@@ -200,6 +208,8 @@ class MyTeamDetailListController extends GetxController {
 
   // Refresh data for pull-to-refresh
   Future<void> refreshData() async {
-    await fetchMyTeamMember(context: Get.context!, reset: true);
+    final team = Get.arguments?['team'];
+    final String teamId = team?.teamId?.toString() ?? '0';
+    await fetchMyTeamMember(context: Get.context!, teamId: teamId, reset: true);
   }
 }

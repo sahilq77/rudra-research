@@ -15,11 +15,12 @@ class MyTeamDetailListView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Initialize the controller
-    final MyTeamDetailListController controller = Get.put(
-      MyTeamDetailListController(),
-    );
+    final MyTeamDetailListController controller =
+        Get.put(MyTeamDetailListController());
     ResponsiveHelper.init(context);
 
+
+    
     return Scaffold(
       appBar: _buildAppbar(),
       body: RefreshIndicator(
@@ -35,94 +36,83 @@ class MyTeamDetailListView extends StatelessWidget {
                   () => controller.isLoading.value
                       ? _buildShimmerEffect()
                       : controller.filteredTeamMemberList.isEmpty
-                      ? const Center(child: Text('No team members found'))
-                      : ListView.builder(
-                          controller: controller.scrollController,
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          itemCount:
-                              controller.filteredTeamMemberList.length +
-                              (controller.isLoadingMore.value ? 1 : 0),
-                          itemBuilder: (context, index) {
-                            if (index ==
-                                controller.filteredTeamMemberList.length) {
-                              return _buildLoadingMoreIndicator();
-                            }
-                            final member =
-                                controller.filteredTeamMemberList[index];
-                            return GestureDetector(
-                              onTap: () {
-                                Get.toNamed(
-                                  AppRoutes.profileDetails,
-                                  arguments: member,
+                          ? const Center(child: Text('No team members found'))
+                          : ListView.builder(
+                              controller: controller.scrollController,
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              itemCount: controller.filteredTeamMemberList.length +
+                                  (controller.isLoadingMore.value ? 1 : 0),
+                              itemBuilder: (context, index) {
+                                if (index ==
+                                    controller.filteredTeamMemberList.length) {
+                                  return _buildLoadingMoreIndicator();
+                                }
+                                final member =
+                                    controller.filteredTeamMemberList[index];
+                                return GestureDetector(
+                                  onTap: () {
+                                    Get.toNamed(AppRoutes.profileDetails,
+                                        arguments: member);
+                                  },
+                                  child: Card(
+                                    margin: const EdgeInsets.only(bottom: 16),
+                                    child: ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: AppColors.lightGrey,
+                                        child: Icon(
+                                          Icons.person,
+                                          color: AppColors.darkBackground,
+                                        ),
+                                      ),
+                                      title: Text(
+                                        '${member.memberFirstName} ${member.memberLastName}',
+                                        style: AppStyle.myTeamCardTitle.responsive
+                                            .copyWith(
+                                          fontSize: ResponsiveHelper
+                                              .getResponsiveFontSize(14),
+                                        ),
+                                      ),
+                                      trailing: CircleAvatar(
+                                        backgroundColor: AppColors.defaultBlack,
+                                        child: Icon(
+                                          Icons.phone,
+                                          color: AppColors.white,
+                                        ),
+                                      ),
+                                      subtitle: Padding(
+                                        padding: ResponsiveHelper.paddingSymmetric(
+                                          vertical: 3.0,
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Phone Number: ${member.memberMobileNo}',
+                                              style: AppStyle
+                                                  .myteamCardRowTitle.responsive
+                                                  .copyWith(
+                                                fontSize: ResponsiveHelper
+                                                    .getResponsiveFontSize(12),
+                                              ),
+                                            ),
+                                            Text(
+                                              'Designation: ${member.role}',
+                                              style: AppStyle
+                                                  .myteamCardRowTitle.responsive
+                                                  .copyWith(
+                                                fontSize: ResponsiveHelper
+                                                    .getResponsiveFontSize(12),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 );
                               },
-                              child: Card(
-                                margin: const EdgeInsets.only(bottom: 16),
-                                child: ListTile(
-                                  leading: CircleAvatar(
-                                    backgroundColor: AppColors.lightGrey,
-                                    child: Icon(
-                                      Icons.person,
-                                      color: AppColors.darkBackground,
-                                    ),
-                                  ),
-                                  title: Text(
-                                    '${member.memberFirstName} ${member.memberLastName}',
-                                    style: AppStyle.myTeamCardTitle.responsive
-                                        .copyWith(
-                                          fontSize:
-                                              ResponsiveHelper.getResponsiveFontSize(
-                                                14,
-                                              ),
-                                        ),
-                                  ),
-                                  trailing: CircleAvatar(
-                                    backgroundColor: AppColors.defaultBlack,
-                                    child: Icon(
-                                      Icons.phone,
-                                      color: AppColors.white,
-                                    ),
-                                  ),
-                                  subtitle: Padding(
-                                    padding: ResponsiveHelper.paddingSymmetric(
-                                      vertical: 3.0,
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Phone Number: ${member.memberMobileNo}',
-                                          style: AppStyle
-                                              .myteamCardRowTitle
-                                              .responsive
-                                              .copyWith(
-                                                fontSize:
-                                                    ResponsiveHelper.getResponsiveFontSize(
-                                                      12,
-                                                    ),
-                                              ),
-                                        ),
-                                        Text(
-                                          'Designation: ${member.role}',
-                                          style: AppStyle
-                                              .myteamCardRowTitle
-                                              .responsive
-                                              .copyWith(
-                                                fontSize:
-                                                    ResponsiveHelper.getResponsiveFontSize(
-                                                      12,
-                                                    ),
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                            ),
                 ),
               ),
             ],
