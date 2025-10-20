@@ -85,105 +85,107 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Widget _buildHeader() {
-    return Row(
-      children: [
-        Container(
-          width: ResponsiveHelper.spacing(44),
-          height: ResponsiveHelper.spacing(44),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: AppColors.white,
-            border: Border.all(
-              color: AppColors.lightGrey.withOpacity(0.3),
-              width: 1,
-            ),
-          ),
-          child: Center(
-            child: Image.asset(
-              AppImages.appLogo,
-              height: ResponsiveHelper.spacing(24),
-              width: ResponsiveHelper.spacing(24),
-              fit: BoxFit.contain,
-            ),
-          ),
-        ),
-        SizedBox(width: ResponsiveHelper.spacing(12)),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ResponsiveHelper.safeText(
-                controller.userName,
-                style: AppStyle.bodyBoldPoppinsBlack.responsive.copyWith(
-                  fontSize: ResponsiveHelper.getResponsiveFontSize(16),
-                  fontWeight: FontWeight.w600,
-                ),
-                maxLines: 1,
+    return Obx(
+      () => Row(
+        children: [
+          Container(
+            width: ResponsiveHelper.spacing(44),
+            height: ResponsiveHelper.spacing(44),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.white,
+              border: Border.all(
+                color: AppColors.lightGrey.withOpacity(0.3),
+                width: 1,
               ),
-              ResponsiveHelper.safeText(
-                controller.userRoleText,
-                style: AppStyle.bodySmallPoppinsPrimary.responsive.copyWith(
-                  fontSize: ResponsiveHelper.getResponsiveFontSize(13),
-                  color: AppColors.primary,
-                ),
-                maxLines: 1,
+            ),
+            child: Center(
+              child: Image.asset(
+                AppImages.appLogo,
+                height: ResponsiveHelper.spacing(24),
+                width: ResponsiveHelper.spacing(24),
+                fit: BoxFit.contain,
               ),
-            ],
-          ),
-        ),
-        SizedBox(width: ResponsiveHelper.spacing(12)),
-        Container(
-          width: ResponsiveHelper.spacing(40),
-          height: ResponsiveHelper.spacing(40),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: AppColors.white,
-            border: Border.all(
-              color: AppColors.lightGrey.withOpacity(0.3),
-              width: 1,
             ),
           ),
-          child: IconButton(
-            padding: EdgeInsets.zero,
-            icon: SvgPicture.asset(
-              AppImages.autoRefresh,
-              width: ResponsiveHelper.spacing(20),
-              height: ResponsiveHelper.spacing(20),
-              fit: BoxFit.contain,
+          SizedBox(width: ResponsiveHelper.spacing(12)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ResponsiveHelper.safeText(
+                  controller.userName,
+                  style: AppStyle.bodyBoldPoppinsBlack.responsive.copyWith(
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(16),
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                ),
+                ResponsiveHelper.safeText(
+                  controller.userRoleText,
+                  style: AppStyle.bodySmallPoppinsPrimary.responsive.copyWith(
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(13),
+                    color: AppColors.primary,
+                  ),
+                  maxLines: 1,
+                ),
+              ],
             ),
-            onPressed: () async {
-              await Future.delayed(const Duration(seconds: 1));
-              controller.refreshData();
-            },
           ),
-        ),
-        SizedBox(width: ResponsiveHelper.spacing(8)),
-        Container(
-          width: ResponsiveHelper.spacing(40),
-          height: ResponsiveHelper.spacing(40),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: AppColors.white,
-            border: Border.all(
-              color: AppColors.lightGrey.withOpacity(0.3),
-              width: 1,
+          SizedBox(width: ResponsiveHelper.spacing(12)),
+          Container(
+            width: ResponsiveHelper.spacing(40),
+            height: ResponsiveHelper.spacing(40),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.white,
+              border: Border.all(
+                color: AppColors.lightGrey.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              icon: SvgPicture.asset(
+                AppImages.autoRefresh,
+                width: ResponsiveHelper.spacing(20),
+                height: ResponsiveHelper.spacing(20),
+                fit: BoxFit.contain,
+              ),
+              onPressed: () async {
+                await Future.delayed(const Duration(seconds: 1));
+                controller.refreshData();
+              },
             ),
           ),
-          child: IconButton(
-            padding: EdgeInsets.zero,
-            icon: SvgPicture.asset(
-              AppImages.myNotification,
-              width: ResponsiveHelper.spacing(20),
-              height: ResponsiveHelper.spacing(20),
-              fit: BoxFit.contain,
+          SizedBox(width: ResponsiveHelper.spacing(8)),
+          Container(
+            width: ResponsiveHelper.spacing(40),
+            height: ResponsiveHelper.spacing(40),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.white,
+              border: Border.all(
+                color: AppColors.lightGrey.withOpacity(0.3),
+                width: 1,
+              ),
             ),
-            onPressed: () {
-              Get.toNamed(AppRoutes.notifications);
-            },
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              icon: SvgPicture.asset(
+                AppImages.myNotification,
+                width: ResponsiveHelper.spacing(20),
+                height: ResponsiveHelper.spacing(20),
+                fit: BoxFit.contain,
+              ),
+              onPressed: () {
+                Get.toNamed(AppRoutes.notifications);
+              },
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

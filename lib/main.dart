@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:rudra/app/data/service/notfication_services.dart';
+import 'package:rudra/app/widgets/connctivityservice.dart';
 import 'package:rudra/firebase_options.dart';
 import 'app/routes/app_routes.dart';
 import 'app/utils/app_colors.dart';
@@ -16,6 +17,7 @@ Future<void> main() async {
   // Initialize WorkManager
 
   final NotificationServices notificationServices = NotificationServices();
+    Get.put(ConnectivityService(), permanent: true);
   notificationServices.requestNotificationPermission();
   notificationServices.isTokenRefresh();
   await AppUtility.initialize();

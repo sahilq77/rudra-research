@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:rudra/app/data/models/login/get_login_response.dart';
 import 'package:rudra/app/data/network/exceptions.dart';
 import 'package:rudra/app/widgets/app_style.dart';
 import 'package:rudra/app/widgets/connctivityservice.dart'
@@ -70,9 +71,9 @@ class Networkcall {
         String str = "[${response.body}]";
 
         switch (requestCode) {
-          // case 1:
-          //   final login = getLoginResponseFromJson(str);
-          //   return login;
+          case 1:
+            final login = getLoginResponseFromJson(str);
+            return login;
 
           default:
             log("Invalid request code: $requestCode");

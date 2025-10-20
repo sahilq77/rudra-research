@@ -68,12 +68,10 @@ class _LoginViewState extends State<LoginView> {
                   keyboardType: TextInputType.phone,
                   validator: (value) => TextValidator.isMobileNumber(value),
                   inputFormatters: [
-                    FilteringTextInputFormatter.deny(
-                      RegExp(r'\s'),
-                    ),
+                    FilteringTextInputFormatter.deny(RegExp(r'\s')),
                     LengthLimitingTextInputFormatter(10),
                     NumberInputFormatter(),
-                    SecureTextInputFormatter()
+                    SecureTextInputFormatter(),
                   ],
                   decoration: InputDecoration(
                     prefixIcon: Icon(
@@ -83,18 +81,24 @@ class _LoginViewState extends State<LoginView> {
                     ),
                     hintText: 'Enter phone number',
                     border: OutlineInputBorder(
-                      borderRadius:
-                          BorderRadius.circular(ResponsiveHelper.spacing(12)),
+                      borderRadius: BorderRadius.circular(
+                        ResponsiveHelper.spacing(12),
+                      ),
                       borderSide: const BorderSide(color: AppColors.grey),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius:
-                          BorderRadius.circular(ResponsiveHelper.spacing(12)),
-                      borderSide:
-                          const BorderSide(color: AppColors.primary, width: 2),
+                      borderRadius: BorderRadius.circular(
+                        ResponsiveHelper.spacing(12),
+                      ),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary,
+                        width: 2,
+                      ),
                     ),
                     contentPadding: ResponsiveHelper.paddingSymmetric(
-                        horizontal: 16, vertical: 16),
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
                   ),
                 ),
                 SizedBox(height: ResponsiveHelper.spacing(24)),
@@ -111,7 +115,9 @@ class _LoginViewState extends State<LoginView> {
                   () => DropdownSearch<int>(
                     selectedItem: controller.selectedRole.value,
                     items: List.generate(
-                        controller.userTypes.length, (index) => index),
+                      controller.userTypes.length,
+                      (index) => index,
+                    ),
                     itemAsString: (item) => controller.userTypes[item],
                     onChanged: (value) {
                       controller.selectedRole.value = value ?? 0;
@@ -122,17 +128,23 @@ class _LoginViewState extends State<LoginView> {
                       dropdownSearchDecoration: InputDecoration(
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(
-                              ResponsiveHelper.spacing(12)),
+                            ResponsiveHelper.spacing(12),
+                          ),
                           borderSide: const BorderSide(color: AppColors.grey),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(
-                              ResponsiveHelper.spacing(12)),
+                            ResponsiveHelper.spacing(12),
+                          ),
                           borderSide: const BorderSide(
-                              color: AppColors.primary, width: 2),
+                            color: AppColors.primary,
+                            width: 2,
+                          ),
                         ),
                         contentPadding: ResponsiveHelper.paddingSymmetric(
-                            horizontal: 16, vertical: 16),
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
                       ),
                     ),
                     popupProps: const PopupProps.menu(
@@ -152,13 +164,20 @@ class _LoginViewState extends State<LoginView> {
                   height: ResponsiveHelper.spacing(50),
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: controller.login,
+                    onPressed: () {
+                      controller.login(
+                        mobile: "",
+                        password: "",
+                        deviceToken: "",
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: AppColors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(ResponsiveHelper.spacing(12)),
+                        borderRadius: BorderRadius.circular(
+                          ResponsiveHelper.spacing(12),
+                        ),
                       ),
                       padding: ResponsiveHelper.paddingSymmetric(vertical: 16),
                     ),

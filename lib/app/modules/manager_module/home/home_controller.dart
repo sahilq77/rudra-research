@@ -94,7 +94,7 @@ class HomeController extends GetxController {
   ];
 
   String get userName {
-    return 'Hi, ${AppUtility.fullName ?? 'Pradeep'}';
+    return 'Hi, ${AppUtility.fullName ?? ''}';
   }
 
   String get userRoleText {

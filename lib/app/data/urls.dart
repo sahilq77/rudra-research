@@ -2,7 +2,7 @@ class Networkutility {
   //https://seekhelp.in/tfd/
   //https://staginglink.org/tfd//lve
   static String baseUrl = "https://seekhelp.in/rudra/";
-  static String apiKey = "?key=131b1770&__method=POST";
+
   static String login = "${baseUrl + "get_app_login_api"}";
   static int loginApi = 1;
   static String getSiteList =
