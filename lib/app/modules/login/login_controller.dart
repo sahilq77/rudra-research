@@ -80,24 +80,27 @@ class LoginController extends GetxController {
             user.mobileNo,
             user.email,
             user.userId,
-            'dummy_plant_1',
+            user.roleId,
             int.parse(user.roleValue),
           );
           if (user.roleValue == "0") {
             // Manager
-            Get.offAllNamed(AppRoutes.home, arguments: {'userRole':   int.parse(user.roleValue),});
+            Get.offAllNamed(
+              AppRoutes.home,
+              arguments: {'userRole': int.parse(user.roleValue)},
+            );
             // Additional setup for manager if needed
           } else if (user.roleValue == "1") {
             // Executive
             Get.offAllNamed(
               AppRoutes.executiveHome,
-              arguments: {'userRole':   int.parse(user.roleValue),},
+              arguments: {'userRole': int.parse(user.roleValue)},
             );
             // Additional setup for executive if needed
           } else {
             Get.offAllNamed(
               AppRoutes.validatorHome,
-              arguments: {'userRole':   int.parse(user.roleValue),},
+              arguments: {'userRole': int.parse(user.roleValue)},
             );
           }
 

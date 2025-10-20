@@ -16,12 +16,23 @@ class MyTeamView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Initialize the controller
+    // Initialize the controllers
     final MyTeamController controller = Get.put(MyTeamController());
     final BottomNavigationController bottomController = Get.put(
       BottomNavigationController(),
     );
     ResponsiveHelper.init(context);
+
+    // Scroll controller for pagination
+    final ScrollController scrollController = ScrollController();
+    scrollController.addListener(() {
+      if (scrollController.position.pixels >=
+              scrollController.position.maxScrollExtent - 200 &&
+          !controller.isLoadingMore.value &&
+          controller.hasMoreData.value) {
+        controller.fetchMyTeam(context: context, isPagination: true);
+      }
+    });
 
     return WillPopScope(
       onWillPop: () => bottomController.onWillPop(),
@@ -32,18 +43,30 @@ class MyTeamView extends StatelessWidget {
           child: Obx(
             () => controller.isLoading.value
                 ? _buildShimmerEffect()
-                : controller.filteredReportList.isEmpty
-                ? const Center(child: Text('No reports found'))
+                : controller.teamList.isEmpty
+                ? const Center(child: Text('No data found'))
                 : ListView.builder(
-                    physics: AlwaysScrollableScrollPhysics(),
+                    controller: scrollController,
+                    physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.all(16.0),
-                    itemCount: controller.filteredReportList.length,
+                    itemCount:
+                        controller.teamList.length +
+                        (controller.hasMoreData.value ? 1 : 0),
                     itemBuilder: (context, index) {
-                      final report = controller.filteredReportList[index];
+                      if (index == controller.teamList.length &&
+                          controller.hasMoreData.value) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      }
+                      final team = controller.teamList[index];
                       return GestureDetector(
                         onTap: () => Get.toNamed(
                           AppRoutes.myteamdetail,
-                          // arguments: {'report': report},
+                          arguments: {'team': team},
                         ),
                         child: Card(
                           margin: const EdgeInsets.only(bottom: 16),
@@ -53,7 +76,7 @@ class MyTeamView extends StatelessWidget {
                               Padding(
                                 padding: const EdgeInsets.all(16.0),
                                 child: Text(
-                                  report.title,
+                                  team.teamName ?? 'Unnamed Team',
                                   style: AppStyle.myTeamCardTitle.responsive
                                       .copyWith(
                                         fontSize:
@@ -75,7 +98,7 @@ class MyTeamView extends StatelessWidget {
                                 ),
                                 child: Center(
                                   child: Text(
-                                    "04",
+                                    team.teamMembersCount?.toString() ?? '0',
                                     style: AppStyle.myTeamRowCount.responsive
                                         .copyWith(
                                           fontSize:
@@ -94,7 +117,7 @@ class MyTeamView extends StatelessWidget {
                   ),
           ),
         ),
-         bottomNavigationBar: CustomBottomBar(),
+        bottomNavigationBar: const CustomBottomBar(),
       ),
     );
   }

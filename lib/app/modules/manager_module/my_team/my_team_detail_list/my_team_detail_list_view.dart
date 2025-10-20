@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:rudra/app/modules/manager_module/my_team/my_team_controller.dart';
 import 'package:rudra/app/modules/manager_module/my_team/my_team_detail_list/my_team_detail_list_controller.dart';
 import 'package:shimmer/shimmer.dart';
-
+import '../../../../data/models/my_team/get_my_team_member_response.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../../utils/app_colors.dart';
 import '../../../../utils/responsive_utils.dart';
@@ -29,30 +28,38 @@ class MyTeamDetailListView extends StatelessWidget {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              _buildSerachField(controller),
+              _buildSearchField(controller),
               SizedBox(height: ResponsiveHelper.spacing(16)),
               Expanded(
                 child: Obx(
                   () => controller.isLoading.value
                       ? _buildShimmerEffect()
-                      : controller.filteredReportList.isEmpty
-                      ? const Center(child: Text('No reports found'))
+                      : controller.filteredTeamMemberList.isEmpty
+                      ? const Center(child: Text('No team members found'))
                       : ListView.builder(
-                          physics: AlwaysScrollableScrollPhysics(),
-
-                          itemCount: controller.filteredReportList.length,
+                          controller: controller.scrollController,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          itemCount:
+                              controller.filteredTeamMemberList.length +
+                              (controller.isLoadingMore.value ? 1 : 0),
                           itemBuilder: (context, index) {
-                            final user = controller.filteredReportList[index];
+                            if (index ==
+                                controller.filteredTeamMemberList.length) {
+                              return _buildLoadingMoreIndicator();
+                            }
+                            final member =
+                                controller.filteredTeamMemberList[index];
                             return GestureDetector(
                               onTap: () {
-                                Get.toNamed(AppRoutes.profileDetails);
+                                Get.toNamed(
+                                  AppRoutes.profileDetails,
+                                  arguments: member,
+                                );
                               },
                               child: Card(
                                 margin: const EdgeInsets.only(bottom: 16),
                                 child: ListTile(
-                                  //horizontalTitleGap: 5,
                                   leading: CircleAvatar(
-                                    // radius: 50,
                                     backgroundColor: AppColors.lightGrey,
                                     child: Icon(
                                       Icons.person,
@@ -60,7 +67,7 @@ class MyTeamDetailListView extends StatelessWidget {
                                     ),
                                   ),
                                   title: Text(
-                                    user.name,
+                                    '${member.memberFirstName} ${member.memberLastName}',
                                     style: AppStyle.myTeamCardTitle.responsive
                                         .copyWith(
                                           fontSize:
@@ -70,7 +77,6 @@ class MyTeamDetailListView extends StatelessWidget {
                                         ),
                                   ),
                                   trailing: CircleAvatar(
-                                    // radius: ResponsiveHelper.spacing(30),
                                     backgroundColor: AppColors.defaultBlack,
                                     child: Icon(
                                       Icons.phone,
@@ -86,7 +92,19 @@ class MyTeamDetailListView extends StatelessWidget {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          "Phone Number : ${user.phoneNumber}\nDesignation : ${user.designation}",
+                                          'Phone Number: ${member.memberMobileNo}',
+                                          style: AppStyle
+                                              .myteamCardRowTitle
+                                              .responsive
+                                              .copyWith(
+                                                fontSize:
+                                                    ResponsiveHelper.getResponsiveFontSize(
+                                                      12,
+                                                    ),
+                                              ),
+                                        ),
+                                        Text(
+                                          'Designation: ${member.role}',
                                           style: AppStyle
                                               .myteamCardRowTitle
                                               .responsive
@@ -114,11 +132,11 @@ class MyTeamDetailListView extends StatelessWidget {
     );
   }
 
-  TextFormField _buildSerachField(MyTeamDetailListController controller) {
+  TextFormField _buildSearchField(MyTeamDetailListController controller) {
     return TextFormField(
       controller: controller.searchController,
       decoration: InputDecoration(
-        hintText: 'Search....',
+        hintText: 'Search team members...',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         suffixIcon: const Icon(Icons.search),
         contentPadding: const EdgeInsets.symmetric(
@@ -126,7 +144,6 @@ class MyTeamDetailListView extends StatelessWidget {
           vertical: 12,
         ),
       ),
-      onChanged: controller.searchReports,
     );
   }
 
@@ -183,6 +200,13 @@ class MyTeamDetailListView extends StatelessWidget {
     );
   }
 
+  Widget _buildLoadingMoreIndicator() {
+    return const Padding(
+      padding: EdgeInsets.all(16.0),
+      child: Center(child: CircularProgressIndicator()),
+    );
+  }
+
   AppBar _buildAppbar() {
     return AppBar(
       iconTheme: const IconThemeData(color: Colors.black),
@@ -190,7 +214,7 @@ class MyTeamDetailListView extends StatelessWidget {
       elevation: 0,
       centerTitle: false,
       title: Text(
-        'Report 1',
+        'My Team',
         style: AppStyle.heading1PoppinsBlack.responsive.copyWith(
           fontSize: ResponsiveHelper.getResponsiveFontSize(18),
           fontWeight: FontWeight.w600,

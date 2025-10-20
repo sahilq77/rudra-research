@@ -7,7 +7,7 @@ class AppUtility {
   static String? fullName;
   static String? mobileNumber;
   static String? email;
-  static String? plantId;
+  static String? roleId;
   static RxString plantName = ''.obs;
   static int? userRole;
   static bool isLoggedIn = false;
@@ -21,7 +21,7 @@ class AppUtility {
       fullName = prefs.getString('full_name');
       mobileNumber = prefs.getString('mobile_number');
       email = prefs.getString('email');
-      plantId = prefs.getString('plant_id');
+      roleId = prefs.getString('role_id');
       plantName.value = prefs.getString('plant_name') ?? '';
       userID = prefs.getString('login_user_id');
       userRole = prefs.getInt('user_role');
@@ -33,7 +33,7 @@ class AppUtility {
     String mobile,
     String emailid,
     String userid,
-    String plantid,
+    String roleid,
     int role,
   ) async {
     final prefs = await SharedPreferences.getInstance();
@@ -42,14 +42,14 @@ class AppUtility {
     await prefs.setString('mobile_number', mobile);
     await prefs.setString('email', emailid);
     await prefs.setString('login_user_id', userid);
-    await prefs.setString('plant_id', plantid);
+    await prefs.setString('role_id', roleid);
     await prefs.setString('plant_name', '');
     await prefs.setInt('user_role', role);
     fullName = name;
     mobileNumber = mobile;
     userID = userid;
     email = emailid;
-    plantId = plantid;
+    roleId = roleid;
     userRole = role;
     plantName.value = '';
     isLoggedIn = true;
@@ -59,7 +59,7 @@ class AppUtility {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('plant_id', plantid);
     await prefs.setString('plant_name', plantname);
-    plantId = plantid;
+    roleId = plantid;
     plantName.value = plantname;
   }
 
@@ -77,7 +77,7 @@ class AppUtility {
     fullName = null;
     mobileNumber = null;
     email = null;
-    plantId = null;
+    roleId = null;
     userRole = null;
     plantName.value = '';
     isLoggedIn = false;
