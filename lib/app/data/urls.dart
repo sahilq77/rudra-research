@@ -10,8 +10,8 @@ class Networkutility {
   static int getTeamListApi = 2;
   static String getTeamMemberList = "${baseUrl + "get_team_details_according_to_team_id_api"}";
   static int getTeamMemberListApi = 3;
-  static String reportList = "${baseUrl + "get_completed_reports_api"}";
-  static int reportListApi = 4;
+  static String getTeamMemberDetail = "${baseUrl + "get_team_member_profile_api"}";
+  static int getTeamMemberDetailApi = 4;
   static String getCompanyList = "${baseUrl + "get_completed_company_list"}";
   static int getCompanyListApi = 5;
   static String getPlantList = "${baseUrl + "get_completed_plant_list"}";

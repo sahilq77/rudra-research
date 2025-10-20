@@ -38,7 +38,7 @@ class TeamMemberData {
     String teamManagerId;
     String teamMembersId;
     ManagerDetails managerDetails;
-    List<TeamMembersDetail> teamMembersDetails;
+    List<TeamMembersDetails> teamMembersDetails;
 
     TeamMemberData({
         required this.teamId,
@@ -55,7 +55,7 @@ class TeamMemberData {
         teamManagerId: json["team_manager_id"],
         teamMembersId: json["team_members_id"],
         managerDetails: ManagerDetails.fromJson(json["manager_details"]),
-        teamMembersDetails: List<TeamMembersDetail>.from(json["team_members_details"].map((x) => TeamMembersDetail.fromJson(x))),
+        teamMembersDetails: List<TeamMembersDetails>.from(json["team_members_details"].map((x) => TeamMembersDetails.fromJson(x))),
     );
 
     Map<String, dynamic> toJson() => {
@@ -100,14 +100,14 @@ class ManagerDetails {
     };
 }
 
-class TeamMembersDetail {
+class TeamMembersDetails {
     String memberId;
     String memberFirstName;
     String memberLastName;
     String memberMobileNo;
     String role;
 
-    TeamMembersDetail({
+    TeamMembersDetails({
         required this.memberId,
         required this.memberFirstName,
         required this.memberLastName,
@@ -115,7 +115,7 @@ class TeamMembersDetail {
         required this.role,
     });
 
-    factory TeamMembersDetail.fromJson(Map<String, dynamic> json) => TeamMembersDetail(
+    factory TeamMembersDetails.fromJson(Map<String, dynamic> json) => TeamMembersDetails(
         memberId: json["member_id"],
         memberFirstName: json["member_first_name"],
         memberLastName: json["member_last_name"],

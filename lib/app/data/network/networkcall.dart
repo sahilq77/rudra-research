@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:rudra/app/data/models/login/get_login_response.dart';
+import 'package:rudra/app/data/models/my_team/get_my_team_member_detail.dart';
 import 'package:rudra/app/data/models/my_team/get_my_team_member_response.dart';
 import 'package:rudra/app/data/models/my_team/get_my_team_response.dart';
 import 'package:rudra/app/data/network/exceptions.dart';
@@ -82,6 +83,9 @@ class Networkcall {
           case 3:
             final getMemberList = getMyTeamMemberResponseFromJson(str);
             return getMemberList;
+          case 4:
+            final getMemberDetail = getMyTeamMemberDetailResponseFromJson(str);
+            return getMemberDetail;
 
           default:
             log("Invalid request code: $requestCode");

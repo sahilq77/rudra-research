@@ -13,8 +13,8 @@ import '../../../../data/models/my_team/get_my_team_member_response.dart';
 
 class MyTeamDetailListController extends GetxController {
   var isLoading = true.obs;
-  var teamMemberList = <TeamMembersDetail>[].obs;
-  var filteredTeamMemberList = <TeamMembersDetail>[].obs;
+  var teamMemberList = <TeamMembersDetails>[].obs;
+  var filteredTeamMemberList = <TeamMembersDetails>[].obs;
   var errorMessage = ''.obs;
   RxInt offset = 0.obs;
   final int limit = 10;
@@ -141,7 +141,7 @@ class MyTeamDetailListController extends GetxController {
           }
           for (var team in myTeam) {
             teamMemberList.add(
-              TeamMembersDetail(
+              TeamMembersDetails(
                 memberId: team.memberId,
                 memberFirstName: team.memberFirstName,
                 memberLastName: team.memberLastName,

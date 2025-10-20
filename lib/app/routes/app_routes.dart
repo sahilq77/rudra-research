@@ -19,6 +19,8 @@ import 'package:rudra/app/modules/manager_module/my_survey/my_survey_detail_list
 import 'package:rudra/app/modules/manager_module/my_team/my_team_binding.dart';
 import 'package:rudra/app/modules/manager_module/my_team/my_team_detail_list/my_team_detail_binding.dart';
 import 'package:rudra/app/modules/manager_module/my_team/my_team_view.dart';
+import 'package:rudra/app/modules/manager_module/my_team/team_member_detail/team_member_detail_binding.dart';
+import 'package:rudra/app/modules/manager_module/my_team/team_member_detail/team_member_detail_view.dart';
 import 'package:rudra/app/modules/manager_module/myreport/my_report_list_binding.dart';
 import 'package:rudra/app/modules/manager_module/myreport/my_report_list_view.dart';
 import 'package:rudra/app/modules/manager_module/myreport/my_report_survey_view.dart/my_report_survey_view.dart'
@@ -133,6 +135,8 @@ static const String validatorNotification = '/validator-notification';
 
 
   static const String noInternet = '/nointernet';
+ static const String teamMemberDetail = '/team-member-detail';
+  
 
   
 
@@ -335,6 +339,13 @@ GetPage(
       page: () => NoInternetScreen(),
       transition: Transition.fadeIn,
     ),
+    GetPage(
+      name: teamMemberDetail,
+      page: () => TeamMemberDetailView(),
+        binding: TeamMemberDetailBinding(),
+    ),
+    
+
     
   ];
 }
