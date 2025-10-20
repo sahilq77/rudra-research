@@ -128,9 +128,18 @@ class _TeamMemberDetailViewState extends State<TeamMemberDetailView> {
         ),
         SizedBox(height: ResponsiveHelper.spacing(60)),
         Obx(() {
+          if (controller.teamDetail.value.isEmpty) {
+            return Text(
+              'Hi, User',
+              style: AppStyle.heading1PoppinsBlack.responsive.copyWith(
+                fontSize: ResponsiveHelper.getResponsiveFontSize(18),
+                fontWeight: FontWeight.w600,
+              ),
+            );
+          }
           final profile = controller.teamDetail.value.first;
           return Text(
-            'Hi , ${profile?.firstName ?? profile?.lastName}',
+            'Hi, ${profile.firstName + profile.lastName ?? "User"}',
             style: AppStyle.heading1PoppinsBlack.responsive.copyWith(
               fontSize: ResponsiveHelper.getResponsiveFontSize(18),
               fontWeight: FontWeight.w600,
@@ -150,11 +159,25 @@ class _TeamMemberDetailViewState extends State<TeamMemberDetailView> {
 
   Widget _buildProfileInfoCard() {
     return Obx(() {
-      final profile = controller.teamDetail.value.first;
-      if (profile == null) {
-        return const SizedBox.shrink();
+      if (controller.teamDetail.value.isEmpty) {
+        return Container(
+          margin: ResponsiveHelper.paddingSymmetric(horizontal: 16),
+          padding: ResponsiveHelper.paddingSymmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.lightGrey.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(16)),
+          ),
+          child: const Text(
+            'No profile data available.',
+            style: TextStyle(fontSize: 14, color: AppColors.grey),
+          ),
+        );
       }
 
+      final profile = controller.teamDetail.value.first;
       return Container(
         margin: ResponsiveHelper.paddingSymmetric(horizontal: 16),
         padding: ResponsiveHelper.paddingSymmetric(
@@ -168,19 +191,25 @@ class _TeamMemberDetailViewState extends State<TeamMemberDetailView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildInfoItem('Name', profile.firstName + profile.lastName),
+            _buildInfoItem(
+              'Name',
+              '${profile.firstName ?? ""} ${profile.lastName ?? ""}',
+            ),
             _buildDivider(),
-            _buildInfoItem('Phone Number', profile.mobileNo),
+            _buildInfoItem('Phone Number', profile.mobileNo ?? 'N/A'),
             _buildDivider(),
-            _buildInfoItem('Email ID', profile.email),
+            _buildInfoItem('Email ID', profile.email ?? 'N/A'),
             _buildDivider(),
-            _buildInfoItem('Address', profile.address),
+            _buildInfoItem('Address', profile.address ?? 'N/A'),
             _buildDivider(),
-            _buildInfoItem('Designation', profile.role),
+            _buildInfoItem('Designation', profile.role ?? 'N/A'),
             _buildDivider(),
-            _buildInfoItem('Joining Date', profile.joiningDate.toString()),
+            _buildInfoItem(
+              'Joining Date',
+              profile.joiningDate?.toString() ?? 'N/A',
+            ),
             _buildDivider(),
-            _buildInfoItem('DOB', profile.dob.toString()),
+            _buildInfoItem('DOB', profile.dob?.toString() ?? 'N/A'),
           ],
         ),
       );
