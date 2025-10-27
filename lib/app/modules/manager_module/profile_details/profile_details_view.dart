@@ -207,9 +207,15 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
             _buildDivider(),
             _buildInfoItem('Designation', profile.designation),
             _buildDivider(),
-            _buildInfoItem('Joining Date', profile.joiningDate),
+            _buildInfoItem(
+              'Joining Date',
+              controller.formatDateTime(profile.joiningDate),
+            ),
             _buildDivider(),
-            _buildInfoItem('DOB', profile.dob),
+            _buildInfoItem(
+              'DOB',
+              controller.formatDateTime(profile.joiningDate),
+            ),
           ],
         ),
       );

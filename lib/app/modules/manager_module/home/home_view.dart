@@ -26,15 +26,17 @@ class _HomeViewState extends State<HomeView> {
   final BottomNavigationController bottomController = Get.put(
     BottomNavigationController(),
   );
+  
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    AppUtility.initialize();
+  
   }
 
   @override
   Widget build(BuildContext context) {
+    
     ResponsiveHelper.init(context);
     return WillPopScope(
       onWillPop: () => bottomController.onWillPop(),

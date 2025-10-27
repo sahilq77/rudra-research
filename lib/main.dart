@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:rudra/app/data/service/notfication_services.dart';
 import 'package:rudra/app/widgets/connctivityservice.dart';
+import 'package:rudra/bottom_navigation/bottom_navigation_controller.dart';
 import 'package:rudra/firebase_options.dart';
 import 'app/routes/app_routes.dart';
 import 'app/utils/app_colors.dart';
@@ -20,7 +21,10 @@ Future<void> main() async {
     Get.put(ConnectivityService(), permanent: true);
   notificationServices.requestNotificationPermission();
   notificationServices.isTokenRefresh();
-  await AppUtility.initialize();
+   Get.lazyPut<BottomNavigationController>(
+    () => BottomNavigationController(),
+    fenix: true,
+  );
   runApp(const MyApp());
 }
 

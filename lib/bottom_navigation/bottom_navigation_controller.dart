@@ -12,7 +12,9 @@ class BottomNavigationController extends GetxController {
   void onInit() {
     super.onInit();
     // Initialize routes based on userType
+
     routes = _getRoutesForUserType(AppUtility.userRole);
+    update();
     // Sync initial index with current route
     syncIndexWithRoute(Get.currentRoute);
     // Listen for route changes

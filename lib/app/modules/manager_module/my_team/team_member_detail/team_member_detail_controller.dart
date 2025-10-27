@@ -3,6 +3,7 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:rudra/app/data/models/my_team/get_my_team_member_detail.dart';
 import 'package:rudra/app/data/models/my_team/get_my_team_member_response.dart' show TeamMembersDetails;
 import 'package:rudra/app/data/network/exceptions.dart';
@@ -40,6 +41,20 @@ class TeamMemberDetailController extends GetxController {
       return 'Good Afternoon';
     } else {
       return 'Good Evening';
+    }
+  }
+String formatDateTime(String dateTimeString) {
+    try {
+      // Parse the input string to DateTime
+      DateTime dateTime = DateTime.parse(dateTimeString);
+
+      // Define the desired format (e.g., "Sep 16, 2025 – 11:25 AM")
+      final DateFormat formatter = DateFormat('MMM d, yyyy');
+
+      // Format the DateTime object
+      return formatter.format(dateTime);
+    } catch (e) {
+      return 'Invalid date format';
     }
   }
 

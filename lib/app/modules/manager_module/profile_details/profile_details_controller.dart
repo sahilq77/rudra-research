@@ -57,6 +57,21 @@ class ProfileDetailsController extends GetxController {
     _loadPerformanceData();
   }
 
+  String formatDateTime(String dateTimeString) {
+    try {
+      // Parse the input string to DateTime
+      DateTime dateTime = DateTime.parse(dateTimeString);
+
+      // Define the desired format (e.g., "Sep 16, 2025 – 11:25 AM")
+      final DateFormat formatter = DateFormat('MMM d, yyyy');
+
+      // Format the DateTime object
+      return formatter.format(dateTime);
+    } catch (e) {
+      return 'Invalid date format';
+    }
+  }
+
   Future<void> fetchProfileDetails({
     required BuildContext context,
     bool reset = false,
@@ -100,6 +115,7 @@ class ProfileDetailsController extends GetxController {
           final data =
               response[0].data; // Adjust based on your API response structure
           profileDetails.value = ProfileDetailsModel(
+            image:  data.file??"",
             name: '${data.firstName ?? ""} ${data.lastName ?? ""}',
             phoneNumber: data.mobileNo ?? 'N/A',
             emailId: data.email ?? 'N/A',

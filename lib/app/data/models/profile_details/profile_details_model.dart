@@ -1,4 +1,5 @@
 class ProfileDetailsModel {
+    final String image;
   final String name;
   final String phoneNumber;
   final String emailId;
@@ -8,6 +9,7 @@ class ProfileDetailsModel {
   final String dob;
 
   ProfileDetailsModel({
+      required this.image,
     required this.name,
     required this.phoneNumber,
     required this.emailId,
@@ -19,6 +21,7 @@ class ProfileDetailsModel {
 
   factory ProfileDetailsModel.fromJson(Map<String, dynamic> json) {
     return ProfileDetailsModel(
+       image: json['image'] ?? '',
       name: json['name'] ?? '',
       phoneNumber: json['phone_number'] ?? '',
       emailId: json['email_id'] ?? '',

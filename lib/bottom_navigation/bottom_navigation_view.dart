@@ -16,6 +16,7 @@ class CustomBottomBar extends StatefulWidget {
 class _CustomBottomBarState extends State<CustomBottomBar> {
   @override
   Widget build(BuildContext context) {
+   
     final controller = Get.put(BottomNavigationController());
     return Container(
       height: 70.0,

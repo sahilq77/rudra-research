@@ -50,6 +50,7 @@ class ValidatorProfileDetailController extends GetxController {
 
       // Mock data - Replace with actual API call
       profileDetails.value = ProfileDetailsModel(
+        image: "",
         name: 'Pradeep Nayar',
         phoneNumber: '9874563210',
         emailId: 'pradeep123@gmail.com',

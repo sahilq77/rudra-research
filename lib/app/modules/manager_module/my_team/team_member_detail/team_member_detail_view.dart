@@ -206,10 +206,13 @@ class _TeamMemberDetailViewState extends State<TeamMemberDetailView> {
             _buildDivider(),
             _buildInfoItem(
               'Joining Date',
-              profile.joiningDate?.toString() ?? 'N/A',
+              controller.formatDateTime(profile.joiningDate.toString()),
             ),
             _buildDivider(),
-            _buildInfoItem('DOB', profile.dob?.toString() ?? 'N/A'),
+            _buildInfoItem(
+              'DOB',
+              controller.formatDateTime(profile.dob.toString()),
+            ),
           ],
         ),
       );
