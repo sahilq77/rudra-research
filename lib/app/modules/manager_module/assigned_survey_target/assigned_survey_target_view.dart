@@ -74,11 +74,28 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
             }
           },
           itemBuilder: (context) => [
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'assign',
-              child: Text('Assign Executive'),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Icon(Icons.person),
+
+                  Text(' Assign Executive', style: AppStyle.reportCardRowCount),
+                ],
+              ),
             ),
-            const PopupMenuItem(value: 'add', child: Text('Add Executive')),
+            PopupMenuDivider(),
+            PopupMenuItem(
+              value: 'add',
+              child: Row(
+                children: [
+                  Icon(Icons.person_add),
+
+                  Text(' Add Executive', style: AppStyle.reportCardRowCount),
+                ],
+              ),
+            ),
           ],
         ),
       ],

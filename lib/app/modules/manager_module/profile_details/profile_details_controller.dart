@@ -8,8 +8,9 @@ import '../../../utils/app_utility.dart';
 
 class ProfileDetailsController extends GetxController {
   final RxBool isLoading = false.obs;
-  final Rx<ProfileDetailsModel?> profileDetails =
-      Rx<ProfileDetailsModel?>(null);
+  final Rx<ProfileDetailsModel?> profileDetails = Rx<ProfileDetailsModel?>(
+    null,
+  );
   final RxList<PerformanceDataModel> performanceData =
       <PerformanceDataModel>[].obs;
   final RxString selectedPeriod = 'Weekly'.obs;
@@ -41,8 +42,10 @@ class ProfileDetailsController extends GetxController {
     await Future.delayed(const Duration(seconds: 1));
     _loadProfileDetails();
     _loadPerformanceData();
-    AppLogger.d('Profile details page refreshed',
-        tag: 'ProfileDetailsController');
+    AppLogger.d(
+      'Profile details page refreshed',
+      tag: 'ProfileDetailsController',
+    );
   }
 
   void _loadProfileDetails() {
@@ -51,17 +54,19 @@ class ProfileDetailsController extends GetxController {
 
       // Mock data - Replace with actual API call
       profileDetails.value = ProfileDetailsModel(
-        name: 'Pradeep Nayar',
-        phoneNumber: '9874563210',
-        emailId: 'pradeep123@gmail.com',
+        name: 'Jayesh Wagh',
+        phoneNumber: '1234567890',
+        emailId: 'jayesh 123@gmail.com',
         address: 'MG Road, Shivaji Nagar, Pune.',
         designation: 'Manager',
         joiningDate: 'Sep 16, 2025',
         dob: 'Mar 16, 2000',
       );
 
-      AppLogger.d('Profile details loaded successfully',
-          tag: 'ProfileDetailsController');
+      AppLogger.d(
+        'Profile details loaded successfully',
+        tag: 'ProfileDetailsController',
+      );
     } catch (e, stackTrace) {
       AppLogger.e(
         'Failed to load profile details',
@@ -90,8 +95,10 @@ class ProfileDetailsController extends GetxController {
       final now = DateTime.now();
       currentMonth.value = DateFormat('MMMM yyyy').format(now);
 
-      AppLogger.d('Performance data loaded successfully',
-          tag: 'ProfileDetailsController');
+      AppLogger.d(
+        'Performance data loaded successfully',
+        tag: 'ProfileDetailsController',
+      );
     } catch (e, stackTrace) {
       AppLogger.e(
         'Failed to load performance data',

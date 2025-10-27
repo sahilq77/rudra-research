@@ -32,15 +32,16 @@ class _ProfileViewState extends State<ProfileView> {
 
       child: Scaffold(
         backgroundColor: AppColors.white,
+        appBar: _buildAppbar(),
         body: RefreshIndicator(
           onRefresh: controller.onRefresh,
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-              _buildAppBar(),
               SliverToBoxAdapter(
                 child: Column(
                   children: [
+                    SizedBox(height: ResponsiveHelper.spacing(24)),
                     _buildProfileHeader(),
                     SizedBox(height: ResponsiveHelper.spacing(24)),
                     _buildMenuList(),
@@ -56,22 +57,12 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  Widget _buildAppBar() {
-    return SliverAppBar(
+  AppBar _buildAppbar() {
+    return AppBar(
+      iconTheme: const IconThemeData(color: Colors.black),
       backgroundColor: AppColors.white,
       elevation: 0,
-      pinned: false,
-      floating: false,
-      expandedHeight: 0,
-      toolbarHeight: ResponsiveHelper.spacing(56),
-      // leading: IconButton(
-      //   icon: Icon(
-      //     Icons.arrow_back,
-      //     color: AppColors.defaultBlack,
-      //     size: ResponsiveHelper.spacing(24),
-      //   ),
-      //   onPressed: () => Get.back(),
-      // ),
+      centerTitle: false,
       title: Text(
         'Profile',
         style: AppStyle.heading1PoppinsBlack.responsive.copyWith(
@@ -79,7 +70,10 @@ class _ProfileViewState extends State<ProfileView> {
           fontWeight: FontWeight.w600,
         ),
       ),
-      centerTitle: false,
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(0),
+        child: Divider(color: AppColors.grey.withOpacity(0.5), height: 0),
+      ),
     );
   }
 
