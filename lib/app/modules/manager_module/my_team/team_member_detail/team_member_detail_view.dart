@@ -484,7 +484,7 @@ class _TeamMemberDetailViewState extends State<TeamMemberDetailView> {
       elevation: 0,
       centerTitle: false,
       title: Text(
-        'Profile',
+        'Member Detail',
         style: AppStyle.heading1PoppinsBlack.responsive.copyWith(
           fontSize: ResponsiveHelper.getResponsiveFontSize(18),
           fontWeight: FontWeight.w600,

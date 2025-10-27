@@ -1,11 +1,11 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:rudra/app/modules/manager_module/profile_details/profile_details_controller.dart';
 
-import '../../../utils/app_colors.dart';
-import '../../../utils/responsive_utils.dart';
-import '../../../widgets/app_style.dart';
-import 'profile_details_controller.dart';
+import 'package:rudra/app/utils/responsive_utils.dart';
+import 'package:rudra/app/widgets/app_style.dart';
+import 'package:rudra/app/utils/app_colors.dart';
 
 class ProfileDetailsView extends StatefulWidget {
   const ProfileDetailsView({super.key});
@@ -29,17 +29,32 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  SizedBox(height: ResponsiveHelper.spacing(24)),
-                  _buildProfileHeader(),
-                  SizedBox(height: ResponsiveHelper.spacing(24)),
-                  _buildProfileInfoCard(),
-                  SizedBox(height: ResponsiveHelper.spacing(24)),
-                  _buildPerformanceCard(),
-                  SizedBox(height: ResponsiveHelper.spacing(24)),
-                ],
-              ),
+              child: Obx(() {
+                if (controller.isLoading.value) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (controller.errorMessage.isNotEmpty) {
+                  return Center(
+                    child: Text(
+                      controller.errorMessage.value,
+                      style: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(14),
+                      ),
+                    ),
+                  );
+                }
+                return Column(
+                  children: [
+                    SizedBox(height: ResponsiveHelper.spacing(24)),
+                    _buildProfileHeader(),
+                    SizedBox(height: ResponsiveHelper.spacing(24)),
+                    _buildProfileInfoCard(),
+                    SizedBox(height: ResponsiveHelper.spacing(24)),
+                    _buildPerformanceCard(),
+                    SizedBox(height: ResponsiveHelper.spacing(24)),
+                  ],
+                );
+              }),
             ),
           ],
         ),
@@ -129,9 +144,8 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
         ),
         SizedBox(height: ResponsiveHelper.spacing(60)),
         Obx(() {
-          final profile = controller.profileDetails.value;
           return Text(
-            'Hi , ${profile?.name ?? controller.userName}',
+            'Hi, ${controller.userName}',
             style: AppStyle.heading1PoppinsBlack.responsive.copyWith(
               fontSize: ResponsiveHelper.getResponsiveFontSize(18),
               fontWeight: FontWeight.w600,
@@ -153,7 +167,21 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
     return Obx(() {
       final profile = controller.profileDetails.value;
       if (profile == null) {
-        return const SizedBox.shrink();
+        return Container(
+          margin: ResponsiveHelper.paddingSymmetric(horizontal: 16),
+          padding: ResponsiveHelper.paddingSymmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.lightGrey.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(16)),
+          ),
+          child: const Text(
+            'No profile data available.',
+            style: TextStyle(fontSize: 14, color: AppColors.grey),
+          ),
+        );
       }
 
       return Container(

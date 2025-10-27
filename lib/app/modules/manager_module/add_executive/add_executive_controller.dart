@@ -31,6 +31,7 @@ class AddExecutiveController extends GetxController {
   final TextEditingController dobController = TextEditingController();
   final TextEditingController joiningDateController = TextEditingController();
   final RxInt selectedRole = 4.obs; // Default to Executive (4)
+  
   final Rx<File?> selectedImage = Rx<File?>(null);
   final RxBool isLoading = false.obs;
   var errorMessage = ''.obs;
