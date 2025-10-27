@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:rudra/app/data/models/notification/get_notification_response.dart';
+import 'package:rudra/app/modules/manager_module/notification/notification_controller.dart';
 
 import '../../../data/models/notification/notification_model.dart';
 
 class NotificationDetailBottomSheet extends StatelessWidget {
   final NotificationModel notification;
 
-  const NotificationDetailBottomSheet({
-    super.key,
-    required this.notification,
-  });
+  const NotificationDetailBottomSheet({super.key, required this.notification});
 
   @override
   Widget build(BuildContext context) {
+    final controller = Get.put(NotificationController());
     return Container(
+      width: double.infinity,
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.only(
@@ -41,7 +43,8 @@ class NotificationDetailBottomSheet extends StatelessWidget {
               children: [
                 // Date & Time
                 Text(
-                  notification.details?.dateTime ?? '',
+                  controller.formatDateTime(notification.dateTime.toString()) ??
+                      '',
                   style: const TextStyle(
                     fontSize: 12,
                     color: Colors.grey,
@@ -68,20 +71,37 @@ class NotificationDetailBottomSheet extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
-                      _buildDetailRow('Survey Name',
-                          notification.details?.surveyName ?? ''),
+                      _buildDetailRow('Detail', notification.message ?? ''),
+                      // const Divider(
+                      //   height: 24,
+                      //   thickness: 1,
+                      //   color: Color(0xFFE0E0E0),
+                      // ),
+                      // _buildDetailRow(
+                      //   'Executive Name',
+                      //   notification.details?.executiveName ?? '',
+                      // ),
                       const Divider(
-                          height: 24, thickness: 1, color: Color(0xFFE0E0E0)),
-                      _buildDetailRow('Executive Name',
-                          notification.details?.executiveName ?? ''),
-                      const Divider(
-                          height: 24, thickness: 1, color: Color(0xFFE0E0E0)),
+                        height: 24,
+                        thickness: 1,
+                        color: Color(0xFFE0E0E0),
+                      ),
                       _buildDetailRow(
-                          'Date & Time', notification.details?.dateTime ?? ''),
-                      const Divider(
-                          height: 24, thickness: 1, color: Color(0xFFE0E0E0)),
-                      _buildDetailRow(
-                          'Target', notification.details?.target ?? ''),
+                        'Date & Time',
+                        controller.formatDateTime(
+                              notification.dateTime.toString(),
+                            ) ??
+                            '',
+                      ),
+                      // const Divider(
+                      //   height: 24,
+                      //   thickness: 1,
+                      //   color: Color(0xFFE0E0E0),
+                      // ),
+                      // _buildDetailRow(
+                      //   'Target',
+                      //   notification.details?.target ?? '',
+                      // ),
                     ],
                   ),
                 ),

@@ -11,6 +11,7 @@ import 'package:rudra/app/data/models/login/get_login_response.dart';
 import 'package:rudra/app/data/models/my_team/get_my_team_member_detail.dart';
 import 'package:rudra/app/data/models/my_team/get_my_team_member_response.dart';
 import 'package:rudra/app/data/models/my_team/get_my_team_response.dart';
+import 'package:rudra/app/data/models/notification/get_notification_response.dart';
 import 'package:rudra/app/data/network/exceptions.dart';
 import 'package:rudra/app/widgets/app_style.dart';
 import 'package:rudra/app/widgets/connctivityservice.dart'
@@ -93,6 +94,11 @@ class Networkcall {
           case 6:
             final addExecutive = getAddExcecutiveResponseFromJson(str);
             return addExecutive;
+
+          case 7:
+            final getNotification = getNotificationResponseFromJson(str);
+            return getNotification;
+
           default:
             log("Invalid request code: $requestCode");
             throw ParseException('Unhandled request code: $requestCode');

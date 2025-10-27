@@ -310,61 +310,61 @@ class _AddExecutiveViewState extends State<AddExecutiveView> {
     );
   }
 
-  Widget _buildRoleDropdown() {
-    return Obx(
-      () => DropdownSearch<int>(
-        selectedItem: controller.selectedRole.value,
-        items: List.generate(controller.roles.length, (index) => index),
-        itemAsString: (item) => controller.roles[item],
-        onChanged: (value) {
-          controller.selectedRole.value = value ?? 0;
-        },
-        validator: (value) => value == null ? 'Please select a role' : null,
-        dropdownDecoratorProps: DropDownDecoratorProps(
-          dropdownSearchDecoration: InputDecoration(
-            labelText: 'Role',
-            labelStyle: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
-              fontSize: ResponsiveHelper.getResponsiveFontSize(12),
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(8)),
-              borderSide: BorderSide(
-                color: AppColors.lightGrey.withOpacity(0.3),
-                width: 1,
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(8)),
-              borderSide: BorderSide(
-                color: AppColors.lightGrey.withOpacity(0.3),
-                width: 1,
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(8)),
-              borderSide: const BorderSide(
-                color: AppColors.primary,
-                width: 1.5,
-              ),
-            ),
-            contentPadding: ResponsiveHelper.paddingSymmetric(
-              horizontal: 16,
-              vertical: 12,
+ Widget _buildRoleDropdown() {
+  return Obx(
+    () => DropdownSearch<int>(
+      selectedItem: controller.selectedRole.value,
+      items: controller.roleValues, // Use roleValues from controller
+      itemAsString: (item) => controller.roles[controller.roleValues.indexOf(item)],
+      onChanged: (value) {
+        controller.selectedRole.value = value ?? controller.roleValues[0];
+      },
+      validator: (value) => value == null ? 'Please select a role' : null,
+      dropdownDecoratorProps: DropDownDecoratorProps(
+        dropdownSearchDecoration: InputDecoration(
+          labelText: 'Role',
+          labelStyle: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
+            fontSize: ResponsiveHelper.getResponsiveFontSize(12),
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(8)),
+            borderSide: BorderSide(
+              color: AppColors.lightGrey.withOpacity(0.3),
+              width: 1,
             ),
           ),
-        ),
-        popupProps: const PopupProps.menu(
-          showSearchBox: true,
-          searchFieldProps: TextFieldProps(
-            decoration: InputDecoration(
-              hintText: 'Search role',
-              border: InputBorder.none,
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(8)),
+            borderSide: BorderSide(
+              color: AppColors.lightGrey.withOpacity(0.3),
+              width: 1,
             ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(8)),
+            borderSide: const BorderSide(
+              color: AppColors.primary,
+              width: 1.5,
+            ),
+          ),
+          contentPadding: ResponsiveHelper.paddingSymmetric(
+            horizontal: 16,
+            vertical: 12,
           ),
         ),
       ),
-    );
-  }
+      popupProps: const PopupProps.menu(
+        showSearchBox: true,
+        searchFieldProps: TextFieldProps(
+          decoration: InputDecoration(
+            hintText: 'Search role',
+            border: InputBorder.none,
+          ),
+        ),
+      ),
+    ),
+  );
+}
 
   Widget _buildBottomButton() {
     return Container(

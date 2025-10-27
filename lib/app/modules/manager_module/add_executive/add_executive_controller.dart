@@ -30,11 +30,12 @@ class AddExecutiveController extends GetxController {
   final TextEditingController addressController = TextEditingController();
   final TextEditingController dobController = TextEditingController();
   final TextEditingController joiningDateController = TextEditingController();
-  final RxInt selectedRole = 0.obs;
+  final RxInt selectedRole = 4.obs; // Default to Executive (4)
   final Rx<File?> selectedImage = Rx<File?>(null);
   final RxBool isLoading = false.obs;
   var errorMessage = ''.obs;
-  final List<String> roles = ['Executive'];
+  final List<String> roles = ['Executive', 'Validator'];
+  final List<int> roleValues = [4, 5]; // Corresponding role IDs
 
   DateTime selectedDob = DateTime(2025, 9, 16);
   DateTime selectedJoiningDate = DateTime(2025, 9, 16);
@@ -61,6 +62,14 @@ class AddExecutiveController extends GetxController {
 
   Future<void> addExecutive({BuildContext? context}) async {
     try {
+      if (!formKey.currentState!.validate()) {
+        AppSnackbarStyles.showError(
+          title: 'Validation Error',
+          message: 'Please fix the errors in the form',
+        );
+        return;
+      }
+
       final jsonBody = {
         "first_name": firstNameController.text.trim(),
         "last_name": lastNameController.text.trim(),
@@ -69,7 +78,7 @@ class AddExecutiveController extends GetxController {
         "dob": DateFormat('yyyy-MM-dd').format(selectedDob),
         "joining_date": DateFormat('yyyy-MM-dd').format(selectedJoiningDate),
         "address": addressController.text.trim(),
-        "role_id": AppUtility.roleId,
+        "role_id": selectedRole.value.toString(), // Use selectedRole directly
         "is_active": "1",
         "assigned_by": AppUtility.userID,
         "updated_by": AppUtility.userID,
@@ -131,9 +140,6 @@ class AddExecutiveController extends GetxController {
       );
     } finally {
       isLoading.value = false;
-      if (errorMessage.value.isNotEmpty) {
-        Get.back();
-      }
     }
   }
 
