@@ -1,5 +1,12 @@
+import 'dart:convert';
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:rudra/app/data/models/interviewer_info/get_cast_response.dart';
+import 'package:rudra/app/data/network/exceptions.dart';
+import 'package:rudra/app/data/network/networkcall.dart';
+import 'package:rudra/app/data/urls.dart';
 import 'package:rudra/app/utils/responsive_utils.dart';
 
 import '../../../routes/app_routes.dart';
@@ -10,21 +17,83 @@ import '../../../widgets/app_style.dart';
 
 class SurveyInterviewerController extends GetxController {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  RxList<CastData> castList = <CastData>[].obs;
+
+  var isLoadingCast = false.obs;
+  var errorMessageCast = ''.obs;
+
+  // --- CAST SELECTION (UNCHANGED) ---
+  final RxString selectedCast = ''.obs;
+  final RxString selectedCastId = ''.obs;
 
   // Text controllers
   final TextEditingController nameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
 
-  // Rx for dropdowns
-  final RxString selectedAge = ''.obs;
-  final RxString selectedGender = ''.obs;
-  final RxString selectedCast = ''.obs;
-
-  // Lists
+  // --- AGE: LABEL + ID ---
   final List<String> ageRanges = ['18-25', '26-39', '40-55', '56+'];
-  final List<String> genders = ['Male', 'Female', 'Other'];
-  final List<String> casts = ['Hindu Maratha', 'Other']; // Sample
+  final RxString selectedAgeLabel = ''.obs;   // <-- shown in dropdown
+  final RxInt selectedAgeId = 0.obs;         // <-- actual ID (0-3)
 
+  // --- GENDER: LABEL + ID ---
+  final List<String> genders = ['Male', 'Female', 'Other'];
+  final RxString selectedGenderLabel = ''.obs;
+  final RxInt selectedGenderId = 0.obs;
+
+  late String surveyId = "";
+  late String surveyAppId = "";
+
+  void onInit() {
+    super.onInit();
+    final args = Get.arguments as Map<String, dynamic>?;
+    surveyId = args?['survey_id']?.toString() ?? "";
+    surveyAppId = args?['survey_app_side_id']?.toString() ?? "";
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (Get.context != null) {
+        fetchCast(context: Get.context!, surveyId: surveyId);
+      }
+    });
+  }
+
+  // -----------------------------------------------------------------
+  // AGE HELPERS
+  // -----------------------------------------------------------------
+  void setSelectedAge(String? label) {
+    selectedAgeLabel.value = label ?? '';
+    selectedAgeId.value = ageRanges.indexOf(label ?? '');
+  }
+
+  // -----------------------------------------------------------------
+  // GENDER HELPERS
+  // -----------------------------------------------------------------
+  void setSelectedGender(String? label) {
+    selectedGenderLabel.value = label ?? '';
+    selectedGenderId.value = genders.indexOf(label ?? '');
+  }
+
+  // -----------------------------------------------------------------
+  // CAST HELPERS (UNCHANGED)
+  // -----------------------------------------------------------------
+  List<String> getCastNames() {
+    return castList.map((s) => s.castName).toSet().toList();
+  }
+
+  String? getCastId(String? castName) {
+    if (castName == null) return '';
+    return castList
+            .firstWhereOrNull((cast) => cast.castName == castName)
+            ?.castId ??
+        '';
+  }
+
+  void setSelectedCast(String? castName) {
+    selectedCast.value = castName ?? '';
+    selectedCastId.value = getCastId(castName) ?? '';
+  }
+
+  // -----------------------------------------------------------------
+  // FORM SUBMISSION (UNCHANGED)
+  // -----------------------------------------------------------------
   void submitSurvey() {
     if (formKey.currentState!.validate()) {
       AppLogger.d('Survey submitted', tag: 'SurveyInterviewerController');
@@ -43,8 +112,11 @@ class SurveyInterviewerController extends GetxController {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.sentiment_satisfied_alt,
-                size: 48, color: AppColors.blue),
+            const Icon(
+              Icons.sentiment_satisfied_alt,
+              size: 48,
+              color: AppColors.blue,
+            ),
             const SizedBox(height: 16),
             const Text('THANKS!'),
             const SizedBox(height: 8),
@@ -56,9 +128,7 @@ class SurveyInterviewerController extends GetxController {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 TextButton(
-                  style: TextButton.styleFrom(
-                    minimumSize: const Size(100, 40),
-                  ),
+                  style: TextButton.styleFrom(minimumSize: const Size(100, 40)),
                   onPressed: () {
                     Get.offAllNamed(AppRoutes.home);
                   },
@@ -96,25 +166,21 @@ class SurveyInterviewerController extends GetxController {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Title
                 Text(
                   'Discard Survey',
                   style: AppStyle.heading1PoppinsBlack.responsive,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
-                // Message
                 Text(
                   'Are you sure you want to discard this survey?',
                   style: AppStyle.bodySmallPoppinsGrey.responsive,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
-                // Buttons Row
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    // No Button
                     OutlinedButton(
                       onPressed: () => Get.back(),
                       style: OutlinedButton.styleFrom(
@@ -125,17 +191,14 @@ class SurveyInterviewerController extends GetxController {
                       child: Text(
                         'No',
                         style: AppStyle.buttonTextSmallPoppinsBlack.responsive
-                            .copyWith(
-                          color: AppColors.primary,
-                        ),
+                            .copyWith(color: AppColors.primary),
                       ),
                     ),
-                    // Yes Button
                     ElevatedButton(
                       onPressed: () {
                         resetForm();
-                        Get.back(); // Close dialog
-                        Get.back(); // Go back to previous screen
+                        Get.back();
+                        Get.back();
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
@@ -164,9 +227,18 @@ class SurveyInterviewerController extends GetxController {
   void resetForm() {
     nameController.clear();
     phoneController.clear();
-    selectedAge.value = '';
-    selectedGender.value = '';
+
+    // Reset Age
+    selectedAgeLabel.value = '';
+    selectedAgeId.value = 0;
+
+    // Reset Gender
+    selectedGenderLabel.value = '';
+    selectedGenderId.value = 0;
+
+    // Reset Cast
     selectedCast.value = '';
+    selectedCastId.value = '';
   }
 
   Future<void> refreshPage() async {
@@ -179,5 +251,85 @@ class SurveyInterviewerController extends GetxController {
     nameController.dispose();
     phoneController.dispose();
     super.onClose();
+  }
+
+  // -----------------------------------------------------------------
+  // FETCH CAST (UNCHANGED)
+  // -----------------------------------------------------------------
+  Future<void> fetchCast({
+    required BuildContext context,
+    bool forceFetch = false,
+    required String? surveyId,
+  }) async {
+    if (!forceFetch && castList.isNotEmpty) return;
+
+    try {
+      isLoadingCast.value = true;
+      errorMessageCast.value = '';
+
+      castList.clear();
+      selectedCast.value = "";
+      selectedCastId.value = "";
+
+      final jsonBody = {"survey_id": surveyId};
+
+      List<GeCastResponse>? response =
+          await Networkcall().postMethod(
+                Networkutility.getCastApi,
+                Networkutility.getCast,
+                jsonEncode(jsonBody),
+                context,
+              )
+              as List<GeCastResponse>?;
+
+      log(
+        'Fetch Casts Response: ${response?.isNotEmpty == true ? response![0].toJson() : 'null'}',
+      );
+
+      if (response != null && response.isNotEmpty) {
+        if (response[0].status == "true") {
+          castList.value = response[0].data;
+          log(
+            'Cast List Loaded: ${castList.map((s) => "${s.castId}: ${s.castName}").toList()}',
+          );
+        } else {
+          errorMessageCast.value = response[0].message;
+          AppSnackbarStyles.showError(
+            title: 'Error',
+            message: response[0].message,
+          );
+        }
+      } else {
+        errorMessageCast.value = 'No response from server';
+        AppSnackbarStyles.showError(
+          title: 'Error',
+          message: 'No response from server',
+        );
+      }
+    } on NoInternetException catch (e) {
+      errorMessageCast.value = e.message;
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } on TimeoutException catch (e) {
+      errorMessageCast.value = e.message;
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } on HttpException catch (e) {
+      errorMessageCast.value = '${e.message} (Code: ${e.statusCode})';
+      AppSnackbarStyles.showError(
+        title: 'Error',
+        message: '${e.message} (Code: ${e.statusCode})',
+      );
+    } on ParseException catch (e) {
+      errorMessageCast.value = e.message;
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } catch (e, stackTrace) {
+      errorMessageCast.value = 'Unexpected error: $e';
+      log('Fetch Cast Exception: $e, stack: $stackTrace');
+      AppSnackbarStyles.showError(
+        title: 'Error',
+        message: 'Unexpected error: $e',
+      );
+    } finally {
+      isLoadingCast.value = false;
+    }
   }
 }

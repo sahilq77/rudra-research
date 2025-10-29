@@ -1,4 +1,3 @@
-// lib/app/modules/survey_interviewer/survey_interviewer_view.dart
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -43,11 +42,7 @@ class _SurveyInterviewerViewState extends State<SurveyInterviewerView> {
         surfaceTintColor: AppColors.white,
         bottom: PreferredSize(
           preferredSize: Size.fromHeight(0),
-          child: Divider(
-            color: AppColors.grey.withOpacity(0.5),
-            // thickness: 2,
-            height: 0,
-          ),
+          child: Divider(color: AppColors.grey.withOpacity(0.5), height: 0),
         ),
       ),
       backgroundColor: AppColors.white,
@@ -81,19 +76,17 @@ class _SurveyInterviewerViewState extends State<SurveyInterviewerView> {
                         const SizedBox(height: 20),
                         _buildDropdownField(
                           label: 'Age',
-                          value: controller.selectedAge.value,
+                          selectedValueObs: controller.selectedAgeLabel,
                           items: controller.ageRanges,
-                          onChanged: (value) =>
-                              controller.selectedAge.value = value ?? '',
+                          onChanged: controller.setSelectedAge,
                           validator: TextValidator.isEmpty,
                         ),
                         const SizedBox(height: 20),
                         _buildDropdownField(
                           label: 'Gender',
-                          value: controller.selectedGender.value,
+                          selectedValueObs: controller.selectedGenderLabel,
                           items: controller.genders,
-                          onChanged: (value) =>
-                              controller.selectedGender.value = value ?? '',
+                          onChanged: controller.setSelectedGender,
                           validator: TextValidator.isEmpty,
                         ),
                         const SizedBox(height: 20),
@@ -109,12 +102,17 @@ class _SurveyInterviewerViewState extends State<SurveyInterviewerView> {
                           validator: TextValidator.isMobileNumber,
                         ),
                         const SizedBox(height: 20),
+                        // --- CAST DROPDOWN (NOW BINDS NAME + ID) ---
                         _buildDropdownField(
                           label: 'Cast',
-                          value: controller.selectedCast.value,
-                          items: controller.casts,
-                          onChanged: (value) =>
-                              controller.selectedCast.value = value ?? '',
+                          selectedValueObs: controller.selectedCast,
+                          items: controller.getCastNames(),
+                          onChanged: (value) {
+                            controller.setSelectedCast(value);
+                            debugPrint(
+                              'Selected Cast: $value  →  ID: ${controller.selectedCastId.value}',
+                            );
+                          },
                           validator: TextValidator.isEmpty,
                         ),
                       ],
@@ -202,7 +200,6 @@ class _SurveyInterviewerViewState extends State<SurveyInterviewerView> {
               children: [
                 Image.asset(AppImages.thanks, width: 80, height: 80),
                 const SizedBox(height: 16),
-                // Thanks Badge
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
@@ -218,21 +215,18 @@ class _SurveyInterviewerViewState extends State<SurveyInterviewerView> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                // Title
                 Text(
                   'Response Submitted',
                   style: AppStyle.heading1PoppinsBlack.responsive,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
-                // Message
                 Text(
                   'Your response has been submitted\nsuccessfully.',
                   style: AppStyle.bodySmallPoppinsGrey.responsive,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
-                // Buttons
                 Row(
                   children: [
                     Expanded(
@@ -273,10 +267,8 @@ class _SurveyInterviewerViewState extends State<SurveyInterviewerView> {
                       child: ElevatedButton(
                         onPressed: () {
                           controller.resetForm();
-                          Get.back(); // Close dialog
-                          Get.offAllNamed(
-                            AppRoutes.surveyDetails,
-                          ); // Navigate to next survey
+                          Get.back();
+                          Get.offAllNamed(AppRoutes.surveyDetails);
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.defaultBlack,
@@ -312,9 +304,10 @@ class _SurveyInterviewerViewState extends State<SurveyInterviewerView> {
     );
   }
 
+  // Updated to use RxString
   Widget _buildDropdownField({
     required String label,
-    required String value,
+    required RxString selectedValueObs,
     required List<String> items,
     required Function(String?) onChanged,
     String? Function(String?)? validator,
@@ -324,84 +317,88 @@ class _SurveyInterviewerViewState extends State<SurveyInterviewerView> {
       children: [
         Text(label, style: AppStyle.labelPrimaryPoppinsBlack.responsive),
         const SizedBox(height: 10),
-        DropdownSearch<String>(
-          selectedItem: value.isEmpty ? null : value,
-          items: items,
-          onChanged: onChanged,
-          validator: validator,
-          dropdownDecoratorProps: DropDownDecoratorProps(
-            dropdownSearchDecoration: InputDecoration(
-              hintText: 'Select $label',
-              hintStyle: AppStyle.bodySmallPoppinsGrey.responsive,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(
-                  color: AppColors.grey.withOpacity(0.3),
-                  width: 1,
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(
-                  color: AppColors.grey.withOpacity(0.3),
-                  width: 1,
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(
-                  color: AppColors.primary,
-                  width: 1.5,
-                ),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Colors.red, width: 1),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 16,
-              ),
-              filled: true,
-              fillColor: AppColors.white,
-            ),
-          ),
-          popupProps: PopupProps.menu(
-            showSearchBox: true,
-            searchFieldProps: TextFieldProps(
-              decoration: InputDecoration(
-                hintText: 'Search...',
+        Obx(
+          () => DropdownSearch<String>(
+            selectedItem: selectedValueObs.value.isEmpty
+                ? null
+                : selectedValueObs.value,
+            items: items,
+            onChanged: onChanged,
+            validator: validator,
+            dropdownDecoratorProps: DropDownDecoratorProps(
+              dropdownSearchDecoration: InputDecoration(
+                hintText: 'Select $label',
                 hintStyle: AppStyle.bodySmallPoppinsGrey.responsive,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(
+                    color: AppColors.grey.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(
+                    color: AppColors.grey.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 1.5,
+                  ),
+                ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.red, width: 1),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
-                  vertical: 12,
+                  vertical: 16,
                 ),
+                filled: true,
+                fillColor: AppColors.white,
               ),
             ),
-            containerBuilder: (context, popupWidget) {
-              return Container(
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+            popupProps: PopupProps.menu(
+              showSearchBox: true,
+              searchFieldProps: TextFieldProps(
+                decoration: InputDecoration(
+                  hintText: 'Search...',
+                  hintStyle: AppStyle.bodySmallPoppinsGrey.responsive,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                 ),
-                child: popupWidget,
-              );
-            },
-          ),
-          dropdownButtonProps: const DropdownButtonProps(
-            icon: Icon(
-              Icons.keyboard_arrow_down,
-              color: AppColors.defaultBlack,
+              ),
+              containerBuilder: (context, popupWidget) {
+                return Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: popupWidget,
+                );
+              },
+            ),
+            dropdownButtonProps: const DropdownButtonProps(
+              icon: Icon(
+                Icons.keyboard_arrow_down,
+                color: AppColors.defaultBlack,
+              ),
             ),
           ),
         ),

@@ -36,6 +36,17 @@ class Networkutility {
   static String submitQuestionAnswer =
       "${baseUrl + "save_survey_questions_answers"}";
   static int submitQuestionAnswerApi = 13;
+  static String getCast =
+      "${baseUrl + "get_cast_according_to_survey_id_api"}";
+  static int getCastApi = 14;
+  static String setInterviewerInfo =
+      "${baseUrl + "get_local_people_details"}";
+  static int setInterviewerInfoApi = 15;
+
+  
+
+
+  
 
   // static String logout = "${baseUrl + "post_app_logout"}";
   // static int logoutApi = 8;

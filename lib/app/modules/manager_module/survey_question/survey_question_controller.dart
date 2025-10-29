@@ -1,3 +1,5 @@
+// lib/app/modules/survey_question/survey_question_controller.dart
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -7,7 +9,6 @@ import 'package:rudra/app/data/models/survey_question/get_survey_questions_respo
 import 'package:rudra/app/data/network/networkcall.dart';
 import 'package:rudra/app/data/urls.dart';
 import 'package:rudra/app/routes/app_routes.dart';
-
 import '../../../widgets/app_snackbar_styles.dart';
 
 class SurveyQuestionController extends GetxController {
@@ -21,16 +22,21 @@ class SurveyQuestionController extends GetxController {
   // -----------------------------------------------------------------
   //  UI STATE
   // -----------------------------------------------------------------
-  RxInt currentIndex = 0.obs; // <-- NEW
-  RxString selectedAnswer = ''.obs; // answer for the *current* question
-  final Map<String, String> answers = {}; // <-- store every answer
+  RxInt currentIndex = 0.obs;
+
+  // CHANGED: Store IDs instead of text
+  RxString selectedAnswerId = ''.obs; // single-select ID
+  RxList<String> selectedAnswerIds = <String>[].obs; // multi-select IDs
+
+  final Map<String, String> answers =
+      {}; // <surveyQuestionId, answer_id or json list>
 
   RxBool isLoadingq = true.obs;
   var errorMessageq = ''.obs;
-  RxBool isLoading = true.obs;
-  var errorMessage = ''.obs;
-  late String app;
-  String surveyId = "";
+  RxBool isSubmitting = false.obs;
+  late String surveyId = "";
+  late String surveyAppId = "";
+
   // -----------------------------------------------------------------
   //  INIT
   // -----------------------------------------------------------------
@@ -38,9 +44,14 @@ class SurveyQuestionController extends GetxController {
   void onInit() {
     super.onInit();
     final args = Get.arguments as Map<String, dynamic>?;
-    surveyId = args?['survey_app_side_id']?.toString() ?? "";
+    surveyId = args?['survey_id']?.toString() ?? "";
+    surveyAppId = args?['survey_app_side_id']?.toString() ?? "";
 
-    fetchallQestions(context: Get.context!, appSideId: surveyId);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (Get.context != null) {
+        fetchallQestions(context: Get.context!, appSideId: surveyAppId);
+      }
+    });
   }
 
   // -----------------------------------------------------------------
@@ -49,8 +60,6 @@ class SurveyQuestionController extends GetxController {
   Future<void> fetchallQestions({
     required BuildContext context,
     bool reset = false,
-    bool isPagination = false,
-    bool forceFetch = false,
     required String appSideId,
   }) async {
     try {
@@ -79,7 +88,8 @@ class SurveyQuestionController extends GetxController {
           questionDetail.clear();
           answers.clear();
           currentIndex.value = 0;
-          selectedAnswer.value = '';
+          selectedAnswerId.value = '';
+          selectedAnswerIds.clear();
         }
 
         for (var que in response[0].data.questions) {
@@ -109,76 +119,12 @@ class SurveyQuestionController extends GetxController {
     }
   }
 
-  Future<void> submitAnswers({
-    required BuildContext context,
-    bool reset = false,
-    bool isPagination = false,
-    bool forceFetch = false,
-    String surveyId = "6",
-    required String testId,
-  }) async {
-    try {
-      isLoading.value = true;
-      errorMessage.value = '';
-
-      final jsonBody = {
-        "survey_app_side_id": surveyId,
-        "questions": [
-          {"question_id": "3", "answer_id": "11"},
-          {
-            "question_id": "5",
-            "answer_id": [
-              "17",
-              "18",
-            ], //  if option multi selection questionDetail.first.questionType=="1"
-          },
-        ],
-      };
-
-      final response =
-          await Networkcall().postMethod(
-                Networkutility.submitQuestionAnswerApi,
-                Networkutility.submitQuestionAnswer,
-                jsonEncode(jsonBody),
-                context,
-              )
-              as List<GetSubmitAnswersResponse>?;
-
-      if (response != null &&
-          response.isNotEmpty &&
-          response[0].status == "true") {
-        AppSnackbarStyles.showSuccess(
-          title: 'Success',
-          message: "Answers submitted successfully",
-        );
-      } else if (response![0].status == "true") {
-        AppSnackbarStyles.showError(
-          title: 'Failed',
-          message: "Answers submission failed",
-        );
-      } else {
-        errorMessage.value = 'No response from server';
-        AppSnackbarStyles.showError(
-          title: 'Error',
-          message: errorMessage.value,
-        );
-      }
-    } catch (e) {
-      errorMessage.value = 'Unexpected error: $e';
-      AppSnackbarStyles.showError(title: 'Error', message: errorMessageq.value);
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
   // -----------------------------------------------------------------
   //  NAVIGATION LOGIC
   // -----------------------------------------------------------------
   void goPrevious() {
     if (currentIndex.value > 0) {
-      // save current answer before leaving
       _saveCurrentAnswer();
-
       currentIndex.value--;
       _loadAnswerForCurrentQuestion();
     }
@@ -187,8 +133,11 @@ class SurveyQuestionController extends GetxController {
   void nextPage() {
     if (!formKey.currentState!.validate()) return;
 
-    // ---- 1. Must select something
-    if (selectedAnswer.value.isEmpty) {
+    final bool hasAnswer = _isMultiSelect
+        ? selectedAnswerIds.isNotEmpty
+        : selectedAnswerId.value.isNotEmpty;
+
+    if (!hasAnswer) {
       AppSnackbarStyles.showError(
         title: 'Error',
         message: 'Please select an answer',
@@ -196,38 +145,120 @@ class SurveyQuestionController extends GetxController {
       return;
     }
 
-    // ---- 2. Store answer
     _saveCurrentAnswer();
 
-    // ---- 3. Last question? → finish
     if (currentIndex.value == questionDetail.length - 1) {
-      // OPTIONAL: send all answers to server here
-      // await submitAllAnswers();
-
-      Get.toNamed(
-        AppRoutes.surveyInterviewer,
-        arguments: {
-          'survey_app_side_id': surveyId,
-          
-        },
-      );
+      _submitAllAnswers();
       return;
     }
 
-    // ---- 4. Move to next question
     currentIndex.value++;
-    selectedAnswer.value = ''; // clear radio for next question
-    _loadAnswerForCurrentQuestion(); // restore if user came back
+    selectedAnswerId.value = '';
+    selectedAnswerIds.clear();
+    _loadAnswerForCurrentQuestion();
   }
 
+  // -----------------------------------------------------------------
+  //  ANSWER STORAGE
+  // -----------------------------------------------------------------
   void _saveCurrentAnswer() {
     final q = questionDetail[currentIndex.value];
-    answers[q.surveyQuestionId] = selectedAnswer.value;
+    if (_isMultiSelect) {
+      answers[q.surveyQuestionId] = jsonEncode(selectedAnswerIds);
+    } else {
+      answers[q.surveyQuestionId] = selectedAnswerId.value;
+    }
   }
 
   void _loadAnswerForCurrentQuestion() {
     final q = questionDetail[currentIndex.value];
-    selectedAnswer.value = answers[q.surveyQuestionId] ?? '';
+    final saved = answers[q.surveyQuestionId];
+
+    if (_isMultiSelect) {
+      selectedAnswerIds.clear();
+      if (saved != null) {
+        final List<dynamic> decoded = jsonDecode(saved);
+        selectedAnswerIds.addAll(decoded.cast<String>());
+      }
+    } else {
+      selectedAnswerId.value = saved ?? '';
+    }
+  }
+
+  bool get isMultiSelect {
+    if (questionDetail.isEmpty) return false;
+    return questionDetail[currentIndex.value].questionType == "1";
+  }
+
+  // -----------------------------------------------------------------
+  //  SUBMIT ALL ANSWERS
+  // -----------------------------------------------------------------
+  Future<void> _submitAllAnswers() async {
+    if (isSubmitting.value) return;
+    isSubmitting.value = true;
+
+    try {
+      Get.dialog(
+        const Center(child: CircularProgressIndicator()),
+        barrierDismissible: false,
+      );
+
+      final List<Map<String, String>> payloadQuestions = answers.entries.map((
+        e,
+      ) {
+        return {
+          "question_id": e.key,
+          "answer_id": e.value, // <-- This is now choice_id or JSON list of IDs
+        };
+      }).toList();
+
+      final jsonBody = {
+        "survey_app_side_id": surveyId,
+        "questions": payloadQuestions,
+      };
+
+      final response =
+          await Networkcall().postMethod(
+                Networkutility.submitQuestionAnswerApi,
+                Networkutility.submitQuestionAnswer,
+                jsonEncode(jsonBody),
+                Get.context!,
+              )
+              as List<GetSubmitAnswersResponse>?;
+
+      Get.back();
+
+      if (response != null &&
+          response.isNotEmpty &&
+          response[0].status == "true") {
+        AppSnackbarStyles.showSuccess(
+          title: 'Success',
+          message: "Survey submitted successfully!",
+        );
+
+        questionDetail.clear();
+        answers.clear();
+        currentIndex.value = 0;
+        selectedAnswerId.value = '';
+        selectedAnswerIds.clear();
+
+        Get.offNamed(
+          AppRoutes.surveyInterviewer,
+          arguments: {'survey_id': surveyId, 'survey_app_side_id': surveyAppId},
+        );
+      } else {
+        final msg = response?[0].message ?? "Submission failed";
+        AppSnackbarStyles.showError(title: 'Failed', message: msg);
+      }
+    } catch (e) {
+      Get.back();
+      AppSnackbarStyles.showError(
+        title: 'Error',
+        message: 'Submission failed: $e',
+      );
+    } finally {
+      isSubmitting.value = false;
+    }
   }
 
   // -----------------------------------------------------------------
@@ -235,7 +266,11 @@ class SurveyQuestionController extends GetxController {
   // -----------------------------------------------------------------
   Future<void> refreshPage() async {
     await Future.delayed(const Duration(seconds: 1));
-    await fetchallQestions(context: Get.context!, reset: true, appSideId: "");
+    await fetchallQestions(
+      context: Get.context!,
+      reset: true,
+      appSideId: surveyId,
+    );
     AppSnackbarStyles.showInfo(title: 'Refresh', message: 'Page refreshed');
   }
 
@@ -246,4 +281,11 @@ class SurveyQuestionController extends GetxController {
     final RegExp exp = RegExp(r'<[^>]*>', multiLine: true, caseSensitive: true);
     return htmlString.replaceAll(exp, '');
   }
+
+  bool get _isMultiSelect {
+    if (questionDetail.isEmpty) return false;
+    return questionDetail[currentIndex.value].questionType == "1";
+  }
+
+  bool get isLastQuestion => currentIndex.value == questionDetail.length - 1;
 }

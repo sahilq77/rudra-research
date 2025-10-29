@@ -279,14 +279,18 @@ class SurveyDetailsController extends GetxController {
         "survey_done_by": AppUtility.userID,
       };
 
-      final response = await Networkcall().postMethod(
-        Networkutility.setSurveyApi,
-        Networkutility.setSurvey,
-        jsonEncode(jsonBody),
-        context,
-      ) as List<GetSetServeyResponse>?;
+      final response =
+          await Networkcall().postMethod(
+                Networkutility.setSurveyApi,
+                Networkutility.setSurvey,
+                jsonEncode(jsonBody),
+                context,
+              )
+              as List<GetSetServeyResponse>?;
 
-      if (response != null && response.isNotEmpty && response[0].status == "true") {
+      if (response != null &&
+          response.isNotEmpty &&
+          response[0].status == "true") {
         final newSurveyAppSideId = response[0].data?.surveyAppSideId ?? '';
         AppSnackbarStyles.showSuccess(
           title: 'Success',
@@ -294,7 +298,8 @@ class SurveyDetailsController extends GetxController {
         );
         return newSurveyAppSideId; // Return the new ID
       } else {
-        final msg = response?[0].message ?? "Start survey failed";
+        final msg =
+            response?[0].message ?? "No questions found for this language";
         errorMessages.value = msg;
         AppSnackbarStyles.showError(title: 'Failed', message: msg);
         return null;
@@ -336,13 +341,13 @@ class SurveyDetailsController extends GetxController {
     Get.toNamed(
       AppRoutes.surveyQuestion,
       arguments: {
+        'survey_id': surveyId,
         'survey_app_side_id': newSurveyAppSideId,
       },
     );
   }
 
   Future<void> refreshPage() async {
-    await Future.delayed(const Duration(seconds: 1));
     AppSnackbarStyles.showInfo(title: 'Refresh', message: 'Page refreshed');
   }
 }

@@ -1,4 +1,5 @@
 // lib/app/modules/survey_question/survey_question_view.dart
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:rudra/app/data/models/survey_question/get_survey_questions_response.dart';
@@ -7,6 +8,7 @@ import '../../../utils/responsive_utils.dart';
 import '../../../widgets/app_button_style.dart';
 import '../../../widgets/app_style.dart';
 import 'survey_question_controller.dart';
+import 'package:flutter_html/flutter_html.dart';
 
 class SurveyQuestionView extends StatefulWidget {
   const SurveyQuestionView({super.key});
@@ -42,7 +44,6 @@ class _SurveyQuestionViewState extends State<SurveyQuestionView> {
       ),
       backgroundColor: AppColors.white,
       body: Obx(() {
-        // ------------------- LOADING / ERROR -------------------
         if (controller.isLoadingq.value) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -58,17 +59,13 @@ class _SurveyQuestionViewState extends State<SurveyQuestionView> {
           return const Center(child: Text('No questions available'));
         }
 
-        // ------------------- CURRENT QUESTION -------------------
         final Question current =
             controller.questionDetail[controller.currentIndex.value];
-
-        // ------------------- PROGRESS (optional) -------------------
         final int total = controller.questionDetail.length;
         final int progress = controller.currentIndex.value + 1;
 
         return Column(
           children: [
-            // ---- progress bar (nice touch) ----
             const SizedBox(height: 8),
 
             Expanded(
@@ -98,7 +95,7 @@ class _SurveyQuestionViewState extends State<SurveyQuestionView> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // ---- USER INFO ----
+                          // USER INFO
                           Row(
                             children: [
                               CircleAvatar(
@@ -135,74 +132,104 @@ class _SurveyQuestionViewState extends State<SurveyQuestionView> {
                           ),
                           const SizedBox(height: 20),
 
-                          // ---- QUESTION NUMBER ----
+                          // PROGRESS
                           Text(
                             '$progress / $total',
                             style: AppStyle.bodySmallPoppinsGrey.responsive,
                           ),
                           const SizedBox(height: 8),
-
-                          // ---- QUESTION TEXT ----
-
-                          //         Html(
-                          //   data: ins[0].instructionDescription.replaceAll(
-                          //     r'\r\n',
-                          //     '<br>',
-                          //   ),
-                          //   style: TextDesign.commonStyles,
+                          // Html(
+                          //   data: current.question,
+                          //   // style: TextDesign.commonStyles,
                           // ),
+                          // QUESTION TEXT
                           Text(
                             controller.removeHtmlTags(current.question),
                             style: AppStyle.bodyRegularPoppinsBlack.responsive,
                           ),
                           const SizedBox(height: 16),
 
-                          // ---- RADIO OPTIONS ----
-                          ...current.options.map((opt) {
-                            final String optionText = opt.choiceText;
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: InkWell(
-                                onTap: () => controller.selectedAnswer.value =
-                                    optionText,
-                                borderRadius: BorderRadius.circular(8),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 4,
-                                    horizontal: 0,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Radio<String>(
-                                        value: optionText,
-                                        groupValue:
-                                            controller.selectedAnswer.value,
-                                        onChanged: (v) =>
-                                            controller.selectedAnswer.value =
-                                                v!,
-                                        activeColor: AppColors.primary,
-                                        materialTapTargetSize:
-                                            MaterialTapTargetSize.shrinkWrap,
-                                        visualDensity: const VisualDensity(
-                                          horizontal: -4,
-                                          vertical: -4,
+                          // OPTIONS: SINGLE OR MULTI
+                          if (!controller.isMultiSelect)
+                            ...current.options.map((opt) {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: InkWell(
+                                  onTap: () =>
+                                      controller.selectedAnswerId.value =
+                                          opt.optionId,
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 4,
+                                      horizontal: 0,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Radio<String>(
+                                          value: opt.optionId, // <-- ID
+                                          groupValue:
+                                              controller.selectedAnswerId.value,
+                                          onChanged: (v) =>
+                                              controller
+                                                      .selectedAnswerId
+                                                      .value =
+                                                  v!,
+                                          activeColor: AppColors.primary,
+                                          materialTapTargetSize:
+                                              MaterialTapTargetSize.shrinkWrap,
+                                          visualDensity: const VisualDensity(
+                                            horizontal: -4,
+                                            vertical: -4,
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          optionText,
-                                          style: AppStyle
-                                              .bodySmallPoppinsBlack
-                                              .responsive,
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            opt.choiceText,
+                                            style: AppStyle
+                                                .bodySmallPoppinsBlack
+                                                .responsive,
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                            );
-                          }).toList(),
+                              );
+                            }).toList()
+                          else
+                            ...current.options.map((opt) {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: CheckboxListTile(
+                                  value: controller.selectedAnswerIds.contains(
+                                    opt.optionId,
+                                  ),
+                                  onChanged: (bool? checked) {
+                                    if (checked == true) {
+                                      controller.selectedAnswerIds.add(
+                                        opt.optionId,
+                                      );
+                                    } else {
+                                      controller.selectedAnswerIds.remove(
+                                        opt.optionId,
+                                      );
+                                    }
+                                  },
+                                  title: Text(
+                                    opt.choiceText,
+                                    style: AppStyle
+                                        .bodySmallPoppinsBlack
+                                        .responsive,
+                                  ),
+                                  controlAffinity:
+                                      ListTileControlAffinity.leading,
+                                  activeColor: AppColors.primary,
+                                  dense: true,
+                                ),
+                              );
+                            }).toList(),
                         ],
                       ),
                     ),
@@ -211,7 +238,7 @@ class _SurveyQuestionViewState extends State<SurveyQuestionView> {
               ),
             ),
 
-            // ------------------- BUTTON BAR -------------------
+            // BUTTON BAR
             Container(
               padding: ResponsiveHelper.paddingSymmetric(
                 horizontal: 16,
@@ -229,7 +256,6 @@ class _SurveyQuestionViewState extends State<SurveyQuestionView> {
               ),
               child: Row(
                 children: [
-                  // ---- PREVIOUS ----
                   if (controller.currentIndex.value > 0)
                     Expanded(
                       child: OutlinedButton(
@@ -240,18 +266,21 @@ class _SurveyQuestionViewState extends State<SurveyQuestionView> {
                     ),
                   if (controller.currentIndex.value > 0)
                     const SizedBox(width: 12),
-
-                  // ---- NEXT / SUBMIT ----
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: controller.nextPage,
+                      onPressed: controller.isSubmitting.value
+                          ? null
+                          : controller.nextPage,
                       style: AppButtonStyles.elevatedLargeBlack(),
-                      child: Text(
-                        controller.currentIndex.value ==
-                                controller.questionDetail.length - 1
-                            ? 'Submit'
-                            : 'Next',
-                        style: AppStyle.buttonTextPoppinsWhite.responsive,
+                      child: Obx(
+                        () => Text(
+                          controller.isLastQuestion
+                              ? (controller.isSubmitting.value
+                                    ? 'Submitting...'
+                                    : 'Submit')
+                              : 'Next',
+                          style: AppStyle.buttonTextPoppinsWhite.responsive,
+                        ),
                       ),
                     ),
                   ),
