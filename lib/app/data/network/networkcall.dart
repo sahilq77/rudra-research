@@ -7,11 +7,15 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:rudra/app/data/models/add_executive/get_add_executive_response.dart';
+import 'package:rudra/app/data/models/home/get_live_survey_response.dart';
 import 'package:rudra/app/data/models/login/get_login_response.dart';
 import 'package:rudra/app/data/models/my_team/get_my_team_member_detail.dart';
 import 'package:rudra/app/data/models/my_team/get_my_team_member_response.dart';
 import 'package:rudra/app/data/models/my_team/get_my_team_response.dart';
 import 'package:rudra/app/data/models/notification/get_notification_response.dart';
+import 'package:rudra/app/data/models/survey_detail/get_area_response.dart';
+import 'package:rudra/app/data/models/survey_detail/get_survey_detail_response.dart';
+import 'package:rudra/app/data/models/survey_question/get_survey_questions_response.dart';
 import 'package:rudra/app/data/network/exceptions.dart';
 import 'package:rudra/app/widgets/app_style.dart';
 import 'package:rudra/app/widgets/connctivityservice.dart'
@@ -98,6 +102,18 @@ class Networkcall {
           case 7:
             final getNotification = getNotificationResponseFromJson(str);
             return getNotification;
+          case 8:
+            final getLiveSurvey = getLiveSurveyListResponseFromJson(str);
+            return getLiveSurvey;
+          case 9:
+            final getSurveyDetail = getSurveyDetailResponseFromJson(str);
+            return getSurveyDetail;
+          case 10:
+            final getArea = getAreaResponseFromJson(str);
+            return getArea;
+          case 12:
+            final getSurveyQuestion = getSurveyQuestionsResponseFromJson(str);
+            return getSurveyQuestion;
 
           default:
             log("Invalid request code: $requestCode");

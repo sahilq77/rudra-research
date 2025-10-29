@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import 'package:rudra/app/data/models/home/get_live_survey_response.dart';
 import 'package:rudra/app/utils/app_utility.dart';
 import 'package:rudra/bottom_navigation/bottom_navigation_controller.dart';
 import 'package:rudra/bottom_navigation/bottom_navigation_view.dart';
@@ -26,17 +27,15 @@ class _HomeViewState extends State<HomeView> {
   final BottomNavigationController bottomController = Get.put(
     BottomNavigationController(),
   );
-  
+
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-  
   }
 
   @override
   Widget build(BuildContext context) {
-    
     ResponsiveHelper.init(context);
     return WillPopScope(
       onWillPop: () => bottomController.onWillPop(),
@@ -314,8 +313,7 @@ class _HomeViewState extends State<HomeView> {
               fit: BoxFit.contain,
             ),
             onPressed: () async {
-              await Future.delayed(const Duration(seconds: 1));
-              controller.refreshData();
+              await controller.refresSurveyhData();
             },
           ),
         ),
@@ -327,15 +325,16 @@ class _HomeViewState extends State<HomeView> {
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: controller.liveSurveys.length,
+      itemCount: controller.liveSurveysList.length,
       itemBuilder: (context, index) {
-        final survey = controller.liveSurveys[index];
+        final survey = controller.liveSurveysList[index];
+        print(survey.surveyId);
         return _buildSurveyCard(survey, index);
       },
     );
   }
 
-  Widget _buildSurveyCard(Map<String, dynamic> survey, int index) {
+  Widget _buildSurveyCard(LiveSurveyData survey, int index) {
     return Container(
       margin: EdgeInsets.only(bottom: ResponsiveHelper.spacing(12)),
       padding: ResponsiveHelper.paddingSymmetric(horizontal: 16, vertical: 16),
@@ -358,65 +357,64 @@ class _HomeViewState extends State<HomeView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     ResponsiveHelper.safeText(
-                      survey['title'],
+                      survey.surveyTitle,
                       style: AppStyle.bodyBoldPoppinsBlack.responsive.copyWith(
                         fontSize: ResponsiveHelper.getResponsiveFontSize(15),
                         fontWeight: FontWeight.w600,
                       ),
-                      maxLines: 1,
+                      maxLines: 2,
                     ),
-                    SizedBox(height: ResponsiveHelper.spacing(4)),
-                    ResponsiveHelper.safeText(
-                      survey['subtitle'],
-                      style: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
-                        fontSize: ResponsiveHelper.getResponsiveFontSize(13),
-                        color: AppColors.grey,
+                    // SizedBox(height: ResponsiveHelper.spacing(4)),
+                    // ResponsiveHelper.safeText(
+                    //   survey['subtitle'],
+                    //   style: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
+                    //     fontSize: ResponsiveHelper.getResponsiveFontSize(13),
+                    //     color: AppColors.grey,
+                    //   ),
+                    //   maxLines: 1,
+                    // ),
+                  ],
+                ),
+              ),
+              // if (survey.) ...[
+              SizedBox(width: ResponsiveHelper.spacing(8)),
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: ResponsiveHelper.spacing(10),
+                  vertical: ResponsiveHelper.spacing(5),
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFE5E5),
+                  borderRadius: BorderRadius.circular(
+                    ResponsiveHelper.spacing(12),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: ResponsiveHelper.spacing(6),
+                      height: ResponsiveHelper.spacing(6),
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(0xFFFF4444),
                       ),
-                      maxLines: 1,
+                    ),
+                    SizedBox(width: ResponsiveHelper.spacing(4)),
+                    ResponsiveHelper.safeText(
+                      'Live',
+                      style: AppStyle.bodySmallPoppinsPrimary.responsive
+                          .copyWith(
+                            color: const Color(0xFFFF4444),
+                            fontSize: ResponsiveHelper.getResponsiveFontSize(
+                              11,
+                            ),
+                            fontWeight: FontWeight.w600,
+                          ),
                     ),
                   ],
                 ),
               ),
-              if (survey['isLive']) ...[
-                SizedBox(width: ResponsiveHelper.spacing(8)),
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: ResponsiveHelper.spacing(10),
-                    vertical: ResponsiveHelper.spacing(5),
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFE5E5),
-                    borderRadius: BorderRadius.circular(
-                      ResponsiveHelper.spacing(12),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: ResponsiveHelper.spacing(6),
-                        height: ResponsiveHelper.spacing(6),
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Color(0xFFFF4444),
-                        ),
-                      ),
-                      SizedBox(width: ResponsiveHelper.spacing(4)),
-                      ResponsiveHelper.safeText(
-                        'Live',
-                        style: AppStyle.bodySmallPoppinsPrimary.responsive
-                            .copyWith(
-                              color: const Color(0xFFFF4444),
-                              fontSize: ResponsiveHelper.getResponsiveFontSize(
-                                11,
-                              ),
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
             ],
           ),
           SizedBox(height: ResponsiveHelper.spacing(16)),
@@ -425,7 +423,10 @@ class _HomeViewState extends State<HomeView> {
               Expanded(
                 child: ElevatedButton(
                   onPressed: () {
-                    Get.toNamed(AppRoutes.surveyDetails);
+                    Get.toNamed(
+                      AppRoutes.surveyDetails,
+                      arguments: {'survey_id': survey.surveyId},
+                    );
                   },
                   style: AppButtonStyles.elevatedLargeBlack(),
                   child: Text(

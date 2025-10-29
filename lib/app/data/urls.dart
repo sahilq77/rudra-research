@@ -19,11 +19,18 @@ class Networkutility {
   static int addExecutiveApi = 6;
   static String notifications = "${baseUrl + "get_user_notifications_api"}";
   static int notificationsApi = 7;
-  static String notificationDetail =
-      "${baseUrl + "get_user_detailed_notifications_api"}";
-  static int notificationDetailApi = 8;
-  // static String getSystemList = "${baseUrl + "get_completed_system_list"}";
-  // static int getSystemListApi = 7;
+
+  static String getLiveSurveyList = "${baseUrl + "get_survey_title_name_api"}";
+  static int getLiveSurveyListApi = 8;
+  static String getSurveyDetail =
+      "${baseUrl + "get_data_according_to_survey_id_api"}";
+  static int getSurveyDetailApi = 9;
+  static String getArea =
+      "${baseUrl + "get_village_area_according_to_survey_id_api"}";
+  static int getAreaApi = 10;
+  static String getQustions = "${baseUrl + "get_questions_and_options_api"}";
+  static int getQustionsApi = 12;
+
   // static String logout = "${baseUrl + "post_app_logout"}";
   // static int logoutApi = 8;
   // static String forgotPassword = "${baseUrl + "forgot_password_api"}";

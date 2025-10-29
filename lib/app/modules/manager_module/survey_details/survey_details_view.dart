@@ -2,6 +2,7 @@
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:flutter/foundation.dart'; // ← Added for debugPrint
 
 import '../../../common/customvalidators/text_validator.dart';
 import '../../../utils/app_colors.dart';
@@ -36,11 +37,7 @@ class _SurveyDetailsViewState extends State<SurveyDetailsView> {
         backgroundColor: AppColors.white,
         bottom: PreferredSize(
           preferredSize: Size.fromHeight(0),
-          child: Divider(
-            color: AppColors.grey.withOpacity(0.5),
-            // thickness: 2,
-            height: 0,
-          ),
+          child: Divider(color: AppColors.grey.withOpacity(0.5), height: 0),
         ),
       ),
       backgroundColor: AppColors.white,
@@ -63,53 +60,69 @@ class _SurveyDetailsViewState extends State<SurveyDetailsView> {
                     style: AppStyle.headingSmallPoppinsBlack.responsive,
                   ),
                   const SizedBox(height: 24),
+
+                  // LANGUAGE DROPDOWN - LOGGED (with ID)
                   _buildDropdownField(
                     label: 'Select Language',
-                    value: controller.selectedLanguage.value,
+                    selectedValueObs: controller.selectedLanguage,
                     items: controller.languages,
-                    onChanged: (value) =>
-                        controller.selectedLanguage.value = value ?? 'Marathi',
+                    onChanged: (value) {
+                      if (value != null) {
+                        controller.selectedLanguage.value = value;
+                        debugPrint(
+                          'Selected Language: $value  →  ID: ${controller.selectedLanguageId.value}',
+                        );
+                      }
+                    },
                     validator: TextValidator.isEmpty,
                   ),
+
                   const SizedBox(height: 16),
                   _buildReadOnlyField(
                     label: 'Select State',
-                    value: controller.state,
+                    value: controller.surveyDetailList.first.stateName,
                   ),
                   const SizedBox(height: 16),
                   _buildReadOnlyField(
                     label: 'Region',
-                    value: controller.region,
+                    value: controller.surveyDetailList.first.region,
                   ),
                   const SizedBox(height: 16),
                   _buildReadOnlyField(
                     label: 'Select District',
-                    value: controller.district,
+                    value: controller.surveyDetailList.first.districtName,
                   ),
                   const SizedBox(height: 16),
                   _buildReadOnlyField(
                     label: 'Select Loksabha',
-                    value: controller.loksabha,
+                    value: controller.surveyDetailList.first.loksabhaName,
                   ),
                   const SizedBox(height: 16),
                   _buildReadOnlyField(
                     label: 'Select Assembly',
-                    value: controller.assembly,
+                    value: controller.surveyDetailList.first.assemblyName,
                   ),
                   const SizedBox(height: 16),
                   _buildReadOnlyField(
                     label: 'Select Ward/Zp',
-                    value: controller.wardZp,
+                    value: controller.surveyDetailList.first.wardName,
                   ),
                   const SizedBox(height: 16),
+
+                  // AREA DROPDOWN - LOGGED (with ID)
                   _buildDropdownField(
                     label: 'Select Area/Village',
-                    value: controller.selectedArea.value,
-                    items: controller.areas,
-                    onChanged: (value) =>
-                        controller.selectedArea.value = value ?? 'Mallewadi',
+                    selectedValueObs: controller.selectedAreaVal,
+                    items: controller.getAreaNames(),
+                    onChanged: (value) {
+                      controller.setSelectedArea(value); // <-- NEW helper
+                      debugPrint(
+                        'Selected Area/Village: $value  →  ID: ${controller.selectedAreaId.value}',
+                      );
+                    },
                     validator: TextValidator.isEmpty,
                   ),
+
                   const SizedBox(height: 32),
                   ElevatedButton(
                     onPressed: controller.nextPage,
@@ -128,9 +141,10 @@ class _SurveyDetailsViewState extends State<SurveyDetailsView> {
     );
   }
 
+  // UPDATED: Now accepts RxString? and uses Obx internally
   Widget _buildDropdownField({
     required String label,
-    required String value,
+    required RxString? selectedValueObs, // ← Changed from String to RxString?
     required List<String> items,
     required Function(String?) onChanged,
     String? Function(String?)? validator,
@@ -140,28 +154,32 @@ class _SurveyDetailsViewState extends State<SurveyDetailsView> {
       children: [
         Text(label, style: AppStyle.labelPrimaryPoppinsGrey.responsive),
         const SizedBox(height: 8),
-        DropdownSearch<String>(
-          selectedItem: value,
-          items: items,
-          onChanged: onChanged,
-          validator: validator,
-          dropdownDecoratorProps: DropDownDecoratorProps(
-            dropdownSearchDecoration: InputDecoration(
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
+        Obx(
+          // ← Rebuilds when selectedValueObs changes
+          () => DropdownSearch<String>(
+            selectedItem: selectedValueObs?.value ?? '',
+            items: items,
+            onChanged: onChanged,
+            validator: validator,
+            dropdownDecoratorProps: DropDownDecoratorProps(
+              dropdownSearchDecoration: InputDecoration(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
               ),
             ),
+            popupProps: const PopupProps.menu(showSearchBox: true),
           ),
-          popupProps: const PopupProps.menu(showSearchBox: true),
         ),
       ],
     );
   }
 
+  // YOUR ORIGINAL READ-ONLY FIELD - UNCHANGED
   Widget _buildReadOnlyField({required String label, required String value}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

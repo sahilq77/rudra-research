@@ -144,7 +144,7 @@ class AppStyle {
   // Body Text Styles (Poppins - Black)
   static TextStyle get bodyRegularPoppinsBlack => GoogleFonts.poppins(
     fontSize: _fontSize16,
-    fontWeight: FontWeight.w400,
+    fontWeight: FontWeight.w500,
     color: AppColors.defaultBlack,
   );
 

@@ -1,7 +1,16 @@
 // lib/app/modules/home/home_controller.dart
+import 'dart:convert';
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:rudra/app/data/network/exceptions.dart';
+import 'package:rudra/app/data/network/networkcall.dart';
+import 'package:rudra/app/data/urls.dart';
+import 'package:rudra/app/widgets/app_snackbar_styles.dart'
+    show AppSnackbarStyles;
 
+import '../../../data/models/home/get_live_survey_response.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/app_images.dart';
 import '../../../utils/app_logger.dart';
@@ -10,7 +19,13 @@ import '../../../utils/app_utility.dart';
 class HomeController extends GetxController {
   final RxInt currentIndex = 0.obs;
   final RxInt userRoleRx = 0.obs;
-
+  var isLoading = true.obs;
+  var liveSurveysList = <LiveSurveyData>[].obs;
+  var errorMessage = ''.obs;
+  RxInt offset = 0.obs;
+  final int limit = 10;
+  RxBool hasMoreData = true.obs;
+  RxBool isLoadingMore = false.obs;
   int get userRole => userRoleRx.value;
 
   // Check if user is Manager
@@ -31,6 +46,8 @@ class HomeController extends GetxController {
     } else {
       userRoleRx.value = AppUtility.userRole ?? 0;
     }
+
+    fetchLiveSurveys(context: Get.context!);
   }
 
   // Get filtered dashboard stats based on role
@@ -80,18 +97,116 @@ class HomeController extends GetxController {
     return [];
   }
 
-  final List<Map<String, dynamic>> liveSurveys = [
-    {
-      'title': 'Maratha Question 13-09',
-      'subtitle': 'Sambhaji Nagar',
-      'isLive': true,
-    },
-    {
-      'title': 'Maratha Question 13-09',
-      'subtitle': 'Sambhaji Nagar',
-      'isLive': true,
-    },
-  ];
+  Future<void> fetchLiveSurveys({
+    required BuildContext context,
+    bool reset = false,
+    bool isPagination = false,
+    bool forceFetch = false,
+  }) async {
+    try {
+      if (reset) {
+        offset.value = 0;
+        liveSurveysList.clear();
+        hasMoreData.value = true;
+      }
+      if (!hasMoreData.value && !reset) {
+        log('No more data to fetch');
+        return;
+      }
+
+      if (isPagination) {
+        isLoadingMore.value = true;
+      } else {
+        isLoading.value = true;
+      }
+      errorMessage.value = '';
+
+      final jsonBody = {
+        "team_id": "2",
+        // "role_id": AppUtility.roleId,
+      };
+
+      List<GetLiveSurveyListResponse>? response =
+          (await Networkcall().postMethod(
+                Networkutility.getLiveSurveyListApi,
+                Networkutility.getLiveSurveyList,
+                jsonEncode(jsonBody),
+                context,
+              ))
+              as List<GetLiveSurveyListResponse>?;
+
+      if (response != null && response.isNotEmpty) {
+        if (response[0].status == "true") {
+          final surveys = response[0].data;
+
+          if (surveys.isEmpty || surveys.length < limit) {
+            hasMoreData.value = false;
+            log('No more data or fewer items received: ${surveys.length}');
+          }
+          for (var survey in surveys) {
+            liveSurveysList.add(
+              LiveSurveyData(
+                surveyId: survey.surveyId,
+                surveyTitle: survey.surveyTitle,
+              ),
+            );
+          }
+          offset.value += limit;
+          log('Offset updated to: ${offset.value}');
+        } else {
+          hasMoreData.value = false;
+          errorMessage.value = 'No surveys found';
+          log('API returned status false: No surveys found');
+          AppSnackbarStyles.showError(
+            title: 'Error',
+            message: 'No surveys found',
+          );
+        }
+      } else {
+        hasMoreData.value = false;
+        errorMessage.value = 'No response from server';
+        log('No response from server');
+        AppSnackbarStyles.showError(
+          title: 'Error',
+          message: 'No response from server',
+        );
+      }
+    } on NoInternetException catch (e) {
+      errorMessage.value = e.message;
+      log('NoInternetException: ${e.message}');
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } on TimeoutException catch (e) {
+      errorMessage.value = e.message;
+      log('TimeoutException: ${e.message}');
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } on HttpException catch (e) {
+      errorMessage.value = '${e.message} (Code: ${e.statusCode})';
+      log('HttpException: ${e.message} (Code: ${e.statusCode})');
+      AppSnackbarStyles.showError(
+        title: 'Error',
+        message: '${e.message} (Code: ${e.statusCode})',
+      );
+    } on ParseException catch (e) {
+      errorMessage.value = e.message;
+      log('ParseException: ${e.message}');
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } catch (e) {
+      errorMessage.value = 'Unexpected error: $e';
+      log('Unexpected error: $e');
+      AppSnackbarStyles.showError(
+        title: 'Error',
+        message: 'Unexpected error: $e',
+      );
+    } finally {
+      isLoading.value = false;
+      isLoadingMore.value = false;
+    }
+  }
+
+  // Refresh data for pull-to-refresh
+  Future<void> refresSurveyhData() async {
+    await fetchLiveSurveys(context: Get.context!, reset: true);
+  }
 
   String get userName {
     return 'Hi, ${AppUtility.fullName ?? ''}';
