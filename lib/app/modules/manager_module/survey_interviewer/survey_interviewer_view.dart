@@ -156,24 +156,38 @@ class _SurveyInterviewerViewState extends State<SurveyInterviewerView> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        if (controller.formKey.currentState?.validate() ??
-                            false) {
-                          _showSuccessDialog(context);
-                        }
-                      },
-                      style: AppButtonStyles.elevatedLargeBlack(),
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          'Submit Survey',
-                          style:
-                              AppStyle.buttonTextSmallPoppinsWhite.responsive,
-                          maxLines: 1,
+                    child: // ──────────────────────────────────────────────────────────────
+                        // REPLACE ONLY THE ElevatedButton's onPressed (inside bottom buttons)
+                        // ──────────────────────────────────────────────────────────────
+                        ElevatedButton(
+                          onPressed: () async {
+                            // Validate form
+                            if (!(controller.formKey.currentState?.validate() ??
+                                false))
+                              return;
+
+                            // Call API
+                            final result = await controller.setSurvey(
+                              context: context,
+                            );
+
+                            // If success, show dialog
+                            if (result != null) {
+                              _showSuccessDialog(context);
+                            }
+                          },
+                          style: AppButtonStyles.elevatedLargeBlack(),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'Submit Survey',
+                              style: AppStyle
+                                  .buttonTextSmallPoppinsWhite
+                                  .responsive,
+                              maxLines: 1,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
                   ),
                 ],
               ),

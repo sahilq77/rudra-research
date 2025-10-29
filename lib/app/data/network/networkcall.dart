@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:rudra/app/data/models/add_executive/get_add_executive_response.dart';
 import 'package:rudra/app/data/models/home/get_live_survey_response.dart';
 import 'package:rudra/app/data/models/interviewer_info/get_cast_response.dart';
+import 'package:rudra/app/data/models/interviewer_info/get_set_interviewer_info.dart';
 import 'package:rudra/app/data/models/login/get_login_response.dart';
 import 'package:rudra/app/data/models/my_team/get_my_team_member_detail.dart';
 import 'package:rudra/app/data/models/my_team/get_my_team_member_response.dart';
@@ -128,6 +129,13 @@ class Networkcall {
           case 14:
             final getCast = geCastResponseFromJson(str);
             return getCast;
+
+          case 15:
+            final setInterviewerInfo = getSetInterviewerInfoResponseFromJson(str);
+            return setInterviewerInfo;
+
+
+            
 
           default:
             log("Invalid request code: $requestCode");

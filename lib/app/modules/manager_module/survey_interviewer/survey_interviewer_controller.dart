@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:rudra/app/data/models/interviewer_info/get_cast_response.dart';
+import 'package:rudra/app/data/models/interviewer_info/get_set_interviewer_info.dart';
 import 'package:rudra/app/data/network/exceptions.dart';
 import 'package:rudra/app/data/network/networkcall.dart';
 import 'package:rudra/app/data/urls.dart';
@@ -18,7 +19,8 @@ import '../../../widgets/app_style.dart';
 class SurveyInterviewerController extends GetxController {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   RxList<CastData> castList = <CastData>[].obs;
-
+  var isLoadings = false.obs;
+  var errorMessages = ''.obs;
   var isLoadingCast = false.obs;
   var errorMessageCast = ''.obs;
 
@@ -332,4 +334,71 @@ class SurveyInterviewerController extends GetxController {
       isLoadingCast.value = false;
     }
   }
+
+ // ──────────────────────────────────────────────────────────────
+// REPLACE ONLY THIS METHOD (keep everything else unchanged)
+// ──────────────────────────────────────────────────────────────
+Future<String?> setSurvey({required BuildContext context}) async {
+  // Validate form first
+  if (!formKey.currentState!.validate()) return null;
+
+  try {
+    isLoadings.value = true;
+    errorMessages.value = '';
+
+    final jsonBody = {
+      "survey_app_side_id": surveyAppId,
+      "name": nameController.text.trim(),
+      "age": selectedAgeId.value.toString(),           // Send Age ID (0-3)
+      "gender": selectedGenderId.value.toString(),     // Send Gender ID (0-2)
+      "mob_number": phoneController.text.trim(),
+      "cast_id": selectedCastId.value,                 // Send Cast ID
+    };
+
+    final response = await Networkcall().postMethod(
+      Networkutility.setInterviewerInfoApi,
+      Networkutility.setInterviewerInfo,
+      jsonEncode(jsonBody),
+      context,
+    ) as List<GetSetInterviewerInfoResponse>?;
+
+    if (response != null &&
+        response.isNotEmpty &&
+        response[0].status == "true") {
+      final newSurveyAppSideId = response[0].data?.surveyAppSideId ?? '';
+      AppSnackbarStyles.showSuccess(
+        title: 'Success',
+        message: "Interviewer Info submitted successfully",
+      );
+      return newSurveyAppSideId;
+    } else {
+      final msg = response?[0].message ?? "Interviewer Info submission failed";
+      errorMessages.value = msg;
+      AppSnackbarStyles.showError(title: 'Failed', message: msg);
+      return null;
+    }
+  } on NoInternetException catch (e) {
+    errorMessages.value = e.message;
+    AppSnackbarStyles.showError(title: 'Error', message: e.message);
+  } on TimeoutException catch (e) {
+    errorMessages.value = e.message;
+    AppSnackbarStyles.showError(title: 'Error', message: e.message);
+  } on HttpException catch (e) {
+    errorMessages.value = '${e.message} (Code: ${e.statusCode})';
+    AppSnackbarStyles.showError(
+      title: 'Error',
+      message: '${e.message} (Code: ${e.statusCode})',
+    );
+  } on ParseException catch (e) {
+    errorMessages.value = e.message;
+    AppSnackbarStyles.showError(title: 'Error', message: e.message);
+  } catch (e, s) {
+    errorMessages.value = 'Unexpected error: $e';
+    log('setSurvey error: $e', stackTrace: s);
+    AppSnackbarStyles.showError(title: 'Error', message: errorMessages.value);
+  } finally {
+    isLoadings.value = false;
+  }
+  return null;
+}
 }
