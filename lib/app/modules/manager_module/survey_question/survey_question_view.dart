@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:rudra/app/data/models/survey_question/get_survey_questions_response.dart';
-
 import '../../../utils/app_colors.dart';
 import '../../../utils/responsive_utils.dart';
 import '../../../widgets/app_button_style.dart';
@@ -43,13 +42,10 @@ class _SurveyQuestionViewState extends State<SurveyQuestionView> {
       ),
       backgroundColor: AppColors.white,
       body: Obx(() {
-        // -----------------------------------------------------------------
-        //  LOADING / ERROR STATES
-        // -----------------------------------------------------------------
+        // ------------------- LOADING / ERROR -------------------
         if (controller.isLoadingq.value) {
           return const Center(child: CircularProgressIndicator());
         }
-
         if (controller.errorMessageq.value.isNotEmpty) {
           return Center(
             child: Text(
@@ -58,21 +54,23 @@ class _SurveyQuestionViewState extends State<SurveyQuestionView> {
             ),
           );
         }
-
-        // -----------------------------------------------------------------
-        //  NO QUESTIONS?
-        // -----------------------------------------------------------------
         if (controller.questionDetail.isEmpty) {
           return const Center(child: Text('No questions available'));
         }
 
-        // -----------------------------------------------------------------
-        //  SHOW THE FIRST QUESTION (you can add pagination later)
-        // -----------------------------------------------------------------
-        final Question current = controller.questionDetail[0];
+        // ------------------- CURRENT QUESTION -------------------
+        final Question current =
+            controller.questionDetail[controller.currentIndex.value];
+
+        // ------------------- PROGRESS (optional) -------------------
+        final int total = controller.questionDetail.length;
+        final int progress = controller.currentIndex.value + 1;
 
         return Column(
           children: [
+            // ---- progress bar (nice touch) ----
+            const SizedBox(height: 8),
+
             Expanded(
               child: RefreshIndicator(
                 onRefresh: controller.refreshPage,
@@ -100,9 +98,7 @@ class _SurveyQuestionViewState extends State<SurveyQuestionView> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // -------------------------------------------------
-                          //  USER INFO (you can fill it from API if needed)
-                          // -------------------------------------------------
+                          // ---- USER INFO ----
                           Row(
                             children: [
                               CircleAvatar(
@@ -121,7 +117,7 @@ class _SurveyQuestionViewState extends State<SurveyQuestionView> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Survey Poster', // <-- replace with real data if you have it
+                                    'Survey Poster',
                                     style: AppStyle
                                         .bodyBoldPoppinsBlack
                                         .responsive,
@@ -139,26 +135,36 @@ class _SurveyQuestionViewState extends State<SurveyQuestionView> {
                           ),
                           const SizedBox(height: 20),
 
-                          // -------------------------------------------------
-                          //  QUESTION TEXT
-                          // -------------------------------------------------
+                          // ---- QUESTION NUMBER ----
+                          Text(
+                            '$progress / $total',
+                            style: AppStyle.bodySmallPoppinsGrey.responsive,
+                          ),
+                          const SizedBox(height: 8),
+
+                          // ---- QUESTION TEXT ----
+
+                          //         Html(
+                          //   data: ins[0].instructionDescription.replaceAll(
+                          //     r'\r\n',
+                          //     '<br>',
+                          //   ),
+                          //   style: TextDesign.commonStyles,
+                          // ),
                           Text(
                             controller.removeHtmlTags(current.question),
                             style: AppStyle.bodyRegularPoppinsBlack.responsive,
                           ),
                           const SizedBox(height: 16),
 
-                          // -------------------------------------------------
-                          //  RADIO OPTIONS
-                          // -------------------------------------------------
+                          // ---- RADIO OPTIONS ----
                           ...current.options.map((opt) {
                             final String optionText = opt.choiceText;
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 12),
                               child: InkWell(
-                                onTap: () {
-                                  controller.selectedAnswer.value = optionText;
-                                },
+                                onTap: () => controller.selectedAnswer.value =
+                                    optionText,
                                 borderRadius: BorderRadius.circular(8),
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
@@ -171,9 +177,9 @@ class _SurveyQuestionViewState extends State<SurveyQuestionView> {
                                         value: optionText,
                                         groupValue:
                                             controller.selectedAnswer.value,
-                                        onChanged: (v) {
-                                          controller.selectedAnswer.value = v!;
-                                        },
+                                        onChanged: (v) =>
+                                            controller.selectedAnswer.value =
+                                                v!,
                                         activeColor: AppColors.primary,
                                         materialTapTargetSize:
                                             MaterialTapTargetSize.shrinkWrap,
@@ -205,9 +211,7 @@ class _SurveyQuestionViewState extends State<SurveyQuestionView> {
               ),
             ),
 
-            // -------------------------------------------------
-            //  NEXT BUTTON
-            // -------------------------------------------------
+            // ------------------- BUTTON BAR -------------------
             Container(
               padding: ResponsiveHelper.paddingSymmetric(
                 horizontal: 16,
@@ -223,13 +227,35 @@ class _SurveyQuestionViewState extends State<SurveyQuestionView> {
                   ),
                 ],
               ),
-              child: ElevatedButton(
-                onPressed: controller.nextPage,
-                style: AppButtonStyles.elevatedLargeBlack(),
-                child: Text(
-                  'Next',
-                  style: AppStyle.buttonTextPoppinsWhite.responsive,
-                ),
+              child: Row(
+                children: [
+                  // ---- PREVIOUS ----
+                  if (controller.currentIndex.value > 0)
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: controller.goPrevious,
+                        style: AppButtonStyles.outlinedLargeBlack(),
+                        child: const Text('Previous'),
+                      ),
+                    ),
+                  if (controller.currentIndex.value > 0)
+                    const SizedBox(width: 12),
+
+                  // ---- NEXT / SUBMIT ----
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: controller.nextPage,
+                      style: AppButtonStyles.elevatedLargeBlack(),
+                      child: Text(
+                        controller.currentIndex.value ==
+                                controller.questionDetail.length - 1
+                            ? 'Submit'
+                            : 'Next',
+                        style: AppStyle.buttonTextPoppinsWhite.responsive,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

@@ -364,15 +364,15 @@ class _HomeViewState extends State<HomeView> {
                       ),
                       maxLines: 2,
                     ),
-                    // SizedBox(height: ResponsiveHelper.spacing(4)),
-                    // ResponsiveHelper.safeText(
-                    //   survey['subtitle'],
-                    //   style: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
-                    //     fontSize: ResponsiveHelper.getResponsiveFontSize(13),
-                    //     color: AppColors.grey,
-                    //   ),
-                    //   maxLines: 1,
-                    // ),
+                    SizedBox(height: ResponsiveHelper.spacing(4)),
+                    ResponsiveHelper.safeText(
+                      survey.districtName,
+                      style: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(13),
+                        color: AppColors.grey,
+                      ),
+                      maxLines: 1,
+                    ),
                   ],
                 ),
               ),

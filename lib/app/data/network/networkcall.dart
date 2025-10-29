@@ -14,7 +14,9 @@ import 'package:rudra/app/data/models/my_team/get_my_team_member_response.dart';
 import 'package:rudra/app/data/models/my_team/get_my_team_response.dart';
 import 'package:rudra/app/data/models/notification/get_notification_response.dart';
 import 'package:rudra/app/data/models/survey_detail/get_area_response.dart';
+import 'package:rudra/app/data/models/survey_detail/get_set_survey_response.dart';
 import 'package:rudra/app/data/models/survey_detail/get_survey_detail_response.dart';
+import 'package:rudra/app/data/models/survey_question/get_submit_answers_response.dart';
 import 'package:rudra/app/data/models/survey_question/get_survey_questions_response.dart';
 import 'package:rudra/app/data/network/exceptions.dart';
 import 'package:rudra/app/widgets/app_style.dart';
@@ -111,9 +113,16 @@ class Networkcall {
           case 10:
             final getArea = getAreaResponseFromJson(str);
             return getArea;
+          case 11:
+            final setSurvey = getSetServeyResponseFromJson(str);
+            return setSurvey;
+
           case 12:
             final getSurveyQuestion = getSurveyQuestionsResponseFromJson(str);
             return getSurveyQuestion;
+          case 13:
+            final submitAnswers = getSubmitAnswersResponseFromJson(str);
+            return submitAnswers;
 
           default:
             log("Invalid request code: $requestCode");

@@ -5,10 +5,12 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:rudra/app/data/models/survey_detail/get_area_response.dart';
+import 'package:rudra/app/data/models/survey_detail/get_set_survey_response.dart';
 import 'package:rudra/app/data/models/survey_detail/get_survey_detail_response.dart';
 import 'package:rudra/app/data/network/exceptions.dart';
 import 'package:rudra/app/data/network/networkcall.dart';
 import 'package:rudra/app/data/urls.dart';
+import 'package:rudra/app/utils/app_utility.dart';
 import 'package:rudra/app/widgets/app_snackbar_styles.dart';
 
 import '../../../routes/app_routes.dart';
@@ -22,6 +24,8 @@ class SurveyDetailsController extends GetxController {
   var errorMessageArea = ''.obs;
   var isLoading = false.obs;
   var errorMessage = ''.obs;
+  var isLoadings = false.obs;
+  var errorMessages = ''.obs;
   RxString? selectedAreaVal = RxString("");
 
   // ---------- LANGUAGE ----------
@@ -40,10 +44,11 @@ class SurveyDetailsController extends GetxController {
   // List of display names (order must match IDs)
   final List<String> languages = ['Marathi', 'Hindi', 'English'];
 
-
-
   // ---------- NEW: AREA ID ----------
   final RxString selectedAreaId = ''.obs; // <-- ADDED
+
+  // NEW: Store survey_id from arguments
+  String surveyId = "";
 
   @override
   void onInit() {
@@ -55,7 +60,7 @@ class SurveyDetailsController extends GetxController {
     });
 
     final args = Get.arguments as Map<String, dynamic>?;
-    final String surveyId = args?['survey_id']?.toString() ?? "";
+    surveyId = args?['survey_id']?.toString() ?? "";
     fetchArea(context: Get.context!, surveyId: surveyId);
     fetchSurveyDetail(context: Get.context!, surveyId: surveyId);
   }
@@ -260,20 +265,80 @@ class SurveyDetailsController extends GetxController {
   }
 
   // -----------------------------------------------------------------
-  // NAVIGATION – now passes languageId **and** areaId
+  // IMPLEMENTED: setSurvey API CALL
   // -----------------------------------------------------------------
-  void nextPage() {
-    if (formKey.currentState!.validate()) {
-      Get.toNamed(
-        AppRoutes.surveyQuestion,
-        arguments: {
-          'language': selectedLanguage.value, // name (String)
-          'languageId': selectedLanguageId.value, // id (int)
-          'area': selectedAreaVal!.value, // name
-          'areaId': selectedAreaId.value, // <-- NEW
-        },
+  Future<String?> setSurvey({required BuildContext context}) async {
+    try {
+      isLoadings.value = true;
+      errorMessages.value = '';
+
+      final jsonBody = {
+        "survey_id": surveyId,
+        "survey_language_id": selectedLanguageId.value.toString(),
+        "village_area_id": selectedAreaId.value,
+        "survey_done_by": AppUtility.userID,
+      };
+
+      final response = await Networkcall().postMethod(
+        Networkutility.setSurveyApi,
+        Networkutility.setSurvey,
+        jsonEncode(jsonBody),
+        context,
+      ) as List<GetSetServeyResponse>?;
+
+      if (response != null && response.isNotEmpty && response[0].status == "true") {
+        final newSurveyAppSideId = response[0].data?.surveyAppSideId ?? '';
+        AppSnackbarStyles.showSuccess(
+          title: 'Success',
+          message: "Survey started successfully",
+        );
+        return newSurveyAppSideId; // Return the new ID
+      } else {
+        final msg = response?[0].message ?? "Start survey failed";
+        errorMessages.value = msg;
+        AppSnackbarStyles.showError(title: 'Failed', message: msg);
+        return null;
+      }
+    } on NoInternetException catch (e) {
+      errorMessages.value = e.message;
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } on TimeoutException catch (e) {
+      errorMessages.value = e.message;
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } on HttpException catch (e) {
+      errorMessages.value = '${e.message} (Code: ${e.statusCode})';
+      AppSnackbarStyles.showError(
+        title: 'Error',
+        message: '${e.message} (Code: ${e.statusCode})',
       );
+    } on ParseException catch (e) {
+      errorMessages.value = e.message;
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } catch (e, s) {
+      errorMessages.value = 'Unexpected error: $e';
+      log('setSurvey error: $e', stackTrace: s);
+      AppSnackbarStyles.showError(title: 'Error', message: errorMessages.value);
+    } finally {
+      isLoadings.value = false;
     }
+    return null;
+  }
+
+  // -----------------------------------------------------------------
+  // NAVIGATION – now calls setSurvey and passes survey_app_side_id
+  // -----------------------------------------------------------------
+  void nextPage() async {
+    if (!formKey.currentState!.validate()) return;
+
+    final newSurveyAppSideId = await setSurvey(context: Get.context!);
+    if (newSurveyAppSideId == null) return;
+
+    Get.toNamed(
+      AppRoutes.surveyQuestion,
+      arguments: {
+        'survey_app_side_id': newSurveyAppSideId,
+      },
+    );
   }
 
   Future<void> refreshPage() async {

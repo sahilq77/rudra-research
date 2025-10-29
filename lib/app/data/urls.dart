@@ -28,8 +28,14 @@ class Networkutility {
   static String getArea =
       "${baseUrl + "get_village_area_according_to_survey_id_api"}";
   static int getAreaApi = 10;
+
+  static String setSurvey = "${baseUrl + "set_survey_api"}";
+  static int setSurveyApi = 11;
   static String getQustions = "${baseUrl + "get_questions_and_options_api"}";
   static int getQustionsApi = 12;
+  static String submitQuestionAnswer =
+      "${baseUrl + "save_survey_questions_answers"}";
+  static int submitQuestionAnswerApi = 13;
 
   // static String logout = "${baseUrl + "post_app_logout"}";
   // static int logoutApi = 8;

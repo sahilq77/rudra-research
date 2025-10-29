@@ -27,7 +27,9 @@ class GetLiveSurveyListResponse {
       GetLiveSurveyListResponse(
         status: json["status"],
         message: json["message"],
-        data: List<LiveSurveyData>.from(json["data"].map((x) => LiveSurveyData.fromJson(x))),
+        data: List<LiveSurveyData>.from(
+          json["data"].map((x) => LiveSurveyData.fromJson(x)),
+        ),
       );
 
   Map<String, dynamic> toJson() => {
@@ -40,16 +42,22 @@ class GetLiveSurveyListResponse {
 class LiveSurveyData {
   String surveyId;
   String surveyTitle;
-
-  LiveSurveyData({required this.surveyId, required this.surveyTitle});
+  String districtName;
+  LiveSurveyData({
+    required this.surveyId,
+    required this.surveyTitle,
+    required this.districtName,
+  });
 
   factory LiveSurveyData.fromJson(Map<String, dynamic> json) => LiveSurveyData(
     surveyId: json["survey_id"] ?? "",
     surveyTitle: json["survey_title"] ?? "",
+    districtName: json["district_name"] ?? "",
   );
 
   Map<String, dynamic> toJson() => {
     "survey_id": surveyId,
     "survey_title": surveyTitle,
+    "district_name": districtName,
   };
 }

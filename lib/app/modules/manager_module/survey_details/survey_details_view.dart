@@ -124,12 +124,27 @@ class _SurveyDetailsViewState extends State<SurveyDetailsView> {
                   ),
 
                   const SizedBox(height: 32),
-                  ElevatedButton(
-                    onPressed: controller.nextPage,
-                    style: AppButtonStyles.elevatedLargeBlack(),
-                    child: Text(
-                      'Start Survey',
-                      style: AppStyle.buttonTextPoppinsWhite.responsive,
+
+                  // UPDATED BUTTON: Shows loading + disabled during API call
+                  Obx(
+                    () => ElevatedButton(
+                      onPressed: controller.isLoadings.value
+                          ? null
+                          : controller.nextPage,
+                      style: AppButtonStyles.elevatedLargeBlack(),
+                      child: controller.isLoadings.value
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(
+                              'Start Survey',
+                              style: AppStyle.buttonTextPoppinsWhite.responsive,
+                            ),
                     ),
                   ),
                 ],
@@ -144,7 +159,7 @@ class _SurveyDetailsViewState extends State<SurveyDetailsView> {
   // UPDATED: Now accepts RxString? and uses Obx internally
   Widget _buildDropdownField({
     required String label,
-    required RxString? selectedValueObs, // ← Changed from String to RxString?
+    required RxString? selectedValueObs,
     required List<String> items,
     required Function(String?) onChanged,
     String? Function(String?)? validator,
@@ -155,7 +170,6 @@ class _SurveyDetailsViewState extends State<SurveyDetailsView> {
         Text(label, style: AppStyle.labelPrimaryPoppinsGrey.responsive),
         const SizedBox(height: 8),
         Obx(
-          // ← Rebuilds when selectedValueObs changes
           () => DropdownSearch<String>(
             selectedItem: selectedValueObs?.value ?? '',
             items: items,
