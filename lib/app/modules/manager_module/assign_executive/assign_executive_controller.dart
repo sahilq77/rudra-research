@@ -47,7 +47,7 @@ class AssignExecutiveController extends GetxController {
     super.onInit();
     final args = Get.arguments as Map<String, dynamic>?;
     surveyId = args?['survey_id']?.toString() ?? "";
-    fetchAssignSurveyTarget(context: Get.context!, surveyId: "2");
+    fetchAssignSurveyTarget(context: Get.context!, surveyId: surveyId);
   }
 
   Future<void> fetchAssignSurveyTarget({

@@ -68,7 +68,7 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
           icon: const Icon(Icons.add, color: AppColors.defaultBlack),
           onSelected: (value) {
             if (value == 'assign') {
-              Get.toNamed(AppRoutes.assignExecutive);
+              Get.toNamed(AppRoutes.assignExecutive,     arguments: {'survey_id': controller.surveyId},);
             } else {
               Get.toNamed(AppRoutes.addExecutive);
             }
