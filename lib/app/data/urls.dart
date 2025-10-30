@@ -48,6 +48,10 @@ class Networkutility {
  static String setAssignSurveyTarget =
       "${baseUrl + "set_survey_target"}";
   static int setAssignSurveyTargetApi = 17;
+ static String getAllExecutive =
+      "${baseUrl + "get_all_execative"}";
+  static int getAllExecutiveApi = 18;
+  
   
   
 
