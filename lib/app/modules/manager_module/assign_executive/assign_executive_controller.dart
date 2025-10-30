@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:rudra/app/data/models/executive/executive_model.dart';
 import 'package:rudra/app/data/models/executive/get_executive_list.dart';
+import 'package:rudra/app/data/models/executive/set_executive_response.dart';
 import 'package:rudra/app/data/models/survey_target/survey_target_model.dart';
 import 'package:rudra/app/data/network/exceptions.dart';
 import 'package:rudra/app/data/network/networkcall.dart';
@@ -35,7 +37,8 @@ class AssignExecutiveController extends GetxController {
       <SurveyTargetModel>[].obs;
 
   String surveyId = "";
-
+  var isLoadings = false.obs;
+  var errorMessages = ''.obs;
   @override
   void onClose() {
     searchController.dispose();
@@ -218,6 +221,7 @@ class AssignExecutiveController extends GetxController {
   }
 
   // ---------- ASSIGN ----------
+  // ---------- ASSIGN ----------
   Future<void> assignExecutives() async {
     try {
       isLoading.value = true;
@@ -233,17 +237,27 @@ class AssignExecutiveController extends GetxController {
         return;
       }
 
-      // TODO: Call real API here
-      await Future.delayed(const Duration(seconds: 1));
+      // ---- Build payload for setExecutive API ----
+      final List<Map<String, dynamic>> assignUsers = selected.map((exec) {
+        return {
+          "user_id": exec.id,
+          // add any extra fields required by the API here
+        };
+      }).toList();
 
-      Get.snackbar(
-        'Success',
-        'Executives assigned successfully',
-        backgroundColor: AppColors.greenColor,
-        colorText: AppColors.white,
-      );
+      // ---- Call the real API (setExecutive) ----
+      final result = await setExecutive(userIds: assignUsers);
 
-      await refreshData();
+      if (result != null) {
+        Get.snackbar(
+          'Success',
+          'Executives assigned successfully',
+          backgroundColor: AppColors.greenColor,
+          colorText: AppColors.white,
+        );
+
+        await refreshData(); // reload the list to reflect updated state
+      }
     } catch (e) {
       Get.snackbar(
         'Error',
@@ -262,5 +276,66 @@ class AssignExecutiveController extends GetxController {
       surveyId: surveyId,
       reset: true,
     );
+  }
+
+  Future<String?> setExecutive({
+    required List<Map<String, dynamic>> userIds,
+  }) async {
+    try {
+      isLoadings.value = true;
+      errorMessages.value = '';
+
+      // ---- Build payload with team_id and array of user_ids ----
+      final List<String> userIdList = userIds
+          .map((user) => user['user_id'] as String)
+          .toList();
+      final jsonBody = {"team_id": AppUtility.teamId, "user_id": userIdList};
+
+      final response =
+          await Networkcall().postMethod(
+                Networkutility.setExecutiveApi,
+                Networkutility.setExecutive,
+                jsonEncode(jsonBody),
+                Get.context!,
+              )
+              as List<SetExecutiveResponse>?;
+
+      if (response != null &&
+          response.isNotEmpty &&
+          response[0].status == "true") {
+        AppSnackbarStyles.showSuccess(
+          title: 'Success',
+          message: "Targets assigned successfully",
+        );
+        return response[0].data?.teamId ?? '';
+      } else {
+        final msg = response?[0].message ?? "Assign target failed";
+        errorMessages.value = msg;
+        AppSnackbarStyles.showError(title: 'Failed', message: msg);
+        return null;
+      }
+    } on NoInternetException catch (e) {
+      errorMessages.value = e.message;
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } on TimeoutException catch (e) {
+      errorMessages.value = e.message;
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } on HttpException catch (e) {
+      errorMessages.value = '${e.message} (Code: ${e.statusCode})';
+      AppSnackbarStyles.showError(
+        title: 'Error',
+        message: '${e.message} (Code: ${e.statusCode})',
+      );
+    } on ParseException catch (e) {
+      errorMessages.value = e.message;
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } catch (e, s) {
+      errorMessages.value = 'Unexpected error: $e';
+      log('setTarget error: $e', stackTrace: s);
+      AppSnackbarStyles.showError(title: 'Error', message: errorMessages.value);
+    } finally {
+      isLoadings.value = false;
+    }
+    return null;
   }
 }

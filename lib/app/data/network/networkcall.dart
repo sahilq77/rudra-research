@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:rudra/app/data/models/add_executive/get_add_executive_response.dart';
 import 'package:rudra/app/data/models/executive/get_executive_list.dart';
+import 'package:rudra/app/data/models/executive/set_executive_response.dart';
 import 'package:rudra/app/data/models/home/get_live_survey_response.dart';
 import 'package:rudra/app/data/models/interviewer_info/get_cast_response.dart';
 import 'package:rudra/app/data/models/interviewer_info/get_set_interviewer_info.dart';
@@ -148,12 +149,12 @@ class Networkcall {
             );
             return setAssignSurveyTarget;
 
-      case 18:
-            final getExeutiveList = getExecutiveListResponseFromJson(
-              str,
-            );
+          case 18:
+            final getExeutiveList = getExecutiveListResponseFromJson(str);
             return getExeutiveList;
-            
+          case 19:
+            final setExeutive = setExecutiveResponseFromJson(str);
+            return setExeutive;
 
           default:
             log("Invalid request code: $requestCode");

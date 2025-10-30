@@ -51,6 +51,13 @@ class Networkutility {
  static String getAllExecutive =
       "${baseUrl + "get_all_execative"}";
   static int getAllExecutiveApi = 18;
+ static String setExecutive =
+      "${baseUrl + "set_execative_to_team"}";
+  static int setExecutiveApi = 19;
+
+
+  
+  
   
   
   
