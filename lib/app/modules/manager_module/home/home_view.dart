@@ -376,7 +376,7 @@ class _HomeViewState extends State<HomeView> {
                   ],
                 ),
               ),
-           //   if (survey) ...[
+              //   if (survey) ...[
               SizedBox(width: ResponsiveHelper.spacing(8)),
               Container(
                 padding: EdgeInsets.symmetric(
@@ -443,7 +443,10 @@ class _HomeViewState extends State<HomeView> {
               Expanded(
                 child: OutlinedButton(
                   onPressed: () {
-                    Get.toNamed(AppRoutes.assignedSurveyTarget);
+                    Get.toNamed(
+                      AppRoutes.assignedSurveyTarget,
+                      arguments: {'survey_id': survey.surveyId},
+                    );
                   },
                   style: AppButtonStyles.outlinedLargeBlack(),
                   child: Text(

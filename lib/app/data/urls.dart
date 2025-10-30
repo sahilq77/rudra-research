@@ -45,6 +45,10 @@ class Networkutility {
   static String getAssignSurveyTargetList =
       "${baseUrl + "assign_survey_to_executives"}";
   static int getAssignSurveyTargetListApi = 16;
+ static String setAssignSurveyTarget =
+      "${baseUrl + "set_survey_target"}";
+  static int setAssignSurveyTargetApi = 17;
+  
   
 
 

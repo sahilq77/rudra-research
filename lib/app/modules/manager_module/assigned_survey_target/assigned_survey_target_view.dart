@@ -65,7 +65,6 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
       ),
       actions: [
         PopupMenuButton<String>(
-        
           icon: const Icon(Icons.add, color: AppColors.defaultBlack),
           onSelected: (value) {
             if (value == 'assign') {
@@ -81,7 +80,6 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   Icon(Icons.person),
-
                   Text(' Assign Executive', style: AppStyle.reportCardRowCount),
                 ],
               ),
@@ -92,7 +90,6 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
               child: Row(
                 children: [
                   Icon(Icons.person_add),
-
                   Text(' Add Executive', style: AppStyle.reportCardRowCount),
                 ],
               ),
@@ -102,11 +99,7 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
       ],
       bottom: PreferredSize(
         preferredSize: Size.fromHeight(0),
-        child: Divider(
-          color: AppColors.grey.withOpacity(0.5),
-          // thickness: 2,
-          height: 0,
-        ),
+        child: Divider(color: AppColors.grey.withOpacity(0.5), height: 0),
       ),
     );
   }
@@ -277,7 +270,6 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
 
     return Container(
       margin: EdgeInsets.only(bottom: ResponsiveHelper.spacing(12)),
-
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(12)),
@@ -518,6 +510,7 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
     );
   }
 
+  // ==================== UPDATED: Show loading on Assign button ====================
   Widget _buildBottomButton() {
     return Container(
       padding: ResponsiveHelper.paddingSymmetric(horizontal: 16, vertical: 12),
@@ -531,15 +524,26 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
           ),
         ],
       ),
-      child: ElevatedButton(
-        onPressed: () => _showConfirmDialog(),
-        style: AppButtonStyles.elevatedLargeBlack(),
-        child: Text(
-          'Assign Target',
-          style: AppStyle.buttonTextPoppinsWhite.responsive.copyWith(
-            fontSize: ResponsiveHelper.getResponsiveFontSize(16),
-            fontWeight: FontWeight.w600,
-          ),
+      child: Obx(
+        () => ElevatedButton(
+          onPressed: controller.isLoading.value ? null : _showConfirmDialog,
+          style: AppButtonStyles.elevatedLargeBlack(),
+          child: controller.isLoading.value
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+              : Text(
+                  'Assign Target',
+                  style: AppStyle.buttonTextPoppinsWhite.responsive.copyWith(
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(16),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
         ),
       ),
     );

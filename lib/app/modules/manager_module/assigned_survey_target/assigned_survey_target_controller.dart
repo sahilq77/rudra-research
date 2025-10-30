@@ -5,9 +5,11 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:rudra/app/data/models/survey_target/get_assign_survey_target_list_response.dart';
+import 'package:rudra/app/data/models/survey_target/set_assign_survey_target_response.dart';
 import 'package:rudra/app/data/network/exceptions.dart';
 import 'package:rudra/app/data/network/networkcall.dart';
 import 'package:rudra/app/data/urls.dart';
+import 'package:rudra/app/utils/app_utility.dart';
 import 'package:rudra/app/widgets/app_snackbar_styles.dart';
 
 import '../../../data/models/survey_target/survey_target_model.dart';
@@ -25,14 +27,20 @@ class AssignedSurveyTargetController extends GetxController {
   final int limit = 10;
   RxBool hasMoreData = true.obs;
   RxBool isLoadingMore = false.obs;
-  final RxInt surveyTarget = 200.obs;
-  final RxInt surveyCompleted = 50.obs;
+  final RxInt surveyTarget = 0.obs;
+  final RxInt surveyCompleted = 0.obs;
+
+  var isLoadings = false.obs;
+  var errorMessages = ''.obs;
+  String surveyId = "";
 
   @override
   void onInit() {
     super.onInit();
+    final args = Get.arguments as Map<String, dynamic>?;
+    surveyId = args?['survey_id']?.toString() ?? "";
 
-    fetchAssignSurveyTarget(context: Get.context!, surveyId: "2");
+    fetchAssignSurveyTarget(context: Get.context!, surveyId: surveyId);
   }
 
   @override
@@ -179,7 +187,7 @@ class AssignedSurveyTargetController extends GetxController {
     await fetchAssignSurveyTarget(
       context: Get.context!,
       reset: true,
-      surveyId: "2",
+      surveyId: surveyId,
     );
   }
 
@@ -242,13 +250,17 @@ class AssignedSurveyTargetController extends GetxController {
     }
   }
 
+  // ==================== INTEGRATED assignTarget() ====================
   Future<void> assignTarget() async {
     try {
       isLoading.value = true;
 
-      // Filter executors with count > 0
       final executorsToAssign = filteredExecutorList
           .where((executor) => executor.currentCount > 0)
+          .map((e) => {
+                "user_id": e.id,
+                "assign_target": e.currentCount.toString(),
+              })
           .toList();
 
       if (executorsToAssign.isEmpty) {
@@ -263,33 +275,19 @@ class AssignedSurveyTargetController extends GetxController {
         return;
       }
 
-      // TODO: Make API call to assign targets
-      await Future.delayed(const Duration(seconds: 1));
+      final success = await setTarget(assignUsers: executorsToAssign);
 
-      AppLogger.i(
-        'Targets assigned successfully',
-        tag: 'AssignedSurveyTargetController',
-      );
-
-      Get.snackbar(
-        'Success',
-        'Targets assigned successfully',
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-      );
-
-      // Refresh the list
-      await refreshData();
-
-      isLoading.value = false;
+      if (success != null) {
+        Get.snackbar(
+          'Success',
+          'Targets assigned successfully',
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+        await refreshData();
+      }
     } catch (e) {
-      isLoading.value = false;
-      AppLogger.e(
-        'Error assigning targets',
-        error: e,
-        tag: 'AssignedSurveyTargetController',
-      );
       Get.snackbar(
         'Error',
         'Failed to assign targets',
@@ -297,6 +295,8 @@ class AssignedSurveyTargetController extends GetxController {
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
+    } finally {
+      isLoading.value = false;
     }
   }
 
@@ -311,5 +311,66 @@ class AssignedSurveyTargetController extends GetxController {
       snackPosition: SnackPosition.TOP,
       duration: const Duration(seconds: 2),
     );
+  }
+
+  // ==================== FIXED setTarget() ====================
+  Future<String?> setTarget({
+    required List<Map<String, dynamic>> assignUsers,
+  }) async {
+    try {
+      isLoadings.value = true;
+      errorMessages.value = '';
+
+      final jsonBody = {
+        "survey_id": surveyId,
+        "assigned_by": AppUtility.userID,
+        "team_id": AppUtility.teamId,
+        "assign_users": assignUsers,
+      };
+
+      final response = await Networkcall().postMethod(
+            Networkutility.setAssignSurveyTargetApi,
+            Networkutility.setAssignSurveyTarget,
+            jsonEncode(jsonBody),
+            Get.context!,
+          ) as List<SeAssignSurveyTargetResponse>?;
+
+      if (response != null &&
+          response.isNotEmpty &&
+          response[0].status == "true") {
+        AppSnackbarStyles.showSuccess(
+          title: 'Success',
+          message: "Targets assigned successfully",
+        );
+        return response[0].data?.surveyId ?? '';
+      } else {
+        final msg = response?[0].message ?? "Assign target failed";
+        errorMessages.value = msg;
+        AppSnackbarStyles.showError(title: 'Failed', message: msg);
+        return null;
+      }
+    } on NoInternetException catch (e) {
+      errorMessages.value = e.message;
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } on TimeoutException catch (e) {
+      errorMessages.value = e.message;
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } on HttpException catch (e) {
+      errorMessages.value = '${e.message} (Code: ${e.statusCode})';
+      AppSnackbarStyles.showError(
+        title: 'Error',
+        message: '${e.message} (Code: ${e.statusCode})',
+      );
+    } on ParseException catch (e) {
+      errorMessages.value = e.message;
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } catch (e, s) {
+      errorMessages.value = 'Unexpected error: $e';
+      log('setTarget error: $e', stackTrace: s);
+      AppSnackbarStyles.showError(title: 'Error', message: errorMessages.value);
+    } finally {
+      isLoadings.value = false;
+    }
+    return null;
   }
 }

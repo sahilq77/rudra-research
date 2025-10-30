@@ -21,6 +21,7 @@ import 'package:rudra/app/data/models/survey_detail/get_survey_detail_response.d
 import 'package:rudra/app/data/models/survey_question/get_submit_answers_response.dart';
 import 'package:rudra/app/data/models/survey_question/get_survey_questions_response.dart';
 import 'package:rudra/app/data/models/survey_target/get_assign_survey_target_list_response.dart';
+import 'package:rudra/app/data/models/survey_target/set_assign_survey_target_response.dart';
 import 'package:rudra/app/data/network/exceptions.dart';
 import 'package:rudra/app/widgets/app_style.dart';
 import 'package:rudra/app/widgets/connctivityservice.dart'
@@ -140,6 +141,11 @@ class Networkcall {
             final getAssignSurveyTargetList =
                 getAssignSurveyTargetListResponseFromJson(str);
             return getAssignSurveyTargetList;
+          case 17:
+            final setAssignSurveyTarget = seAssignSurveyTargetResponseFromJson(
+              str,
+            );
+            return setAssignSurveyTarget;
 
           default:
             log("Invalid request code: $requestCode");
