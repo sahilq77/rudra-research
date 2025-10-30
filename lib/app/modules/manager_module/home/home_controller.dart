@@ -122,7 +122,7 @@ class HomeController extends GetxController {
       errorMessage.value = '';
 
       final jsonBody = {
-        "team_id": "2",
+        "team_id": AppUtility.teamId,
         // "role_id": AppUtility.roleId,
       };
 
@@ -148,7 +148,7 @@ class HomeController extends GetxController {
               LiveSurveyData(
                 surveyId: survey.surveyId,
                 surveyTitle: survey.surveyTitle,
-                districtName: survey.districtName
+                districtName: survey.districtName,
               ),
             );
           }

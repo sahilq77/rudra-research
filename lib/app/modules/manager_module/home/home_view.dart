@@ -376,7 +376,7 @@ class _HomeViewState extends State<HomeView> {
                   ],
                 ),
               ),
-              // if (survey.) ...[
+           //   if (survey) ...[
               SizedBox(width: ResponsiveHelper.spacing(8)),
               Container(
                 padding: EdgeInsets.symmetric(

@@ -48,6 +48,7 @@ class Data {
   String roleValue;
   String status;
   String deviceToken;
+  String teamId;
 
   Data({
     required this.userId,
@@ -60,6 +61,7 @@ class Data {
     required this.roleValue,
     required this.status,
     required this.deviceToken,
+    required this.teamId,
   });
 
   factory Data.fromJson(Map<String, dynamic> json) => Data(
@@ -73,6 +75,7 @@ class Data {
     roleValue: json["role_value"] ?? "",
     status: json["status"] ?? "",
     deviceToken: json["device_token"] ?? "",
+    teamId: json["team_id"] ?? "",
   );
 
   Map<String, dynamic> toJson() => {
@@ -86,5 +89,6 @@ class Data {
     "role_value": roleValue,
     "status": status,
     "device_token": deviceToken,
+    "team_id": teamId,
   };
 }

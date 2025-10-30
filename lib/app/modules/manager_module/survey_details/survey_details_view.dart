@@ -1,4 +1,3 @@
-// lib/app/modules/survey_details/survey_details_view.dart
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -41,8 +40,17 @@ class _SurveyDetailsViewState extends State<SurveyDetailsView> {
         ),
       ),
       backgroundColor: AppColors.white,
-      body: Obx(
-        () => RefreshIndicator(
+      // ---------------------------------------------------------------
+      // UPDATED: Show CircularProgressIndicator while fetchSurveyDetail
+      // ---------------------------------------------------------------
+      body: Obx(() {
+        // Show loading spinner when fetching survey details
+        if (controller.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        // Normal UI when data is loaded
+        return RefreshIndicator(
           onRefresh: controller.refreshPage,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -151,8 +159,8 @@ class _SurveyDetailsViewState extends State<SurveyDetailsView> {
               ),
             ),
           ),
-        ),
-      ),
+        );
+      }),
     );
   }
 

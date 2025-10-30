@@ -81,6 +81,7 @@ class LoginController extends GetxController {
             user.email,
             user.userId,
             user.roleId,
+            user.teamId,
             int.parse(user.roleValue),
           );
           if (user.roleValue == "0") {

@@ -64,14 +64,14 @@ class OtpController extends GetxController {
     }
     // Store dummy data
     final String dummyName = 'Dummy ${userTypes[role]}';
-    AppUtility.setUserInfo(
-      dummyName,
-      phone,
-      '',
-      'dummy_user_$role',
-      'dummy_plant_1',
-      role,
-    );
+    // AppUtility.setUserInfo(
+    //   dummyName,
+    //   phone,
+    //   '',
+    //   'dummy_user_$role',
+    //   'dummy_plant_1',
+    //   role,
+    // );
     if (role == 0) {
       // Manager
       Get.offAllNamed(AppRoutes.home, arguments: {'userRole': role});
