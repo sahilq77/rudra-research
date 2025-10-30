@@ -43,16 +43,19 @@ class LiveSurveyData {
   String surveyId;
   String surveyTitle;
   String districtName;
+  String isLive;
   LiveSurveyData({
     required this.surveyId,
     required this.surveyTitle,
     required this.districtName,
+    required this.isLive,
   });
 
   factory LiveSurveyData.fromJson(Map<String, dynamic> json) => LiveSurveyData(
     surveyId: json["survey_id"] ?? "",
     surveyTitle: json["survey_title"] ?? "",
     districtName: json["district_name"] ?? "",
+    isLive: json["is_live"] ?? "",
   );
 
   Map<String, dynamic> toJson() => {

@@ -376,45 +376,46 @@ class _HomeViewState extends State<HomeView> {
                   ],
                 ),
               ),
-              //   if (survey) ...[
-              SizedBox(width: ResponsiveHelper.spacing(8)),
-              Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: ResponsiveHelper.spacing(10),
-                  vertical: ResponsiveHelper.spacing(5),
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFE5E5),
-                  borderRadius: BorderRadius.circular(
-                    ResponsiveHelper.spacing(12),
+              if (survey.isLive == "1") ...[
+                SizedBox(width: ResponsiveHelper.spacing(8)),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: ResponsiveHelper.spacing(10),
+                    vertical: ResponsiveHelper.spacing(5),
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFE5E5),
+                    borderRadius: BorderRadius.circular(
+                      ResponsiveHelper.spacing(12),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: ResponsiveHelper.spacing(6),
+                        height: ResponsiveHelper.spacing(6),
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Color(0xFFFF4444),
+                        ),
+                      ),
+                      SizedBox(width: ResponsiveHelper.spacing(4)),
+                      ResponsiveHelper.safeText(
+                        'Live',
+                        style: AppStyle.bodySmallPoppinsPrimary.responsive
+                            .copyWith(
+                              color: const Color(0xFFFF4444),
+                              fontSize: ResponsiveHelper.getResponsiveFontSize(
+                                11,
+                              ),
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ],
                   ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: ResponsiveHelper.spacing(6),
-                      height: ResponsiveHelper.spacing(6),
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Color(0xFFFF4444),
-                      ),
-                    ),
-                    SizedBox(width: ResponsiveHelper.spacing(4)),
-                    ResponsiveHelper.safeText(
-                      'Live',
-                      style: AppStyle.bodySmallPoppinsPrimary.responsive
-                          .copyWith(
-                            color: const Color(0xFFFF4444),
-                            fontSize: ResponsiveHelper.getResponsiveFontSize(
-                              11,
-                            ),
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
+              ],
             ],
           ),
           SizedBox(height: ResponsiveHelper.spacing(16)),

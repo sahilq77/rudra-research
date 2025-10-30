@@ -149,6 +149,7 @@ class HomeController extends GetxController {
                 surveyId: survey.surveyId,
                 surveyTitle: survey.surveyTitle,
                 districtName: survey.districtName,
+                isLive: survey.isLive
               ),
             );
           }
