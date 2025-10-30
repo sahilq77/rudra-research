@@ -42,7 +42,9 @@ class Networkutility {
   static String setInterviewerInfo =
       "${baseUrl + "get_local_people_details"}";
   static int setInterviewerInfoApi = 15;
-
+  static String getAssignSurveyTargetList =
+      "${baseUrl + "assign_survey_to_executives"}";
+  static int getAssignSurveyTargetListApi = 16;
   
 
 

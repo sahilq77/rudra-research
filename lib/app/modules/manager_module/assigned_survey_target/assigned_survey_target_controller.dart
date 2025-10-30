@@ -1,6 +1,14 @@
 // lib/app/modules/assigned_survey_target/assigned_survey_target_controller.dart
+import 'dart:convert';
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:rudra/app/data/models/survey_target/get_assign_survey_target_list_response.dart';
+import 'package:rudra/app/data/network/exceptions.dart';
+import 'package:rudra/app/data/network/networkcall.dart';
+import 'package:rudra/app/data/urls.dart';
+import 'package:rudra/app/widgets/app_snackbar_styles.dart';
 
 import '../../../data/models/survey_target/survey_target_model.dart';
 import '../../../utils/app_logger.dart';
@@ -10,14 +18,21 @@ class AssignedSurveyTargetController extends GetxController {
   final RxList<SurveyTargetModel> filteredExecutorList =
       <SurveyTargetModel>[].obs;
   final TextEditingController searchController = TextEditingController();
-  final RxBool isLoading = false.obs;
+  var isLoading = true.obs;
+  var assignSurveyTargetList = <AssignSurveyData>[].obs;
+  var errorMessage = ''.obs;
+  RxInt offset = 0.obs;
+  final int limit = 10;
+  RxBool hasMoreData = true.obs;
+  RxBool isLoadingMore = false.obs;
   final RxInt surveyTarget = 200.obs;
   final RxInt surveyCompleted = 50.obs;
 
   @override
   void onInit() {
     super.onInit();
-    loadExecutors();
+
+    fetchAssignSurveyTarget(context: Get.context!, surveyId: "2");
   }
 
   @override
@@ -26,54 +41,146 @@ class AssignedSurveyTargetController extends GetxController {
     super.onClose();
   }
 
-  Future<void> loadExecutors() async {
+  Future<void> fetchAssignSurveyTarget({
+    required BuildContext context,
+    bool reset = false,
+    bool isPagination = false,
+    bool forceFetch = false,
+    required String surveyId,
+  }) async {
     try {
-      isLoading.value = true;
-      await Future.delayed(const Duration(seconds: 1));
+      if (reset) {
+        offset.value = 0;
+        assignSurveyTargetList.clear();
+        executorList.clear();
+        filteredExecutorList.clear();
+        hasMoreData.value = true;
+      }
+      if (!hasMoreData.value && !reset) {
+        log('No more data to fetch');
+        return;
+      }
 
-      // Mock data - Replace with actual API call
-      executorList.value = [
-        SurveyTargetModel(
-          id: '1',
-          executorName: 'Mallikarjun Pote',
-          executorImage: '',
-          isAssigned: false,
-          todayCompletedTarget: 0,
-          totalAssignedTarget: 0,
-          totalCompletedTarget: 0,
-          currentCount: 1,
-        ),
-        SurveyTargetModel(
-          id: '2',
-          executorName: 'Mallikarjun Pote',
-          executorImage: '',
-          isAssigned: false,
-          todayCompletedTarget: 0,
-          totalAssignedTarget: 0,
-          totalCompletedTarget: 0,
-          currentCount: 1,
-        ),
-        SurveyTargetModel(
-          id: '3',
-          executorName: 'Mallikarjun Pote',
-          executorImage: '',
-          isAssigned: false,
-          todayCompletedTarget: 0,
-          totalAssignedTarget: 0,
-          totalCompletedTarget: 0,
-          currentCount: 1,
-        ),
-      ];
+      if (isPagination) {
+        isLoadingMore.value = true;
+      } else {
+        isLoading.value = true;
+      }
+      errorMessage.value = '';
 
-      filteredExecutorList.value = executorList;
-      isLoading.value = false;
-      AppLogger.i('Executors loaded successfully',
-          tag: 'AssignedSurveyTargetController');
+      final jsonBody = {
+        "survey_id": surveyId,
+        "limit": limit.toString(),
+        "offset": offset.value.toString(),
+      };
+
+      List<GetAssignSurveyTargetListResponse>? response =
+          (await Networkcall().postMethod(
+                Networkutility.getAssignSurveyTargetListApi,
+                Networkutility.getAssignSurveyTargetList,
+                jsonEncode(jsonBody),
+                context,
+              ))
+              as List<GetAssignSurveyTargetListResponse>?;
+
+      if (response != null && response.isNotEmpty) {
+        if (response[0].status == "true") {
+          final surveys = response[0].data;
+
+          // Update summary
+          surveyTarget.value = int.tryParse(surveys.totalSurveys) ?? 0;
+          surveyCompleted.value = int.tryParse(surveys.completedSurveys) ?? 0;
+
+          // Convert User -> SurveyTargetModel
+          final List<SurveyTargetModel> newExecutors = surveys.users.map((
+            user,
+          ) {
+            return SurveyTargetModel(
+              executorImage: '',
+              id: user.userId,
+              executorName: '${user.firstName} ${user.lastName}'.trim(),
+              totalAssignedTarget: int.tryParse(user.assignSurveyTarget) ?? 0,
+              todayCompletedTarget:
+                  int.tryParse(user.todayCompletedTarget) ?? 0,
+              totalCompletedTarget:
+                  int.tryParse(user.totalCompletedTarget) ?? 0,
+              isAssigned: (int.tryParse(user.assignSurveyTarget) ?? 0) > 0,
+              currentCount: 0, // New target to assign
+            );
+          }).toList();
+
+          // Add to main list (for pagination)
+          executorList.addAll(newExecutors);
+          filteredExecutorList.assignAll(
+            executorList,
+          ); // Initial filter = full list
+
+          // Update pagination
+          if (newExecutors.length < limit) {
+            hasMoreData.value = false;
+          }
+          offset.value += limit;
+
+          // Store raw data (if needed elsewhere)
+          assignSurveyTargetList.add(
+            AssignSurveyData(
+              surveyId: surveys.surveyId,
+              surveyTitle: surveys.surveyTitle,
+              totalSurveys: surveys.totalSurveys,
+              completedSurveys: surveys.completedSurveys,
+              users: surveys.users,
+            ),
+          );
+        } else {
+          hasMoreData.value = false;
+          errorMessage.value = 'No surveys found';
+          AppSnackbarStyles.showError(
+            title: 'Error',
+            message: 'No surveys found',
+          );
+        }
+      } else {
+        hasMoreData.value = false;
+        errorMessage.value = 'No response from server';
+        AppSnackbarStyles.showError(
+          title: 'Error',
+          message: 'No response from server',
+        );
+      }
+    } on NoInternetException catch (e) {
+      errorMessage.value = e.message;
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } on TimeoutException catch (e) {
+      errorMessage.value = e.message;
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } on HttpException catch (e) {
+      errorMessage.value = '${e.message} (Code: ${e.statusCode})';
+      AppSnackbarStyles.showError(
+        title: 'Error',
+        message: '${e.message} (Code: ${e.statusCode})',
+      );
+    } on ParseException catch (e) {
+      errorMessage.value = e.message;
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
     } catch (e) {
+      errorMessage.value = 'Unexpected error: $e';
+      AppSnackbarStyles.showError(
+        title: 'Error',
+        message: 'Unexpected error: $e',
+      );
+    } finally {
       isLoading.value = false;
-      AppLogger.e('Error loading executors',
-          error: e, tag: 'AssignedSurveyTargetController');
+      isLoadingMore.value = false;
     }
+  }
+
+  // Refresh data for pull-to-refresh
+  Future<void> refreshData() async {
+    await fetchAssignSurveyTarget(
+      context: Get.context!,
+      reset: true,
+      surveyId: "2",
+    );
   }
 
   void searchExecutors(String query) {
@@ -81,35 +188,44 @@ class AssignedSurveyTargetController extends GetxController {
       filteredExecutorList.value = executorList;
     } else {
       filteredExecutorList.value = executorList
-          .where((executor) =>
-              executor.executorName.toLowerCase().contains(query.toLowerCase()))
+          .where(
+            (executor) => executor.executorName.toLowerCase().contains(
+              query.toLowerCase(),
+            ),
+          )
           .toList();
     }
-    AppLogger.d('Search query: $query, Results: ${filteredExecutorList.length}',
-        tag: 'AssignedSurveyTargetController');
+    AppLogger.d(
+      'Search query: $query, Results: ${filteredExecutorList.length}',
+      tag: 'AssignedSurveyTargetController',
+    );
   }
 
   void incrementCount(int index) {
     final executor = filteredExecutorList[index];
     executor.currentCount++;
-    filteredExecutorList[index] =
-        executor.copyWith(currentCount: executor.currentCount);
+    filteredExecutorList[index] = executor.copyWith(
+      currentCount: executor.currentCount,
+    );
     filteredExecutorList.refresh();
     AppLogger.d(
-        'Incremented count for ${executor.executorName}: ${executor.currentCount}',
-        tag: 'AssignedSurveyTargetController');
+      'Incremented count for ${executor.executorName}: ${executor.currentCount}',
+      tag: 'AssignedSurveyTargetController',
+    );
   }
 
   void decrementCount(int index) {
     final executor = filteredExecutorList[index];
     if (executor.currentCount > 0) {
       executor.currentCount--;
-      filteredExecutorList[index] =
-          executor.copyWith(currentCount: executor.currentCount);
+      filteredExecutorList[index] = executor.copyWith(
+        currentCount: executor.currentCount,
+      );
       filteredExecutorList.refresh();
       AppLogger.d(
-          'Decremented count for ${executor.executorName}: ${executor.currentCount}',
-          tag: 'AssignedSurveyTargetController');
+        'Decremented count for ${executor.executorName}: ${executor.currentCount}',
+        tag: 'AssignedSurveyTargetController',
+      );
     }
   }
 
@@ -119,8 +235,10 @@ class AssignedSurveyTargetController extends GetxController {
       executor.currentCount = count;
       filteredExecutorList[index] = executor.copyWith(currentCount: count);
       filteredExecutorList.refresh();
-      AppLogger.d('Updated count for ${executor.executorName}: $count',
-          tag: 'AssignedSurveyTargetController');
+      AppLogger.d(
+        'Updated count for ${executor.executorName}: $count',
+        tag: 'AssignedSurveyTargetController',
+      );
     }
   }
 
@@ -148,8 +266,10 @@ class AssignedSurveyTargetController extends GetxController {
       // TODO: Make API call to assign targets
       await Future.delayed(const Duration(seconds: 1));
 
-      AppLogger.i('Targets assigned successfully',
-          tag: 'AssignedSurveyTargetController');
+      AppLogger.i(
+        'Targets assigned successfully',
+        tag: 'AssignedSurveyTargetController',
+      );
 
       Get.snackbar(
         'Success',
@@ -165,8 +285,11 @@ class AssignedSurveyTargetController extends GetxController {
       isLoading.value = false;
     } catch (e) {
       isLoading.value = false;
-      AppLogger.e('Error assigning targets',
-          error: e, tag: 'AssignedSurveyTargetController');
+      AppLogger.e(
+        'Error assigning targets',
+        error: e,
+        tag: 'AssignedSurveyTargetController',
+      );
       Get.snackbar(
         'Error',
         'Failed to assign targets',
@@ -177,13 +300,11 @@ class AssignedSurveyTargetController extends GetxController {
     }
   }
 
-  Future<void> refreshData() async {
-    await loadExecutors();
-  }
-
   void makeCall(String executorId) {
-    AppLogger.d('Making call to executor: $executorId',
-        tag: 'AssignedSurveyTargetController');
+    AppLogger.d(
+      'Making call to executor: $executorId',
+      tag: 'AssignedSurveyTargetController',
+    );
     Get.snackbar(
       'Call',
       'Calling executor...',
