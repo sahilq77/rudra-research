@@ -359,7 +359,7 @@ class _HomeViewState extends State<HomeView> {
                     ResponsiveHelper.safeText(
                       survey.surveyTitle,
                       style: AppStyle.bodyBoldPoppinsBlack.responsive.copyWith(
-                        fontSize: ResponsiveHelper.getResponsiveFontSize(15),
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(13),
                         fontWeight: FontWeight.w600,
                       ),
                       maxLines: 2,
@@ -368,7 +368,7 @@ class _HomeViewState extends State<HomeView> {
                     ResponsiveHelper.safeText(
                       survey.districtName,
                       style: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
-                        fontSize: ResponsiveHelper.getResponsiveFontSize(13),
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(12),
                         color: AppColors.grey,
                       ),
                       maxLines: 1,
