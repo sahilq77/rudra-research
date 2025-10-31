@@ -1,9 +1,14 @@
 // lib/app/modules/survey_question/survey_question_controller.dart
-
 import 'dart:convert';
+import 'dart:developer';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+
 import 'package:rudra/app/data/models/survey_question/get_submit_answers_response.dart';
 import 'package:rudra/app/data/models/survey_question/get_survey_questions_response.dart';
 import 'package:rudra/app/data/network/networkcall.dart';
@@ -23,19 +28,22 @@ class SurveyQuestionController extends GetxController {
   //  UI STATE
   // -----------------------------------------------------------------
   RxInt currentIndex = 0.obs;
-
-  // CHANGED: Store IDs instead of text
-  RxString selectedAnswerId = ''.obs; // single-select ID
-  RxList<String> selectedAnswerIds = <String>[].obs; // multi-select IDs
-
-  final Map<String, String> answers =
-      {}; // <surveyQuestionId, answer_id or json list>
+  RxString selectedAnswerId = ''.obs;
+  RxList<String> selectedAnswerIds = <String>[].obs;
+  final Map<String, String> answers = {};
 
   RxBool isLoadingq = true.obs;
   var errorMessageq = ''.obs;
   RxBool isSubmitting = false.obs;
   late String surveyId = "";
   late String surveyAppId = "";
+
+  // -----------------------------------------------------------------
+  //  AUDIO RECORDING
+  // -----------------------------------------------------------------
+  final AudioRecorder _audioRecorder = AudioRecorder();
+  RxBool isRecording = false.obs;
+  RxString recordingPath = ''.obs;
 
   // -----------------------------------------------------------------
   //  INIT
@@ -51,7 +59,97 @@ class SurveyQuestionController extends GetxController {
       if (Get.context != null) {
         fetchallQestions(context: Get.context!, appSideId: surveyAppId);
       }
+      _startRecordingAutomatically();
     });
+  }
+
+  // -----------------------------------------------------------------
+  //  AUTO START RECORDING
+  // -----------------------------------------------------------------
+  Future<void> _startRecordingAutomatically() async {
+    if (isRecording.value) return;
+
+    final path = await _startRecording();
+    if (path != null) {
+      recordingPath.value = path;
+      isRecording.value = true;
+      AppSnackbarStyles.showInfo(
+        title: 'Recording',
+        message: 'Recording started automatically',
+      );
+    } else {
+      isRecording.value = false;
+    }
+  }
+
+  // -----------------------------------------------------------------
+  //  PERMISSION + START/STOP
+  // -----------------------------------------------------------------
+  Future<bool> _requestMicPermission() async {
+    final status = await Permission.microphone.request();
+    if (!status.isGranted) {
+      AppSnackbarStyles.showError(
+        title: 'Permission Denied',
+        message: 'Microphone access is required.',
+      );
+      return false;
+    }
+    return true;
+  }
+
+  Future<String?> _startRecording() async {
+    if (!await _requestMicPermission()) return null;
+
+    try {
+      final dir = await getTemporaryDirectory();
+      final path =
+          '${dir.path}/survey_recording_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+      final config = const RecordConfig(
+        encoder: AudioEncoder.aacLc,
+        bitRate: 128000,
+        sampleRate: 44100,
+      );
+
+      await _audioRecorder.start(config, path: path);
+      log('Recording STARTED: $path');
+      return path;
+    } catch (e) {
+      log('Start error: $e');
+      AppSnackbarStyles.showError(title: 'Failed', message: 'Could not start recording');
+      return null;
+    }
+  }
+
+  Future<String?> _stopRecording() async {
+    try {
+      final path = await _audioRecorder.stop();
+      log('Recording STOPPED: $path');
+      return path;
+    } catch (e) {
+      log('Stop error: $e');
+      return null;
+    }
+  }
+
+  // -----------------------------------------------------------------
+  //  TOGGLE (MANUAL STOP / RESTART)
+  // -----------------------------------------------------------------
+  Future<void> toggleRecording() async {
+    if (isRecording.value) {
+      final path = await _stopRecording();
+      if (path != null) {
+        recordingPath.value = path;
+        AppSnackbarStyles.showSuccess(
+          title: 'Saved',
+          message: 'Recording saved',
+        );
+      }
+    } else {
+      final path = await _startRecording();
+      if (path != null) recordingPath.value = path;
+    }
+    isRecording.value = !isRecording.value;
   }
 
   // -----------------------------------------------------------------
@@ -72,18 +170,14 @@ class SurveyQuestionController extends GetxController {
         "offset": "",
       };
 
-      final response =
-          await Networkcall().postMethod(
-                Networkutility.getQustionsApi,
-                Networkutility.getQustions,
-                jsonEncode(jsonBody),
-                context,
-              )
-              as List<GetSurveyQuestionsResponse>?;
+      final response = await Networkcall().postMethod(
+            Networkutility.getQustionsApi,
+            Networkutility.getQustions,
+            jsonEncode(jsonBody),
+            context,
+          ) as List<GetSurveyQuestionsResponse>?;
 
-      if (response != null &&
-          response.isNotEmpty &&
-          response[0].status == "true") {
+      if (response != null && response.isNotEmpty && response[0].status == "true") {
         if (reset) {
           questionDetail.clear();
           answers.clear();
@@ -106,10 +200,7 @@ class SurveyQuestionController extends GetxController {
         }
       } else {
         errorMessageq.value = 'No response from server';
-        AppSnackbarStyles.showError(
-          title: 'Error',
-          message: errorMessageq.value,
-        );
+        AppSnackbarStyles.showError(title: 'Error', message: errorMessageq.value);
       }
     } catch (e) {
       errorMessageq.value = 'Unexpected error: $e';
@@ -120,7 +211,7 @@ class SurveyQuestionController extends GetxController {
   }
 
   // -----------------------------------------------------------------
-  //  NAVIGATION LOGIC
+  //  NAVIGATION & ANSWER LOGIC (UNCHANGED)
   // -----------------------------------------------------------------
   void goPrevious() {
     if (currentIndex.value > 0) {
@@ -133,15 +224,12 @@ class SurveyQuestionController extends GetxController {
   void nextPage() {
     if (!formKey.currentState!.validate()) return;
 
-    final bool hasAnswer = _isMultiSelect
+    final bool hasAnswer = isMultiSelect
         ? selectedAnswerIds.isNotEmpty
         : selectedAnswerId.value.isNotEmpty;
 
     if (!hasAnswer) {
-      AppSnackbarStyles.showError(
-        title: 'Error',
-        message: 'Please select an answer',
-      );
+      AppSnackbarStyles.showError(title: 'Error', message: 'Please select an answer');
       return;
     }
 
@@ -158,12 +246,9 @@ class SurveyQuestionController extends GetxController {
     _loadAnswerForCurrentQuestion();
   }
 
-  // -----------------------------------------------------------------
-  //  ANSWER STORAGE
-  // -----------------------------------------------------------------
   void _saveCurrentAnswer() {
     final q = questionDetail[currentIndex.value];
-    if (_isMultiSelect) {
+    if (isMultiSelect) {
       answers[q.surveyQuestionId] = jsonEncode(selectedAnswerIds);
     } else {
       answers[q.surveyQuestionId] = selectedAnswerId.value;
@@ -174,7 +259,7 @@ class SurveyQuestionController extends GetxController {
     final q = questionDetail[currentIndex.value];
     final saved = answers[q.surveyQuestionId];
 
-    if (_isMultiSelect) {
+    if (isMultiSelect) {
       selectedAnswerIds.clear();
       if (saved != null) {
         final List<dynamic> decoded = jsonDecode(saved);
@@ -190,25 +275,17 @@ class SurveyQuestionController extends GetxController {
     return questionDetail[currentIndex.value].questionType == "1";
   }
 
-  // -----------------------------------------------------------------
-  //  SUBMIT ALL ANSWERS
-  // -----------------------------------------------------------------
   Future<void> _submitAllAnswers() async {
     if (isSubmitting.value) return;
     isSubmitting.value = true;
 
     try {
-      Get.dialog(
-        const Center(child: CircularProgressIndicator()),
-        barrierDismissible: false,
-      );
+      Get.dialog(const Center(child: CircularProgressIndicator()), barrierDismissible: false);
 
-      final List<Map<String, String>> payloadQuestions = answers.entries.map((
-        e,
-      ) {
+      final List<Map<String, String>> payloadQuestions = answers.entries.map((e) {
         return {
           "question_id": e.key,
-          "answer_id": e.value, // <-- This is now choice_id or JSON list of IDs
+          "answer_id": e.value,
         };
       }).toList();
 
@@ -217,24 +294,17 @@ class SurveyQuestionController extends GetxController {
         "questions": payloadQuestions,
       };
 
-      final response =
-          await Networkcall().postMethod(
-                Networkutility.submitQuestionAnswerApi,
-                Networkutility.submitQuestionAnswer,
-                jsonEncode(jsonBody),
-                Get.context!,
-              )
-              as List<GetSubmitAnswersResponse>?;
+      final response = await Networkcall().postMethod(
+            Networkutility.submitQuestionAnswerApi,
+            Networkutility.submitQuestionAnswer,
+            jsonEncode(jsonBody),
+            Get.context!,
+          ) as List<GetSubmitAnswersResponse>?;
 
       Get.back();
 
-      if (response != null &&
-          response.isNotEmpty &&
-          response[0].status == "true") {
-        AppSnackbarStyles.showSuccess(
-          title: 'Success',
-          message: "Survey submitted successfully!",
-        );
+      if (response != null && response.isNotEmpty && response[0].status == "true") {
+        AppSnackbarStyles.showSuccess(title: 'Success', message: "Survey submitted!");
 
         questionDetail.clear();
         answers.clear();
@@ -242,50 +312,39 @@ class SurveyQuestionController extends GetxController {
         selectedAnswerId.value = '';
         selectedAnswerIds.clear();
 
-        Get.offNamed(
-          AppRoutes.surveyInterviewer,
-          arguments: {'survey_id': surveyId, 'survey_app_side_id': surveyAppId},
-        );
+        Get.offNamed(AppRoutes.surveyInterviewer, arguments: {
+          'survey_id': surveyId,
+          'survey_app_side_id': surveyAppId,
+        });
       } else {
         final msg = response?[0].message ?? "Submission failed";
         AppSnackbarStyles.showError(title: 'Failed', message: msg);
       }
     } catch (e) {
       Get.back();
-      AppSnackbarStyles.showError(
-        title: 'Error',
-        message: 'Submission failed: $e',
-      );
+      AppSnackbarStyles.showError(title: 'Error', message: 'Submission failed: $e');
     } finally {
       isSubmitting.value = false;
     }
   }
 
-  // -----------------------------------------------------------------
-  //  REFRESH
-  // -----------------------------------------------------------------
   Future<void> refreshPage() async {
     await Future.delayed(const Duration(seconds: 1));
-    await fetchallQestions(
-      context: Get.context!,
-      reset: true,
-      appSideId: surveyId,
-    );
+    await fetchallQestions(context: Get.context!, reset: true, appSideId: surveyId);
     AppSnackbarStyles.showInfo(title: 'Refresh', message: 'Page refreshed');
   }
 
-  // -----------------------------------------------------------------
-  //  HELPERS
-  // -----------------------------------------------------------------
   String removeHtmlTags(String htmlString) {
     final RegExp exp = RegExp(r'<[^>]*>', multiLine: true, caseSensitive: true);
     return htmlString.replaceAll(exp, '');
   }
 
-  bool get _isMultiSelect {
-    if (questionDetail.isEmpty) return false;
-    return questionDetail[currentIndex.value].questionType == "1";
-  }
-
   bool get isLastQuestion => currentIndex.value == questionDetail.length - 1;
+
+  @override
+  void onClose() {
+    if (isRecording.value) _stopRecording();
+    _audioRecorder.dispose();
+    super.onClose();
+  }
 }

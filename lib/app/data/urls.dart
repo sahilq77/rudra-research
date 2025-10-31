@@ -54,6 +54,12 @@ class Networkutility {
  static String setExecutive =
       "${baseUrl + "set_execative_to_team"}";
   static int setExecutiveApi = 19;
+ static String uploadAudio =
+      "${baseUrl + "upload_audio_api"}";
+  static int uploadAudioApi = 20;
+
+
+  
 
 
   

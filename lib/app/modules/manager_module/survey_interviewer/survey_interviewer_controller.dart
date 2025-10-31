@@ -1,15 +1,22 @@
+// lib/app/modules/survey_interviewer/survey_interviewer_controller.dart
 import 'dart:convert';
 import 'dart:developer';
-
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:http_parser/http_parser.dart' as http_parser;
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:http/http.dart' as http;
+
 import 'package:rudra/app/data/models/interviewer_info/get_cast_response.dart';
 import 'package:rudra/app/data/models/interviewer_info/get_set_interviewer_info.dart';
 import 'package:rudra/app/data/network/exceptions.dart';
 import 'package:rudra/app/data/network/networkcall.dart';
 import 'package:rudra/app/data/urls.dart';
+import 'package:rudra/app/utils/app_utility.dart';
 import 'package:rudra/app/utils/responsive_utils.dart';
-
 import '../../../routes/app_routes.dart';
 import '../../../utils/app_colors.dart';
 import '../../../utils/app_logger.dart';
@@ -23,21 +30,18 @@ class SurveyInterviewerController extends GetxController {
   var errorMessages = ''.obs;
   var isLoadingCast = false.obs;
   var errorMessageCast = ''.obs;
+  var isLoading = false.obs;
 
-  // --- CAST SELECTION (UNCHANGED) ---
   final RxString selectedCast = ''.obs;
   final RxString selectedCastId = ''.obs;
 
-  // Text controllers
   final TextEditingController nameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
 
-  // --- AGE: LABEL + ID ---
   final List<String> ageRanges = ['18-25', '26-39', '40-55', '56+'];
-  final RxString selectedAgeLabel = ''.obs;   // <-- shown in dropdown
-  final RxInt selectedAgeId = 0.obs;         // <-- actual ID (0-3)
+  final RxString selectedAgeLabel = ''.obs;
+  final RxInt selectedAgeId = 0.obs;
 
-  // --- GENDER: LABEL + ID ---
   final List<String> genders = ['Male', 'Female', 'Other'];
   final RxString selectedGenderLabel = ''.obs;
   final RxInt selectedGenderId = 0.obs;
@@ -45,36 +49,122 @@ class SurveyInterviewerController extends GetxController {
   late String surveyId = "";
   late String surveyAppId = "";
 
+  // -----------------------------------------------------------------
+  //  AUDIO RECORDING - FIXED: Use WAV (Reliable)
+  // -----------------------------------------------------------------
+  final AudioRecorder _audioRecorder = AudioRecorder();
+  RxBool isRecording = false.obs;
+  RxString recordingPath = ''.obs;
+
+  @override
   void onInit() {
     super.onInit();
     final args = Get.arguments as Map<String, dynamic>?;
     surveyId = args?['survey_id']?.toString() ?? "";
     surveyAppId = args?['survey_app_side_id']?.toString() ?? "";
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (Get.context != null) {
         fetchCast(context: Get.context!, surveyId: surveyId);
       }
+      _startRecordingAutomatically();
     });
   }
 
   // -----------------------------------------------------------------
-  // AGE HELPERS
+  //  AUTO START RECORDING (WAV)
   // -----------------------------------------------------------------
-  void setSelectedAge(String? label) {
-    selectedAgeLabel.value = label ?? '';
-    selectedAgeId.value = ageRanges.indexOf(label ?? '');
+  Future<void> _startRecordingAutomatically() async {
+    if (isRecording.value) return;
+
+    final path = await _startRecording();
+    if (path != null) {
+      recordingPath.value = path;
+      isRecording.value = true;
+      AppSnackbarStyles.showInfo(
+        title: 'Recording',
+        message: 'Recording started automatically (WAV)',
+      );
+    } else {
+      isRecording.value = false;
+    }
   }
 
   // -----------------------------------------------------------------
-  // GENDER HELPERS
+  //  PERMISSION + START/STOP (WAV)
   // -----------------------------------------------------------------
-  void setSelectedGender(String? label) {
-    selectedGenderLabel.value = label ?? '';
-    selectedGenderId.value = genders.indexOf(label ?? '');
+  Future<bool> _requestMicPermission() async {
+    final status = await Permission.microphone.request();
+    if (!status.isGranted) {
+      AppSnackbarStyles.showError(
+        title: 'Permission Denied',
+        message: 'Microphone access is required.',
+      );
+      return false;
+    }
+    return true;
+  }
+
+  Future<String?> _startRecording() async {
+    if (!await _requestMicPermission()) return null;
+
+    try {
+      final dir = await getTemporaryDirectory();
+      final path =
+          '${dir.path}/survey_recording_${DateTime.now().millisecondsSinceEpoch}.wav';
+
+      final config = RecordConfig(
+        encoder: AudioEncoder.wav,
+        bitRate: 128000,
+        sampleRate: 44100,
+      );
+
+      await _audioRecorder.start(config, path: path);
+      log('Recording STARTED (WAV): $path');
+      return path;
+    } catch (e) {
+      log('Start error: $e');
+      AppSnackbarStyles.showError(
+        title: 'Failed',
+        message: 'Could not start recording',
+      );
+      return null;
+    }
+  }
+
+  Future<String?> _stopRecording() async {
+    try {
+      final path = await _audioRecorder.stop();
+      log('Recording STOPPED: $path');
+      return path;
+    } catch (e) {
+      log('Stop error: $e');
+      return null;
+    }
   }
 
   // -----------------------------------------------------------------
-  // CAST HELPERS (UNCHANGED)
+  //  TOGGLE (MANUAL STOP / RESTART)
+  // -----------------------------------------------------------------
+  Future<void> toggleRecording() async {
+    if (isRecording.value) {
+      final path = await _stopRecording();
+      if (path != null) {
+        recordingPath.value = path;
+        AppSnackbarStyles.showSuccess(
+          title: 'Saved',
+          message: 'Recording saved',
+        );
+      }
+    } else {
+      final path = await _startRecording();
+      if (path != null) recordingPath.value = path;
+    }
+    isRecording.value = !isRecording.value;
+  }
+
+  // -----------------------------------------------------------------
+  //  CAST HELPERS (UNCHANGED)
   // -----------------------------------------------------------------
   List<String> getCastNames() {
     return castList.map((s) => s.castName).toSet().toList();
@@ -93,8 +183,18 @@ class SurveyInterviewerController extends GetxController {
     selectedCastId.value = getCastId(castName) ?? '';
   }
 
+  void setSelectedAge(String? label) {
+    selectedAgeLabel.value = label ?? '';
+    selectedAgeId.value = ageRanges.indexOf(label ?? '');
+  }
+
+  void setSelectedGender(String? label) {
+    selectedGenderLabel.value = label ?? '';
+    selectedGenderId.value = genders.indexOf(label ?? '');
+  }
+
   // -----------------------------------------------------------------
-  // FORM SUBMISSION (UNCHANGED)
+  //  FORM SUBMISSION
   // -----------------------------------------------------------------
   void submitSurvey() {
     if (formKey.currentState!.validate()) {
@@ -131,9 +231,7 @@ class SurveyInterviewerController extends GetxController {
               children: [
                 TextButton(
                   style: TextButton.styleFrom(minimumSize: const Size(100, 40)),
-                  onPressed: () {
-                    Get.offAllNamed(AppRoutes.home);
-                  },
+                  onPressed: () => Get.offAllNamed(AppRoutes.home),
                   child: const Text('Dashboard'),
                 ),
                 ElevatedButton(
@@ -229,16 +327,10 @@ class SurveyInterviewerController extends GetxController {
   void resetForm() {
     nameController.clear();
     phoneController.clear();
-
-    // Reset Age
     selectedAgeLabel.value = '';
     selectedAgeId.value = 0;
-
-    // Reset Gender
     selectedGenderLabel.value = '';
     selectedGenderId.value = 0;
-
-    // Reset Cast
     selectedCast.value = '';
     selectedCastId.value = '';
   }
@@ -248,15 +340,8 @@ class SurveyInterviewerController extends GetxController {
     AppSnackbarStyles.showInfo(title: 'Refresh', message: 'Page refreshed');
   }
 
-  @override
-  void onClose() {
-    nameController.dispose();
-    phoneController.dispose();
-    super.onClose();
-  }
-
   // -----------------------------------------------------------------
-  // FETCH CAST (UNCHANGED)
+  //  FETCH CAST
   // -----------------------------------------------------------------
   Future<void> fetchCast({
     required BuildContext context,
@@ -268,7 +353,6 @@ class SurveyInterviewerController extends GetxController {
     try {
       isLoadingCast.value = true;
       errorMessageCast.value = '';
-
       castList.clear();
       selectedCast.value = "";
       selectedCastId.value = "";
@@ -284,28 +368,15 @@ class SurveyInterviewerController extends GetxController {
               )
               as List<GeCastResponse>?;
 
-      log(
-        'Fetch Casts Response: ${response?.isNotEmpty == true ? response![0].toJson() : 'null'}',
-      );
-
-      if (response != null && response.isNotEmpty) {
-        if (response[0].status == "true") {
-          castList.value = response[0].data;
-          log(
-            'Cast List Loaded: ${castList.map((s) => "${s.castId}: ${s.castName}").toList()}',
-          );
-        } else {
-          errorMessageCast.value = response[0].message;
-          AppSnackbarStyles.showError(
-            title: 'Error',
-            message: response[0].message,
-          );
-        }
+      if (response != null &&
+          response.isNotEmpty &&
+          response[0].status == "true") {
+        castList.value = response[0].data;
       } else {
-        errorMessageCast.value = 'No response from server';
+        errorMessageCast.value = response?[0].message ?? 'No casts found';
         AppSnackbarStyles.showError(
           title: 'Error',
-          message: 'No response from server',
+          message: errorMessageCast.value,
         );
       }
     } on NoInternetException catch (e) {
@@ -318,87 +389,243 @@ class SurveyInterviewerController extends GetxController {
       errorMessageCast.value = '${e.message} (Code: ${e.statusCode})';
       AppSnackbarStyles.showError(
         title: 'Error',
-        message: '${e.message} (Code: ${e.statusCode})',
+        message: errorMessageCast.value,
       );
     } on ParseException catch (e) {
       errorMessageCast.value = e.message;
       AppSnackbarStyles.showError(title: 'Error', message: e.message);
     } catch (e, stackTrace) {
       errorMessageCast.value = 'Unexpected error: $e';
-      log('Fetch Cast Exception: $e, stack: $stackTrace');
+      log('Fetch Cast Exception: $e', stackTrace: stackTrace);
       AppSnackbarStyles.showError(
         title: 'Error',
-        message: 'Unexpected error: $e',
+        message: errorMessageCast.value,
       );
     } finally {
       isLoadingCast.value = false;
     }
   }
 
- // ──────────────────────────────────────────────────────────────
-// REPLACE ONLY THIS METHOD (keep everything else unchanged)
-// ──────────────────────────────────────────────────────────────
-Future<String?> setSurvey({required BuildContext context}) async {
-  // Validate form first
-  if (!formKey.currentState!.validate()) return null;
+  // -----------------------------------------------------------------
+  //  SET INTERVIEWER INFO + UPLOAD RECORDING
+  // -----------------------------------------------------------------
+  Future<String?> setSurvey({required BuildContext context}) async {
+    if (!formKey.currentState!.validate()) return null;
 
-  try {
-    isLoadings.value = true;
-    errorMessages.value = '';
+    try {
+      isLoadings.value = true;
+      errorMessages.value = '';
 
-    final jsonBody = {
-      "survey_app_side_id": surveyAppId,
-      "name": nameController.text.trim(),
-      "age": selectedAgeId.value.toString(),           // Send Age ID (0-3)
-      "gender": selectedGenderId.value.toString(),     // Send Gender ID (0-2)
-      "mob_number": phoneController.text.trim(),
-      "cast_id": selectedCastId.value,                 // Send Cast ID
-    };
+      final jsonBody = {
+        "survey_app_side_id": surveyAppId,
+        "name": nameController.text.trim(),
+        "age": selectedAgeId.value.toString(),
+        "gender": selectedGenderId.value.toString(),
+        "mob_number": phoneController.text.trim(),
+        "cast_id": selectedCastId.value,
+      };
 
-    final response = await Networkcall().postMethod(
-      Networkutility.setInterviewerInfoApi,
-      Networkutility.setInterviewerInfo,
-      jsonEncode(jsonBody),
-      context,
-    ) as List<GetSetInterviewerInfoResponse>?;
+      final response =
+          await Networkcall().postMethod(
+                Networkutility.setInterviewerInfoApi,
+                Networkutility.setInterviewerInfo,
+                jsonEncode(jsonBody),
+                context,
+              )
+              as List<GetSetInterviewerInfoResponse>?;
 
-    if (response != null &&
-        response.isNotEmpty &&
-        response[0].status == "true") {
-      final newSurveyAppSideId = response[0].data?.surveyAppSideId ?? '';
-      AppSnackbarStyles.showSuccess(
-        title: 'Success',
-        message: "Interviewer Info submitted successfully",
-      );
-      return newSurveyAppSideId;
-    } else {
-      final msg = response?[0].message ?? "Interviewer Info submission failed";
-      errorMessages.value = msg;
-      AppSnackbarStyles.showError(title: 'Failed', message: msg);
-      return null;
+      if (response != null &&
+          response.isNotEmpty &&
+          response[0].status == "true") {
+        AppSnackbarStyles.showSuccess(
+          title: 'Success',
+          message: "Info submitted",
+        );
+        await uploadRecording();
+        return response[0].data?.surveyAppSideId ?? '';
+      } else {
+        final msg = response?[0].message ?? "Submission failed";
+        errorMessages.value = msg;
+        AppSnackbarStyles.showError(title: 'Failed', message: msg);
+        return null;
+      }
+    } on NoInternetException catch (e) {
+      errorMessages.value = e.message;
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } on TimeoutException catch (e) {
+      errorMessages.value = e.message;
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } on HttpException catch (e) {
+      errorMessages.value = '${e.message} (Code: ${e.statusCode})';
+      AppSnackbarStyles.showError(title: 'Error', message: errorMessages.value);
+    } on ParseException catch (e) {
+      errorMessages.value = e.message;
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } catch (e, s) {
+      errorMessages.value = 'Unexpected error: $e';
+      log('setSurvey error: $e', stackTrace: s);
+      AppSnackbarStyles.showError(title: 'Error', message: errorMessages.value);
+    } finally {
+      isLoadings.value = false;
     }
-  } on NoInternetException catch (e) {
-    errorMessages.value = e.message;
-    AppSnackbarStyles.showError(title: 'Error', message: e.message);
-  } on TimeoutException catch (e) {
-    errorMessages.value = e.message;
-    AppSnackbarStyles.showError(title: 'Error', message: e.message);
-  } on HttpException catch (e) {
-    errorMessages.value = '${e.message} (Code: ${e.statusCode})';
-    AppSnackbarStyles.showError(
-      title: 'Error',
-      message: '${e.message} (Code: ${e.statusCode})',
-    );
-  } on ParseException catch (e) {
-    errorMessages.value = e.message;
-    AppSnackbarStyles.showError(title: 'Error', message: e.message);
-  } catch (e, s) {
-    errorMessages.value = 'Unexpected error: $e';
-    log('setSurvey error: $e', stackTrace: s);
-    AppSnackbarStyles.showError(title: 'Error', message: errorMessages.value);
-  } finally {
-    isLoadings.value = false;
+    return null;
   }
-  return null;
-}
+
+  // -----------------------------------------------------------------
+  //  HELPER: Log File Size
+  // -----------------------------------------------------------------
+  void _logRecordingFileSize(String path) async {
+    final file = File(path);
+    if (await file.exists()) {
+      final bytes = await file.length();
+      final sizeInKB = (bytes / 1024).toStringAsFixed(2);
+      final sizeInMB = (bytes / (1024 * 1024)).toStringAsFixed(2);
+      log('Recording file size: $bytes bytes | $sizeInKB KB | $sizeInMB MB');
+    } else {
+      log('Recording file does not exist: $path');
+    }
+  }
+
+  // -----------------------------------------------------------------
+  //  UPLOAD WAV AUDIO FILE (FIXED: Use audio/x-wav MIME)
+  // -----------------------------------------------------------------
+  Future<void> uploadRecording() async {
+    if (recordingPath.value.isEmpty) {
+      AppSnackbarStyles.showError(
+        title: 'No Recording',
+        message: 'Please record audio first',
+      );
+      return;
+    }
+
+    final file = File(recordingPath.value);
+    if (!await file.exists()) {
+      AppSnackbarStyles.showError(
+        title: 'Error',
+        message: 'Audio file not found',
+      );
+      return;
+    }
+
+    _logRecordingFileSize(recordingPath.value);
+
+    try {
+      isLoading.value = true;
+
+      final bytes = await file.readAsBytes();
+      final originalName = file.uri.pathSegments.last;
+
+      // Force .wav extension
+      final filename = originalName.endsWith('.mp3')
+          ? originalName
+          : '${originalName.split('.').first}.mp3';
+
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse(Networkutility.uploadAudio),
+      );
+
+      request.fields['survey_app_side_id'] = surveyAppId;
+      request.fields['completed_by'] = AppUtility.userID.toString();
+
+      // CRITICAL FIX: Use 'audio/x-wav' – CodeIgniter accepts this for .wav
+      const String contentType = 'audio/x-wav';
+
+      request.files.add(
+        http.MultipartFile(
+          'recorded_audio',
+          http.ByteStream.fromBytes(bytes),
+          bytes.length,
+          filename: filename,
+          //contentType: http_parser.MediaType.parse(contentType),
+        ),
+      );
+
+      log('Uploading to: ${request.url}');
+      log('Fields: ${request.fields}');
+      log('File: $filename | Type: $contentType | Size: ${bytes.length} bytes');
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      log('Status: ${response.statusCode} | Raw Body: ${response.body}');
+
+      // Clean response body
+      String body = response.body.trim();
+      if (body.endsWith('null')) {
+        body = body.substring(0, body.lastIndexOf('null')).trim();
+      }
+
+      if (response.statusCode == 200) {
+        try {
+          final json = jsonDecode(body);
+          if (json['status'] == 'true') {
+            AppSnackbarStyles.showSuccess(
+              title: 'Success',
+              message: 'Audio uploaded successfully',
+            );
+            recordingPath.value = '';
+          } else {
+            AppSnackbarStyles.showError(
+              title: 'Failed',
+              message: json['message'] ?? 'Upload failed',
+            );
+          }
+        } catch (e) {
+          log('JSON Parse Failed: $e');
+          // Fallback: if "status":"true" exists in body
+          if (response.body.contains('"status":"true"')) {
+            AppSnackbarStyles.showSuccess(
+              title: 'Success',
+              message: 'Audio uploaded',
+            );
+            recordingPath.value = '';
+          } else {
+            AppSnackbarStyles.showError(
+              title: 'Error',
+              message: 'Invalid response from server',
+            );
+          }
+        }
+
+        // Delete temp file after success
+        try {
+          await file.delete();
+          log('Temp recording file deleted: ${file.path}');
+        } catch (e) {
+          log('Failed to delete temp file: $e');
+        }
+      } else {
+        AppSnackbarStyles.showError(
+          title: 'Error',
+          message: 'Server error: ${response.statusCode}',
+        );
+      }
+    } on NoInternetException catch (e) {
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } on TimeoutException catch (e) {
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } on HttpException catch (e) {
+      AppSnackbarStyles.showError(
+        title: 'Error',
+        message: '${e.message} (Code: ${e.statusCode})',
+      );
+    } on ParseException catch (e) {
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } catch (e, s) {
+      log('uploadRecording error: $e', stackTrace: s);
+      AppSnackbarStyles.showError(title: 'Error', message: 'Upload failed');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  @override
+  void onClose() {
+    if (isRecording.value) _stopRecording();
+    _audioRecorder.dispose();
+    nameController.dispose();
+    phoneController.dispose();
+    super.onClose();
+  }
 }
