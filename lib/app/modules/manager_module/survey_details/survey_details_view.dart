@@ -45,11 +45,35 @@ class _SurveyDetailsViewState extends State<SurveyDetailsView> {
       // ---------------------------------------------------------------
       body: Obx(() {
         // Show loading spinner when fetching survey details
-        if (controller.isLoading.value) {
+        if (controller.isLoading.value && controller.surveyDetailList.isEmpty) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        // Normal UI when data is loaded
+        // Handle case when list is empty but not loading (e.g. API failed or no data)
+        if (controller.surveyDetailList.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.grey),
+                const SizedBox(height: 16),
+                Text(
+                  'No survey details available',
+                  style: AppStyle.bodySmallPoppinsBlack.responsive,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: controller.refreshPage,
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // SAFE: Now we know there's at least one item
+        final detail = controller.surveyDetailList.first;
+
         return RefreshIndicator(
           onRefresh: controller.refreshPage,
           child: SingleChildScrollView(
@@ -69,7 +93,7 @@ class _SurveyDetailsViewState extends State<SurveyDetailsView> {
                   ),
                   const SizedBox(height: 24),
 
-                  // LANGUAGE DROPDOWN - LOGGED (with ID)
+                  // LANGUAGE DROPDOWN
                   _buildDropdownField(
                     label: 'Select Language',
                     selectedValueObs: controller.selectedLanguage,
@@ -88,42 +112,39 @@ class _SurveyDetailsViewState extends State<SurveyDetailsView> {
                   const SizedBox(height: 16),
                   _buildReadOnlyField(
                     label: 'Select State',
-                    value: controller.surveyDetailList.first.stateName,
+                    value: detail.stateName,
                   ),
                   const SizedBox(height: 16),
-                  _buildReadOnlyField(
-                    label: 'Region',
-                    value: controller.surveyDetailList.first.region,
-                  ),
+                  _buildReadOnlyField(label: 'Region', value: detail.region),
                   const SizedBox(height: 16),
                   _buildReadOnlyField(
                     label: 'Select District',
-                    value: controller.surveyDetailList.first.districtName,
+                    value: detail.districtName,
                   ),
                   const SizedBox(height: 16),
                   _buildReadOnlyField(
                     label: 'Select Loksabha',
-                    value: controller.surveyDetailList.first.loksabhaName,
+                    value: detail.loksabhaName,
                   ),
                   const SizedBox(height: 16),
                   _buildReadOnlyField(
                     label: 'Select Assembly',
-                    value: controller.surveyDetailList.first.assemblyName,
+                    value: detail.assemblyName,
                   ),
                   const SizedBox(height: 16),
                   _buildReadOnlyField(
                     label: 'Select Ward/Zp',
-                    value: controller.surveyDetailList.first.wardName,
+                    value: detail.wardName,
                   ),
                   const SizedBox(height: 16),
 
-                  // AREA DROPDOWN - LOGGED (with ID)
+                  // AREA DROPDOWN
                   _buildDropdownField(
                     label: 'Select Area/Village',
                     selectedValueObs: controller.selectedAreaVal,
                     items: controller.getAreaNames(),
                     onChanged: (value) {
-                      controller.setSelectedArea(value); // <-- NEW helper
+                      controller.setSelectedArea(value);
                       debugPrint(
                         'Selected Area/Village: $value  →  ID: ${controller.selectedAreaId.value}',
                       );
@@ -133,7 +154,7 @@ class _SurveyDetailsViewState extends State<SurveyDetailsView> {
 
                   const SizedBox(height: 32),
 
-                  // UPDATED BUTTON: Shows loading + disabled during API call
+                  // SUBMIT BUTTON WITH LOADING
                   Obx(
                     () => ElevatedButton(
                       onPressed: controller.isLoadings.value

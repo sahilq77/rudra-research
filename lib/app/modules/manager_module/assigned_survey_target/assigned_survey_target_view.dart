@@ -68,7 +68,10 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
           icon: const Icon(Icons.add, color: AppColors.defaultBlack),
           onSelected: (value) {
             if (value == 'assign') {
-              Get.toNamed(AppRoutes.assignExecutive,     arguments: {'survey_id': controller.surveyId},);
+              Get.toNamed(
+                AppRoutes.assignExecutive,
+                arguments: {'survey_id': controller.surveyId},
+              );
             } else {
               Get.toNamed(AppRoutes.addExecutive);
             }
@@ -525,25 +528,64 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
         ],
       ),
       child: Obx(
-        () => ElevatedButton(
-          onPressed: controller.isLoading.value ? null : _showConfirmDialog,
-          style: AppButtonStyles.elevatedLargeBlack(),
-          child: controller.isLoading.value
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
-              : Text(
-                  'Assign Target',
-                  style: AppStyle.buttonTextPoppinsWhite.responsive.copyWith(
-                    fontSize: ResponsiveHelper.getResponsiveFontSize(16),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+        () => Row(
+          children: [
+            Expanded(
+              child: ElevatedButton(
+                onPressed: controller.isLoading.value
+                    ? null
+                    : _showConfirmDialog,
+                style: AppButtonStyles.elevatedLargeBlack(),
+                child: controller.isLoading.value
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(
+                        'Assign Target',
+                        style: AppStyle.buttonTextPoppinsWhite.responsive
+                            .copyWith(
+                              fontSize: ResponsiveHelper.getResponsiveFontSize(
+                                16,
+                              ),
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+              ),
+            ),
+            SizedBox(width: ResponsiveHelper.screenWidth * 0.05),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: controller.isLoading.value
+                    ? null
+                    : _showConfirmDialog,
+                style: AppButtonStyles.elevatedLargeBlack(),
+                child: controller.isLoading.value
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(
+                        'Assign All',
+                        style: AppStyle.buttonTextPoppinsWhite.responsive
+                            .copyWith(
+                              fontSize: ResponsiveHelper.getResponsiveFontSize(
+                                16,
+                              ),
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+              ),
+            ),
+          ],
         ),
       ),
     );

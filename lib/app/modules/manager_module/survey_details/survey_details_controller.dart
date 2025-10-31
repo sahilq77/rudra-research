@@ -15,6 +15,7 @@ import 'package:rudra/app/data/models/survey_detail/get_survey_detail_response.d
 import 'package:rudra/app/data/network/exceptions.dart';
 import 'package:rudra/app/data/network/networkcall.dart';
 import 'package:rudra/app/data/urls.dart';
+import 'package:rudra/app/modules/audio_recorder/audio_recorder_controller.dart';
 import 'package:rudra/app/utils/app_utility.dart';
 import 'package:rudra/app/widgets/app_snackbar_styles.dart';
 import '../../../routes/app_routes.dart';
@@ -32,6 +33,9 @@ class SurveyDetailsController extends GetxController {
   var errorMessages = ''.obs;
   RxString? selectedAreaVal = RxString("");
 
+  final AudioRecorderController audioRecorder = Get.put(
+    AudioRecorderController(),
+  );
   // ---------- LANGUAGE ----------
   final RxString selectedLanguage = 'Marathi'.obs;
   final RxInt selectedLanguageId = 0.obs;
@@ -69,19 +73,17 @@ class SurveyDetailsController extends GetxController {
     surveyId = args?['survey_id']?.toString() ?? "";
 
     // Load data
-   
 
- 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-       fetchArea(context: Get.context!, surveyId: surveyId);
-    fetchSurveyDetail(context: Get.context!, surveyId: surveyId);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await fetchArea(context: Get.context!, surveyId: surveyId);
+      await fetchSurveyDetail(context: Get.context!, surveyId: surveyId);
+      await audioRecorder.startRecording();
     });
   }
 
   // -----------------------------------------------------------------
   // AUTO START RECORDING
   // -----------------------------------------------------------------
- 
 
   // -----------------------------------------------------------------
   // AREA & SURVEY FETCH
@@ -107,24 +109,28 @@ class SurveyDetailsController extends GetxController {
               ))
               as List<GetSurveyDetailResponse>?;
 
-      if (response != null && response.isNotEmpty && response[0].status == "true") {
+      if (response != null &&
+          response.isNotEmpty &&
+          response[0].status == "true") {
         final detail = response[0].data;
-        surveyDetailList.add(SurveyDetailData(
-          region: detail.region,
-          regionId: detail.regionId,
-          stateName: detail.stateName,
-          stateId: detail.stateId,
-          districtName: detail.districtName,
-          districtId: detail.districtId,
-          loksabhaName: detail.loksabhaName,
-          loksabhaId: detail.loksabhaId,
-          assemblyName: detail.assemblyName,
-          assemblyId: detail.assemblyId,
-          wardName: detail.wardName,
-          zpWardId: detail.zpWardId,
-          teamName: detail.teamName,
-          teamId: detail.teamId,
-        ));
+        surveyDetailList.add(
+          SurveyDetailData(
+            region: detail.region,
+            regionId: detail.regionId,
+            stateName: detail.stateName,
+            stateId: detail.stateId,
+            districtName: detail.districtName,
+            districtId: detail.districtId,
+            loksabhaName: detail.loksabhaName,
+            loksabhaId: detail.loksabhaId,
+            assemblyName: detail.assemblyName,
+            assemblyId: detail.assemblyId,
+            wardName: detail.wardName,
+            zpWardId: detail.zpWardId,
+            teamName: detail.teamName,
+            teamId: detail.teamId,
+          ),
+        );
       } else {
         errorMessage.value = 'No myTeam found';
         AppSnackbarStyles.showError(title: 'Error', message: 'No myTeam found');
@@ -164,18 +170,25 @@ class SurveyDetailsController extends GetxController {
       selectedAreaId.value = "";
 
       final jsonBody = {"survey_id": surveyId};
-      List<GetAreaResponse>? response = await Networkcall().postMethod(
-            Networkutility.getAreaApi,
-            Networkutility.getArea,
-            jsonEncode(jsonBody),
-            context,
-          ) as List<GetAreaResponse>?;
+      List<GetAreaResponse>? response =
+          await Networkcall().postMethod(
+                Networkutility.getAreaApi,
+                Networkutility.getArea,
+                jsonEncode(jsonBody),
+                context,
+              )
+              as List<GetAreaResponse>?;
 
-      if (response != null && response.isNotEmpty && response[0].status == "true") {
+      if (response != null &&
+          response.isNotEmpty &&
+          response[0].status == "true") {
         areaList.value = response[0].data;
       } else {
         errorMessageArea.value = response?[0].message ?? 'No areas found';
-        AppSnackbarStyles.showError(title: 'Error', message: errorMessageArea.value);
+        AppSnackbarStyles.showError(
+          title: 'Error',
+          message: errorMessageArea.value,
+        );
       }
     } on NoInternetException catch (e) {
       errorMessageArea.value = e.message;
@@ -185,14 +198,20 @@ class SurveyDetailsController extends GetxController {
       AppSnackbarStyles.showError(title: 'Error', message: e.message);
     } on HttpException catch (e) {
       errorMessageArea.value = '${e.message} (Code: ${e.statusCode})';
-      AppSnackbarStyles.showError(title: 'Error', message: errorMessageArea.value);
+      AppSnackbarStyles.showError(
+        title: 'Error',
+        message: errorMessageArea.value,
+      );
     } on ParseException catch (e) {
       errorMessageArea.value = e.message;
       AppSnackbarStyles.showError(title: 'Error', message: e.message);
     } catch (e, s) {
       errorMessageArea.value = 'Unexpected error: $e';
       log('Fetch Area Exception: $e', stackTrace: s);
-      AppSnackbarStyles.showError(title: 'Error', message: errorMessageArea.value);
+      AppSnackbarStyles.showError(
+        title: 'Error',
+        message: errorMessageArea.value,
+      );
     } finally {
       isLoadingArea.value = false;
     }
@@ -203,11 +222,16 @@ class SurveyDetailsController extends GetxController {
   }
 
   String? getAreaId(String areaName) {
-    return areaList.firstWhereOrNull((area) => area.areaName == areaName)?.villageAreaId ?? '';
+    return areaList
+            .firstWhereOrNull((area) => area.areaName == areaName)
+            ?.villageAreaId ??
+        '';
   }
 
   String? getAreaNameById(String areaId) {
-    return areaList.firstWhereOrNull((area) => area.villageAreaId == areaId)?.areaName;
+    return areaList
+        .firstWhereOrNull((area) => area.villageAreaId == areaId)
+        ?.areaName;
   }
 
   void setSelectedArea(String? areaName) {
@@ -230,16 +254,23 @@ class SurveyDetailsController extends GetxController {
         "survey_done_by": AppUtility.userID,
       };
 
-      final response = await Networkcall().postMethod(
-            Networkutility.setSurveyApi,
-            Networkutility.setSurvey,
-            jsonEncode(jsonBody),
-            context,
-          ) as List<GetSetServeyResponse>?;
+      final response =
+          await Networkcall().postMethod(
+                Networkutility.setSurveyApi,
+                Networkutility.setSurvey,
+                jsonEncode(jsonBody),
+                context,
+              )
+              as List<GetSetServeyResponse>?;
 
-      if (response != null && response.isNotEmpty && response[0].status == "true") {
+      if (response != null &&
+          response.isNotEmpty &&
+          response[0].status == "true") {
         final newSurveyAppSideId = response[0].data?.surveyAppSideId ?? '';
-        AppSnackbarStyles.showSuccess(title: 'Success', message: "Survey started");
+        AppSnackbarStyles.showSuccess(
+          title: 'Success',
+          message: "Survey started",
+        );
         return newSurveyAppSideId;
       } else {
         final msg = response?[0].message ?? "No questions found";
@@ -275,10 +306,13 @@ class SurveyDetailsController extends GetxController {
     final newSurveyAppSideId = await setSurvey(context: Get.context!);
     if (newSurveyAppSideId == null) return;
 
-    Get.toNamed(AppRoutes.surveyQuestion, arguments: {
-      'survey_id': surveyId,
-      'survey_app_side_id': newSurveyAppSideId,
-    });
+    Get.toNamed(
+      AppRoutes.surveyQuestion,
+      arguments: {
+        'survey_id': surveyId,
+        'survey_app_side_id': newSurveyAppSideId,
+      },
+    );
   }
 
   Future<void> refreshPage() async {
@@ -291,7 +325,7 @@ class SurveyDetailsController extends GetxController {
   @override
   void onClose() {
     // Stop recording if still active
-   
+
     _audioRecorder.dispose();
     super.onClose();
   }

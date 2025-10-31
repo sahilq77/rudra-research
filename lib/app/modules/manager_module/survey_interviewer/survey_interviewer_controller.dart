@@ -23,7 +23,6 @@ import '../../../utils/app_logger.dart';
 import '../../../widgets/app_snackbar_styles.dart';
 import '../../../widgets/app_style.dart';
 
-
 class SurveyInterviewerController extends GetxController {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   RxList<CastData> castList = <CastData>[].obs;
@@ -68,7 +67,7 @@ class SurveyInterviewerController extends GetxController {
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (Get.context != null) {
-        await audioRecorder.autoStartRecording(); // Auto-start using new controller
+        // await audioRecorder.autoStartRecording(); // Auto-start using new controller
         await fetchCast(context: Get.context!, surveyId: surveyId);
       }
     });
@@ -239,7 +238,10 @@ class SurveyInterviewerController extends GetxController {
                   ),
                   onPressed: () {
                     resetForm();
-                    Get.offAllNamed(AppRoutes.surveyDetails);
+                    Get.offAllNamed(
+                      AppRoutes.surveyDetails,
+                      arguments: {'survey_id': surveyId},
+                    );
                   },
                   child: const Text('Next Survey'),
                 ),
