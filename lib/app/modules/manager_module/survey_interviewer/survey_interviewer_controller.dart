@@ -4,8 +4,7 @@ import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:http_parser/http_parser.dart' as http_parser;
-import 'package:record/record.dart';
+import 'package:http_parser/http_parser.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
@@ -15,6 +14,7 @@ import 'package:rudra/app/data/models/interviewer_info/get_set_interviewer_info.
 import 'package:rudra/app/data/network/exceptions.dart';
 import 'package:rudra/app/data/network/networkcall.dart';
 import 'package:rudra/app/data/urls.dart';
+import 'package:rudra/app/modules/audio_recorder/audio_recorder_controller.dart';
 import 'package:rudra/app/utils/app_utility.dart';
 import 'package:rudra/app/utils/responsive_utils.dart';
 import '../../../routes/app_routes.dart';
@@ -22,6 +22,7 @@ import '../../../utils/app_colors.dart';
 import '../../../utils/app_logger.dart';
 import '../../../widgets/app_snackbar_styles.dart';
 import '../../../widgets/app_style.dart';
+
 
 class SurveyInterviewerController extends GetxController {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
@@ -50,121 +51,31 @@ class SurveyInterviewerController extends GetxController {
   late String surveyAppId = "";
 
   // -----------------------------------------------------------------
-  //  AUDIO RECORDING - FIXED: Use WAV (Reliable)
+  //  AUDIO RECORDING – DELEGATED TO SEPARATE CONTROLLER
   // -----------------------------------------------------------------
-  final AudioRecorder _audioRecorder = AudioRecorder();
-  RxBool isRecording = false.obs;
-  RxString recordingPath = ''.obs;
+  late final AudioRecorderController audioRecorder;
 
   @override
   void onInit() {
     super.onInit();
+
+    // Initialize the separate audio controller
+    audioRecorder = Get.put(AudioRecorderController());
+
     final args = Get.arguments as Map<String, dynamic>?;
     surveyId = args?['survey_id']?.toString() ?? "";
     surveyAppId = args?['survey_app_side_id']?.toString() ?? "";
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (Get.context != null) {
-        fetchCast(context: Get.context!, surveyId: surveyId);
+        await audioRecorder.autoStartRecording(); // Auto-start using new controller
+        await fetchCast(context: Get.context!, surveyId: surveyId);
       }
-      _startRecordingAutomatically();
     });
   }
 
   // -----------------------------------------------------------------
-  //  AUTO START RECORDING (WAV)
-  // -----------------------------------------------------------------
-  Future<void> _startRecordingAutomatically() async {
-    if (isRecording.value) return;
-
-    final path = await _startRecording();
-    if (path != null) {
-      recordingPath.value = path;
-      isRecording.value = true;
-      AppSnackbarStyles.showInfo(
-        title: 'Recording',
-        message: 'Recording started automatically (WAV)',
-      );
-    } else {
-      isRecording.value = false;
-    }
-  }
-
-  // -----------------------------------------------------------------
-  //  PERMISSION + START/STOP (WAV)
-  // -----------------------------------------------------------------
-  Future<bool> _requestMicPermission() async {
-    final status = await Permission.microphone.request();
-    if (!status.isGranted) {
-      AppSnackbarStyles.showError(
-        title: 'Permission Denied',
-        message: 'Microphone access is required.',
-      );
-      return false;
-    }
-    return true;
-  }
-
-  Future<String?> _startRecording() async {
-    if (!await _requestMicPermission()) return null;
-
-    try {
-      final dir = await getTemporaryDirectory();
-      final path =
-          '${dir.path}/survey_recording_${DateTime.now().millisecondsSinceEpoch}.wav';
-
-      final config = RecordConfig(
-        encoder: AudioEncoder.wav,
-        bitRate: 128000,
-        sampleRate: 44100,
-      );
-
-      await _audioRecorder.start(config, path: path);
-      log('Recording STARTED (WAV): $path');
-      return path;
-    } catch (e) {
-      log('Start error: $e');
-      AppSnackbarStyles.showError(
-        title: 'Failed',
-        message: 'Could not start recording',
-      );
-      return null;
-    }
-  }
-
-  Future<String?> _stopRecording() async {
-    try {
-      final path = await _audioRecorder.stop();
-      log('Recording STOPPED: $path');
-      return path;
-    } catch (e) {
-      log('Stop error: $e');
-      return null;
-    }
-  }
-
-  // -----------------------------------------------------------------
-  //  TOGGLE (MANUAL STOP / RESTART)
-  // -----------------------------------------------------------------
-  Future<void> toggleRecording() async {
-    if (isRecording.value) {
-      final path = await _stopRecording();
-      if (path != null) {
-        recordingPath.value = path;
-        AppSnackbarStyles.showSuccess(
-          title: 'Saved',
-          message: 'Recording saved',
-        );
-      }
-    } else {
-      final path = await _startRecording();
-      if (path != null) recordingPath.value = path;
-    }
-    isRecording.value = !isRecording.value;
-  }
-
-  // -----------------------------------------------------------------
-  //  CAST HELPERS (UNCHANGED)
+  //  CAST HELPERS
   // -----------------------------------------------------------------
   List<String> getCastNames() {
     return castList.map((s) => s.castName).toSet().toList();
@@ -194,8 +105,96 @@ class SurveyInterviewerController extends GetxController {
   }
 
   // -----------------------------------------------------------------
-  //  FORM SUBMISSION
+  //  SUBMIT SURVEY – STOPS RECORDING + UPLOADS AUDIO
   // -----------------------------------------------------------------
+  Future<String?> setSurvey({required BuildContext context}) async {
+    if (!formKey.currentState!.validate()) return null;
+
+    // STOP RECORDING AUTOMATICALLY using new controller
+    if (audioRecorder.isRecording.value) {
+      final stoppedPath = await audioRecorder.stopRecording();
+      if (stoppedPath != null) {
+        AppSnackbarStyles.showInfo(
+          title: 'Recording',
+          message: 'Recording stopped automatically',
+        );
+      } else {
+        AppSnackbarStyles.showError(
+          title: 'Warning',
+          message: 'Failed to stop recording – will try to upload anyway',
+        );
+      }
+    }
+
+    try {
+      isLoadings.value = true;
+      errorMessages.value = '';
+
+      final jsonBody = {
+        "survey_app_side_id": surveyAppId,
+        "name": nameController.text.trim(),
+        "age": selectedAgeId.value.toString(),
+        "gender": selectedGenderId.value.toString(),
+        "mob_number": phoneController.text.trim(),
+        "cast_id": selectedCastId.value,
+      };
+
+      final response =
+          await Networkcall().postMethod(
+                Networkutility.setInterviewerInfoApi,
+                Networkutility.setInterviewerInfo,
+                jsonEncode(jsonBody),
+                context,
+              )
+              as List<GetSetInterviewerInfoResponse>?;
+
+      if (response != null &&
+          response.isNotEmpty &&
+          response[0].status == "true") {
+        AppSnackbarStyles.showSuccess(
+          title: 'Success',
+          message: "Info submitted",
+        );
+
+        // UPLOAD AUDIO AFTER INFO IS SAVED
+        if (audioRecorder.recordingPath.value.isNotEmpty) {
+          await uploadRecording();
+        } else {
+          AppSnackbarStyles.showInfo(
+            title: 'No Audio',
+            message: 'No recording to upload',
+          );
+        }
+
+        return response[0].data?.surveyAppSideId ?? '';
+      } else {
+        final msg = response?[0].message ?? "Submission failed";
+        errorMessages.value = msg;
+        AppSnackbarStyles.showError(title: 'Failed', message: msg);
+        return null;
+      }
+    } on NoInternetException catch (e) {
+      errorMessages.value = e.message;
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } on TimeoutException catch (e) {
+      errorMessages.value = e.message;
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } on HttpException catch (e) {
+      errorMessages.value = '${e.message} (Code: ${e.statusCode})';
+      AppSnackbarStyles.showError(title: 'Error', message: errorMessages.value);
+    } on ParseException catch (e) {
+      errorMessages.value = e.message;
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } catch (e, s) {
+      errorMessages.value = 'Unexpected error: $e';
+      log('setSurvey error: $e', stackTrace: s);
+      AppSnackbarStyles.showError(title: 'Error', message: errorMessages.value);
+    } finally {
+      isLoadings.value = false;
+    }
+    return null;
+  }
+
   void submitSurvey() {
     if (formKey.currentState!.validate()) {
       AppLogger.d('Survey submitted', tag: 'SurveyInterviewerController');
@@ -333,6 +332,7 @@ class SurveyInterviewerController extends GetxController {
     selectedGenderId.value = 0;
     selectedCast.value = '';
     selectedCastId.value = '';
+    audioRecorder.reset(); // Reset audio state
   }
 
   Future<void> refreshPage() async {
@@ -407,118 +407,37 @@ class SurveyInterviewerController extends GetxController {
   }
 
   // -----------------------------------------------------------------
-  //  SET INTERVIEWER INFO + UPLOAD RECORDING
-  // -----------------------------------------------------------------
-  Future<String?> setSurvey({required BuildContext context}) async {
-    if (!formKey.currentState!.validate()) return null;
-
-    try {
-      isLoadings.value = true;
-      errorMessages.value = '';
-
-      final jsonBody = {
-        "survey_app_side_id": surveyAppId,
-        "name": nameController.text.trim(),
-        "age": selectedAgeId.value.toString(),
-        "gender": selectedGenderId.value.toString(),
-        "mob_number": phoneController.text.trim(),
-        "cast_id": selectedCastId.value,
-      };
-
-      final response =
-          await Networkcall().postMethod(
-                Networkutility.setInterviewerInfoApi,
-                Networkutility.setInterviewerInfo,
-                jsonEncode(jsonBody),
-                context,
-              )
-              as List<GetSetInterviewerInfoResponse>?;
-
-      if (response != null &&
-          response.isNotEmpty &&
-          response[0].status == "true") {
-        AppSnackbarStyles.showSuccess(
-          title: 'Success',
-          message: "Info submitted",
-        );
-        await uploadRecording();
-        return response[0].data?.surveyAppSideId ?? '';
-      } else {
-        final msg = response?[0].message ?? "Submission failed";
-        errorMessages.value = msg;
-        AppSnackbarStyles.showError(title: 'Failed', message: msg);
-        return null;
-      }
-    } on NoInternetException catch (e) {
-      errorMessages.value = e.message;
-      AppSnackbarStyles.showError(title: 'Error', message: e.message);
-    } on TimeoutException catch (e) {
-      errorMessages.value = e.message;
-      AppSnackbarStyles.showError(title: 'Error', message: e.message);
-    } on HttpException catch (e) {
-      errorMessages.value = '${e.message} (Code: ${e.statusCode})';
-      AppSnackbarStyles.showError(title: 'Error', message: errorMessages.value);
-    } on ParseException catch (e) {
-      errorMessages.value = e.message;
-      AppSnackbarStyles.showError(title: 'Error', message: e.message);
-    } catch (e, s) {
-      errorMessages.value = 'Unexpected error: $e';
-      log('setSurvey error: $e', stackTrace: s);
-      AppSnackbarStyles.showError(title: 'Error', message: errorMessages.value);
-    } finally {
-      isLoadings.value = false;
-    }
-    return null;
-  }
-
-  // -----------------------------------------------------------------
-  //  HELPER: Log File Size
-  // -----------------------------------------------------------------
-  void _logRecordingFileSize(String path) async {
-    final file = File(path);
-    if (await file.exists()) {
-      final bytes = await file.length();
-      final sizeInKB = (bytes / 1024).toStringAsFixed(2);
-      final sizeInMB = (bytes / (1024 * 1024)).toStringAsFixed(2);
-      log('Recording file size: $bytes bytes | $sizeInKB KB | $sizeInMB MB');
-    } else {
-      log('Recording file does not exist: $path');
-    }
-  }
-
-  // -----------------------------------------------------------------
-  //  UPLOAD WAV AUDIO FILE (FIXED: Use audio/x-wav MIME)
+  //  UPLOAD AUDIO (Uses audioRecorder.recordingPath)
   // -----------------------------------------------------------------
   Future<void> uploadRecording() async {
-    if (recordingPath.value.isEmpty) {
+    final recordingPath = audioRecorder.recordingPath.value;
+    if (recordingPath.isEmpty) {
       AppSnackbarStyles.showError(
         title: 'No Recording',
-        message: 'Please record audio first',
+        message: 'Please record audio first.',
       );
       return;
     }
 
-    final file = File(recordingPath.value);
+    final file = File(recordingPath);
     if (!await file.exists()) {
       AppSnackbarStyles.showError(
         title: 'Error',
-        message: 'Audio file not found',
+        message: 'Audio file not found on disk.',
       );
       return;
     }
 
-    _logRecordingFileSize(recordingPath.value);
+    await _logFileSize(recordingPath);
 
     try {
       isLoading.value = true;
 
       final bytes = await file.readAsBytes();
       final originalName = file.uri.pathSegments.last;
-
-      // Force .wav extension
-      final filename = originalName.endsWith('.mp3')
+      final filename = originalName.endsWith('.wav')
           ? originalName
-          : '${originalName.split('.').first}.mp3';
+          : '${originalName.split('.').first}.wav';
 
       final request = http.MultipartRequest(
         'POST',
@@ -528,102 +447,99 @@ class SurveyInterviewerController extends GetxController {
       request.fields['survey_app_side_id'] = surveyAppId;
       request.fields['completed_by'] = AppUtility.userID.toString();
 
-      // CRITICAL FIX: Use 'audio/x-wav' – CodeIgniter accepts this for .wav
-      const String contentType = 'audio/x-wav';
-
       request.files.add(
-        http.MultipartFile(
+        http.MultipartFile.fromBytes(
           'recorded_audio',
-          http.ByteStream.fromBytes(bytes),
-          bytes.length,
+          bytes,
           filename: filename,
-          //contentType: http_parser.MediaType.parse(contentType),
+          contentType: MediaType('audio', 'wav'),
         ),
       );
 
-      log('Uploading to: ${request.url}');
-      log('Fields: ${request.fields}');
-      log('File: $filename | Type: $contentType | Size: ${bytes.length} bytes');
+      log(
+        'Uploading → ${request.url} | File: $filename | Size: ${bytes.length} bytes',
+      );
 
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
+      final streamed = await request.send();
+      final resp = await http.Response.fromStream(streamed);
 
-      log('Status: ${response.statusCode} | Raw Body: ${response.body}');
-
-      // Clean response body
-      String body = response.body.trim();
+      String body = resp.body.trim();
       if (body.endsWith('null')) {
         body = body.substring(0, body.lastIndexOf('null')).trim();
       }
 
-      if (response.statusCode == 200) {
+      if (resp.statusCode == 200) {
         try {
           final json = jsonDecode(body);
-          if (json['status'] == 'true') {
+          if (json['status'] == 'true' || json['status'] == true) {
+            log(resp.body);
             AppSnackbarStyles.showSuccess(
-              title: 'Success',
+              title: 'Uploaded',
               message: 'Audio uploaded successfully',
             );
-            recordingPath.value = '';
+            await audioRecorder.deleteRecording(); // Delete after success
           } else {
             AppSnackbarStyles.showError(
-              title: 'Failed',
-              message: json['message'] ?? 'Upload failed',
+              title: 'Upload failed',
+              message: json['message'] ?? 'Unknown error',
             );
           }
-        } catch (e) {
-          log('JSON Parse Failed: $e');
-          // Fallback: if "status":"true" exists in body
-          if (response.body.contains('"status":"true"')) {
+        } catch (_) {
+          if (resp.body.contains('"status":"true"')) {
             AppSnackbarStyles.showSuccess(
-              title: 'Success',
+              title: 'Uploaded',
               message: 'Audio uploaded',
             );
-            recordingPath.value = '';
+            await audioRecorder.deleteRecording();
           } else {
             AppSnackbarStyles.showError(
-              title: 'Error',
-              message: 'Invalid response from server',
+              title: 'Invalid response',
+              message: 'Server returned unexpected data.',
             );
           }
-        }
-
-        // Delete temp file after success
-        try {
-          await file.delete();
-          log('Temp recording file deleted: ${file.path}');
-        } catch (e) {
-          log('Failed to delete temp file: $e');
         }
       } else {
         AppSnackbarStyles.showError(
-          title: 'Error',
-          message: 'Server error: ${response.statusCode}',
+          title: 'Server error',
+          message: 'HTTP ${resp.statusCode}',
         );
       }
     } on NoInternetException catch (e) {
-      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+      AppSnackbarStyles.showError(title: 'No Internet', message: e.message);
     } on TimeoutException catch (e) {
-      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+      AppSnackbarStyles.showError(title: 'Timeout', message: e.message);
     } on HttpException catch (e) {
       AppSnackbarStyles.showError(
-        title: 'Error',
-        message: '${e.message} (Code: ${e.statusCode})',
+        title: 'HTTP error',
+        message: '${e.message} (${e.statusCode})',
       );
-    } on ParseException catch (e) {
-      AppSnackbarStyles.showError(title: 'Error', message: e.message);
     } catch (e, s) {
-      log('uploadRecording error: $e', stackTrace: s);
+      log('uploadRecording EXCEPTION: $e', stackTrace: s);
       AppSnackbarStyles.showError(title: 'Error', message: 'Upload failed');
     } finally {
       isLoading.value = false;
     }
   }
 
+  Future<void> _logFileSize(String path) async {
+    final file = File(path);
+    if (await file.exists()) {
+      final bytes = await file.length();
+      final kb = (bytes / 1024).toStringAsFixed(2);
+      final mb = (bytes / (1024 * 1024)).toStringAsFixed(2);
+      log('File size: $bytes B | $kb KB | $mb MB');
+    } else {
+      log('File NOT found: $path');
+    }
+  }
+
+  // -----------------------------------------------------------------
+  //  CLEAN-UP
+  // -----------------------------------------------------------------
   @override
   void onClose() {
-    if (isRecording.value) _stopRecording();
-    _audioRecorder.dispose();
+    // Ensure recording is stopped and disposed
+    audioRecorder.stopRecording();
     nameController.dispose();
     phoneController.dispose();
     super.onClose();

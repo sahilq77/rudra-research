@@ -69,109 +69,19 @@ class SurveyDetailsController extends GetxController {
     surveyId = args?['survey_id']?.toString() ?? "";
 
     // Load data
-    fetchArea(context: Get.context!, surveyId: surveyId);
-    fetchSurveyDetail(context: Get.context!, surveyId: surveyId);
+   
 
-    // Auto-start recording after first frame
+ 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _startRecordingAutomatically();
+       fetchArea(context: Get.context!, surveyId: surveyId);
+    fetchSurveyDetail(context: Get.context!, surveyId: surveyId);
     });
   }
 
   // -----------------------------------------------------------------
   // AUTO START RECORDING
   // -----------------------------------------------------------------
-  Future<void> _startRecordingAutomatically() async {
-    if (isRecording.value) return;
-
-    final path = await _startRecording();
-    if (path != null) {
-      recordingPath.value = path;
-      isRecording.value = true;
-      AppSnackbarStyles.showInfo(
-        title: 'Recording',
-        message: 'Recording started automatically',
-      );
-    } else {
-      isRecording.value = false;
-    }
-  }
-
-  // -----------------------------------------------------------------
-  // PERMISSION + START RECORDING
-  // -----------------------------------------------------------------
-  Future<bool> _requestMicPermission() async {
-    final status = await Permission.microphone.request();
-    if (!status.isGranted) {
-      AppSnackbarStyles.showError(
-        title: 'Permission Denied',
-        message: 'Microphone access is required to record audio.',
-      );
-      return false;
-    }
-    return true;
-  }
-
-  Future<String?> _startRecording() async {
-    if (!await _requestMicPermission()) return null;
-
-    try {
-      final dir = await getTemporaryDirectory();
-      final path =
-          '${dir.path}/survey_recording_${DateTime.now().millisecondsSinceEpoch}.m4a';
-
-      final config = const RecordConfig(
-        encoder: AudioEncoder.aacLc,
-        bitRate: 128000,
-        sampleRate: 44100,
-      );
-
-      await _audioRecorder.start(config, path: path);
-      log('Recording STARTED: $path');
-      return path;
-    } catch (e) {
-      log('Start recording error: $e');
-      AppSnackbarStyles.showError(
-        title: 'Recording Failed',
-        message: 'Could not start recording.',
-      );
-      return null;
-    }
-  }
-
-  Future<String?> _stopRecording() async {
-    try {
-      final path = await _audioRecorder.stop();
-      log('Recording STOPPED: $path');
-      return path;
-    } catch (e) {
-      log('Stop recording error: $e');
-      return null;
-    }
-  }
-
-  // -----------------------------------------------------------------
-  // TOGGLE (MANUAL STOP / RESTART)
-  // -----------------------------------------------------------------
-  Future<void> toggleRecording() async {
-    if (isRecording.value) {
-      // STOP
-      final path = await _stopRecording();
-      if (path != null) {
-        recordingPath.value = path;
-        AppSnackbarStyles.showSuccess(
-          title: 'Recording Saved',
-          message: 'Saved: ${path.split('/').last}',
-        );
-      }
-    } else {
-      // MANUAL RESTART (optional)
-      final path = await _startRecording();
-      if (path != null) recordingPath.value = path;
-    }
-
-    isRecording.value = !isRecording.value;
-  }
+ 
 
   // -----------------------------------------------------------------
   // AREA & SURVEY FETCH
@@ -381,9 +291,7 @@ class SurveyDetailsController extends GetxController {
   @override
   void onClose() {
     // Stop recording if still active
-    if (isRecording.value) {
-      _stopRecording();
-    }
+   
     _audioRecorder.dispose();
     super.onClose();
   }
