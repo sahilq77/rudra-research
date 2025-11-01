@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:rudra/app/data/models/my_survey/my_surevy_model.dart';
 import 'package:rudra/app/modules/manager_module/my_survey/my_survey_controller.dart';
 
 import 'package:rudra/app/routes/app_routes.dart';
@@ -18,172 +19,74 @@ class MySurveyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Initialize the controller
     final MySurveyController controller = Get.put(MySurveyController());
-     final BottomNavigationController bottomController = Get.put(
-    BottomNavigationController(),
-  );
+    final BottomNavigationController bottomController = Get.put(
+      BottomNavigationController(),
+    );
+
     ResponsiveHelper.init(context);
 
     return WillPopScope(
-      onWillPop: () => bottomController.onWillPop(),
+      onWillPop: bottomController.onWillPop,
       child: Scaffold(
         appBar: _buildAppbar(),
         body: RefreshIndicator(
           onRefresh: controller.refreshData,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: ResponsiveHelper.paddingSymmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
-            child: Column(
-              children: [
-                _buildSerachField(controller),
-                const SizedBox(height: 16),
-                Obx(
-                  () => controller.isLoading.value
-                      ? _buildShimmerEffect()
-                      : controller.filteredSurveyList.isEmpty
-                      ? const Center(child: Text('No reports found'))
-                      : Column(
-                          children: controller.filteredSurveyList.asMap().entries.map((
-                            entry,
-                          ) {
-                            final report = entry.value;
-                            return GestureDetector(
-                              onTap: () => Get.toNamed(
-                                AppRoutes.mySurveyDetailList,
-                                arguments: {'report': report},
-                              ),
-                              child: Card(
-                                margin: const EdgeInsets.only(bottom: 16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(16),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            report.title,
-                                            style: AppStyle
-                                                .reportCardTitle
-                                                .responsive
-                                                .copyWith(
-                                                  fontSize:
-                                                      ResponsiveHelper.getResponsiveFontSize(
-                                                        16,
-                                                      ),
-                                                ),
-                                          ),
-                                          SizedBox(
-                                            height: ResponsiveHelper.spacing(5),
-                                          ),
-                                          Text(
-                                            report.subtitle,
-                                            style: AppStyle
-                                                .reportCardSubTitle
-                                                .responsive
-                                                .copyWith(
-                                                  fontSize:
-                                                      ResponsiveHelper.getResponsiveFontSize(
-                                                        13,
-                                                      ),
-                                                ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        color: AppColors.grey.withOpacity(0.1),
-                                        borderRadius: const BorderRadius.only(
-                                          bottomRight: Radius.circular(10),
-                                          bottomLeft: Radius.circular(10),
-                                        ),
-                                      ),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 12,
-                                        ),
-                                        child: Column(
-                                          children: [
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.spaceBetween,
-                                              children: [
-                                                Text(
-                                                  'Survey ID',
-                                                  style: AppStyle
-                                                      .reportCardRowTitle
-                                                      .responsive
-                                                      .copyWith(
-                                                        fontSize:
-                                                            ResponsiveHelper.getResponsiveFontSize(
-                                                              13,
-                                                            ),
-                                                      ),
-                                                ),
-                                                Text(
-                                                  report.surveyId,
-                                                  style: AppStyle
-                                                      .reportCardRowCount
-                                                      .responsive
-                                                      .copyWith(
-                                                        fontSize:
-                                                            ResponsiveHelper.getResponsiveFontSize(
-                                                              13,
-                                                            ),
-                                                      ),
-                                                ),
-                                              ],
-                                            ),
-                                            SizedBox(
-                                              height: ResponsiveHelper.spacing(1),
-                                            ),
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.spaceBetween,
-                                              children: [
-                                                Text(
-                                                  'Response',
-                                                  style:
-                                                      AppStyle.reportCardRowTitle,
-                                                ),
-                                                Text(
-                                                  report.responseCount,
-                                                  style:
-                                                      AppStyle.reportCardRowCount,
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
+          child: Column(
+            children: [
+              Padding(
+                padding: ResponsiveHelper.paddingSymmetric(
+                  horizontal: 16,
+                  vertical: 8,
                 ),
-              ],
-            ),
+                child: _buildSearchField(controller),
+              ),
+              Expanded(
+                child: Obx(() {
+                  if (controller.isLoading.value &&
+                      controller.mySurveyList.isEmpty) {
+                    return _buildShimmerEffect();
+                  }
+
+                  if (controller.filteredSurveyList.isEmpty) {
+                    return const Center(child: Text('No surveys found'));
+                  }
+
+                  return ListView.builder(
+                    padding: ResponsiveHelper.paddingSymmetric(horizontal: 16),
+                    itemCount:
+                        controller.filteredSurveyList.length +
+                        (controller.hasMoreData.value ? 1 : 0),
+                    itemBuilder: (ctx, i) {
+                      // ---- Load-more trigger -----------------------------------------
+                      if (i == controller.filteredSurveyList.length) {
+                        controller.loadMoreIfNeeded(i);
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      }
+
+                      final survey = controller.filteredSurveyList[i];
+                      return _buildSurveyCard(survey, controller);
+                    },
+                  );
+                }),
+              ),
+            ],
           ),
         ),
-         bottomNavigationBar: CustomBottomBar(),
+        bottomNavigationBar: const CustomBottomBar(),
       ),
-      
     );
   }
 
-  TextFormField _buildSerachField(MySurveyController controller) {
+  // -----------------------------------------------------------------------
+  // UI helpers
+  // -----------------------------------------------------------------------
+  Widget _buildSearchField(MySurveyController controller) {
     return TextFormField(
       controller: controller.searchController,
       decoration: InputDecoration(
@@ -195,12 +98,108 @@ class MySurveyView extends StatelessWidget {
           vertical: 12,
         ),
       ),
-      onChanged: controller.searchSurveys,
     );
   }
 
+  Widget _buildSurveyCard(MySurveyModel survey, MySurveyController controller) {
+    return GestureDetector(
+      onTap: () => Get.toNamed(
+        AppRoutes.mySurveyDetailList,
+        arguments: {'survey_id': survey.surveyId},
+      ),
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Title + subtitle
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    survey.title,
+                    style: AppStyle.reportCardTitle.responsive.copyWith(
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(16),
+                    ),
+                  ),
+                  SizedBox(height: ResponsiveHelper.spacing(5)),
+                  Text(
+                    survey.subtitle,
+                    style: AppStyle.reportCardSubTitle.responsive.copyWith(
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(13),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Footer
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.grey.withOpacity(0.1),
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(10),
+                  bottomRight: Radius.circular(10),
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Survey ID',
+                        style: AppStyle.reportCardRowTitle.responsive.copyWith(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(13),
+                        ),
+                      ),
+                      Text(
+                        survey.surveyId,
+                        style: AppStyle.reportCardRowCount.responsive.copyWith(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(13),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: ResponsiveHelper.spacing(1)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Response',
+                        style: AppStyle.reportCardRowTitle.responsive.copyWith(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(13),
+                        ),
+                      ),
+                      Text(
+                        survey.responseCount,
+                        style: AppStyle.reportCardRowCount.responsive.copyWith(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(13),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // -----------------------------------------------------------------------
+  // Shimmer
+  // -----------------------------------------------------------------------
   Widget _buildShimmerEffect() {
-    return Column(children: List.generate(3, (index) => _buildShimmerCard()));
+    return ListView.builder(
+      padding: ResponsiveHelper.paddingSymmetric(horizontal: 16),
+      itemCount: 5,
+      itemBuilder: (_, __) => _buildShimmerCard(),
+    );
   }
 
   Widget _buildShimmerCard() {
@@ -240,30 +239,25 @@ class MySurveyView extends StatelessWidget {
                   bottomLeft: Radius.circular(10),
                 ),
               ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(width: 100, height: 16, color: Colors.white),
-                        Container(width: 50, height: 16, color: Colors.white),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(width: 100, height: 16, color: Colors.white),
-                        Container(width: 50, height: 16, color: Colors.white),
-                      ],
-                    ),
-                  ],
-                ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(width: 100, height: 16, color: Colors.white),
+                      Container(width: 50, height: 16, color: Colors.white),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(width: 100, height: 16, color: Colors.white),
+                      Container(width: 50, height: 16, color: Colors.white),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],
@@ -289,25 +283,6 @@ class MySurveyView extends StatelessWidget {
         preferredSize: const Size.fromHeight(0),
         child: Divider(color: AppColors.grey.withOpacity(0.5), height: 0),
       ),
-    );
-  }
-
-  Widget _buildReadOnlyField({required String label, required String value}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextFormField(
-          initialValue: value,
-          readOnly: true,
-          decoration: InputDecoration(
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

@@ -1,11 +1,30 @@
+import 'dart:convert';
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:rudra/app/data/models/my_survey/get_my_survey_list_response.dart';
+import 'package:rudra/app/data/models/my_survey/my_surevy_model.dart'
+    show MySurveyModel;
+import 'package:rudra/app/data/network/exceptions.dart';
+import 'package:rudra/app/data/network/networkcall.dart';
+import 'package:rudra/app/data/urls.dart';
+import 'package:rudra/app/utils/app_utility.dart';
+import 'package:rudra/app/widgets/app_snackbar_styles.dart';
 
-import '../../../data/models/my_survey/my_surevy_model.dart';
 import '../../../utils/app_logger.dart';
 
 class MySurveyController extends GetxController {
-    final RxList<MySurveyModel> surveyList = <MySurveyModel>[].obs;
+  // ---- API data (raw) ----------------------------------------------------
+  final RxList<MySurveyData> liveSurveysList = <MySurveyData>[].obs;
+  final RxString errorMessage = ''.obs;
+  final RxInt offset = 0.obs;
+  final int limit = 10;
+  final RxBool hasMoreData = true.obs;
+  final RxBool isLoadingMore = false.obs;
+
+  // ---- UI data -----------------------------------------------------------
+  final RxList<MySurveyModel> mySurveyList = <MySurveyModel>[].obs;
   final RxList<MySurveyModel> filteredSurveyList = <MySurveyModel>[].obs;
   final TextEditingController searchController = TextEditingController();
   final RxBool isLoading = false.obs;
@@ -13,10 +32,8 @@ class MySurveyController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    loadSurveys();
-    searchController.addListener(() {
-      searchSurveys(searchController.text);
-    });
+    searchController.addListener(() => searchSurveys(searchController.text));
+    fetchMySurveys(context: Get.context!, reset: true); // initial load
   }
 
   @override
@@ -25,63 +42,128 @@ class MySurveyController extends GetxController {
     super.onClose();
   }
 
-  Future<void> loadSurveys() async {
-    try {
+  // -----------------------------------------------------------------------
+  // 1. FETCH + PAGINATION
+  // -----------------------------------------------------------------------
+  Future<void> fetchMySurveys({
+    required BuildContext context,
+    bool reset = false,
+    bool isPagination = false,
+    bool forceFetch = false,
+  }) async {
+    if (reset) {
+      offset.value = 0;
+      liveSurveysList.clear();
+      mySurveyList.clear();
+      hasMoreData.value = true;
+    }
+
+    if (!hasMoreData.value && !reset) return;
+
+    if (isPagination) {
+      isLoadingMore.value = true;
+    } else {
       isLoading.value = true;
-      await Future.delayed(const Duration(seconds: 1));
+    }
+    errorMessage.value = '';
 
-      // Mock data - Replace with actual API call
-      surveyList.value = [
-        MySurveyModel(
-          id: '1',
-          title: 'OBC Question 13-09 Nanded',
-          subtitle: 'OBC Question 13-09 Nanded',
-          surveyId: '100',
-          responseCount: '00',
-        ),
-        MySurveyModel(
-          id: '2',
-          title: 'OBC Question 14-09 Pune',
-          subtitle: 'OBC Question 14-09 Pune',
-          surveyId: '101',
-          responseCount: '05',
-        ),
-        MySurveyModel(
-          id: '3',
-          title: 'OBC Question 15-09 Mumbai',
-          subtitle: 'OBC Question 15-09 Mumbai',
-          surveyId: '102',
-          responseCount: '03',
-        ),
-      ];
+    try {
+      final jsonBody = {"team_id": AppUtility.teamId};
 
-      filteredSurveyList.value = surveyList;
-      isLoading.value = false;
-      AppLogger.i('Surveys loaded successfully', tag: 'MySurveyController');
+      final response =
+          await Networkcall().postMethod(
+                Networkutility.getMySurveyListApi,
+                Networkutility.getMySurveyList,
+                jsonEncode(jsonBody),
+                context,
+              )
+              as List<GetMySurveyListResponse>?;
+
+      if (response == null || response.isEmpty) {
+        _handleError('No response from server');
+        return;
+      }
+
+      final first = response.first;
+      if (first.status != "true") {
+        _handleError(first.message ?? 'No surveys found');
+        return;
+      }
+
+      final List<MySurveyData> surveys = first.data;
+
+      // ----- Convert API → UI model ---------------------------------------
+      final List<MySurveyModel> uiModels = surveys
+          .map(
+            (e) => MySurveyModel(
+              id: e.surveyId,
+              surveyId: e.surveyId ?? '',
+              title: e.surveyTitle ?? '',
+              subtitle: e.districtName ?? '',
+              responseCount: e.response?.toString() ?? '0',
+              // add any extra fields you need here
+            ),
+          )
+          .toList();
+
+      if (reset) {
+        mySurveyList.assignAll(uiModels);
+      } else {
+        mySurveyList.addAll(uiModels);
+      }
+
+      // ----- Pagination logic ---------------------------------------------
+      if (surveys.length < limit) hasMoreData.value = false;
+      offset.value += limit;
+
+      // ----- Sync filtered list (keep current search) --------------------
+      searchSurveys(searchController.text);
+    } on NoInternetException catch (e) {
+      _handleError(e.message);
+    } on TimeoutException catch (e) {
+      _handleError(e.message);
+    } on HttpException catch (e) {
+      _handleError('${e.message} (Code: ${e.statusCode})');
+    } on ParseException catch (e) {
+      _handleError(e.message);
     } catch (e) {
+      _handleError('Unexpected error: $e');
+    } finally {
       isLoading.value = false;
-      AppLogger.e('Error loading surveys', error: e, tag: 'MySurveyController');
-      Get.snackbar(
-        'Error',
-        'Failed to load surveys',
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+      isLoadingMore.value = false;
     }
   }
 
+  void _handleError(String msg) {
+    hasMoreData.value = false;
+    errorMessage.value = msg;
+    AppSnackbarStyles.showError(title: 'Error', message: msg);
+    log(msg);
+  }
+
+  // -----------------------------------------------------------------------
+  // 2. PULL-TO-REFRESH
+  // -----------------------------------------------------------------------
+  Future<void> refreshData() async =>
+      fetchMySurveys(context: Get.context!, reset: true);
+
+  // -----------------------------------------------------------------------
+  // 3. SEARCH
+  // -----------------------------------------------------------------------
   void searchSurveys(String query) {
-    if (query.isEmpty) {
-      filteredSurveyList.value = surveyList;
+    if (query.trim().isEmpty) {
+      filteredSurveyList.assignAll(mySurveyList);
     } else {
-      filteredSurveyList.value = surveyList
-          .where(
-            (survey) =>
-                survey.title.toLowerCase().contains(query.toLowerCase()) ||
-                survey.subtitle.toLowerCase().contains(query.toLowerCase()),
-          )
-          .toList();
+      final lower = query.toLowerCase();
+      filteredSurveyList.assignAll(
+        mySurveyList
+            .where(
+              (s) =>
+                  s.title.toLowerCase().contains(lower) ||
+                  s.subtitle.toLowerCase().contains(lower),
+            )
+            .toList(),
+      );
     }
     AppLogger.d(
       'Search query: $query, Results: ${filteredSurveyList.length}',
@@ -89,7 +171,13 @@ class MySurveyController extends GetxController {
     );
   }
 
-  Future<void> refreshData() async {
-    await loadSurveys();
+  // -----------------------------------------------------------------------
+  // 4. LOAD MORE (infinite scroll)
+  // -----------------------------------------------------------------------
+  void loadMoreIfNeeded(int index) {
+    if (isLoadingMore.value || !hasMoreData.value) return;
+    if (index >= mySurveyList.length - 3) {
+      fetchMySurveys(context: Get.context!, isPagination: true);
+    }
   }
 }

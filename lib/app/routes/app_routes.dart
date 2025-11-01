@@ -236,7 +236,7 @@ class AppRoutes {
     ),
     GetPage(
       name: mySurveyDetailList,
-      page: () => const MySurveyDeatilListView(),
+      page: () =>  MySurveyDetailListView(),
       binding: MySurveyDetailListBinding(),
     ),
     //survey detail multiple

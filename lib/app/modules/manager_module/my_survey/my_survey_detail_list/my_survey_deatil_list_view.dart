@@ -1,4 +1,4 @@
-// lib/app/modules/assigned_survey_target/assigned_survey_target_view.dart
+// lib/app/modules/manager_module/my_survey/my_survey_detail_list/my_survey_detail_list_view.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -13,15 +13,14 @@ import '../../../../utils/responsive_utils.dart';
 import '../../../../widgets/app_button_style.dart';
 import '../../../../widgets/app_style.dart';
 
-
-class MySurveyDeatilListView extends StatefulWidget {
-  const MySurveyDeatilListView({super.key});
+class MySurveyDetailListView extends StatefulWidget {
+  const MySurveyDetailListView({super.key});
 
   @override
-  State<MySurveyDeatilListView> createState() => _MySurveyDeatilListViewState();
+  State<MySurveyDetailListView> createState() => _MySurveyDetailListViewState();
 }
 
-class _MySurveyDeatilListViewState extends State<MySurveyDeatilListView> {
+class _MySurveyDetailListViewState extends State<MySurveyDetailListView> {
   final MySurveyDetailListController controller = Get.put(
     MySurveyDetailListController(),
   );
@@ -58,38 +57,15 @@ class _MySurveyDeatilListViewState extends State<MySurveyDeatilListView> {
         onPressed: () => Get.back(),
       ),
       title: Text(
-        'Assigned Survey Target',
+        'Survey Users Detail',
         style: AppStyle.heading1PoppinsBlack.responsive.copyWith(
           fontSize: ResponsiveHelper.getResponsiveFontSize(18),
           fontWeight: FontWeight.w600,
         ),
       ),
-      actions: [
-        PopupMenuButton<String>(
-          icon: const Icon(Icons.add, color: AppColors.defaultBlack),
-          onSelected: (value) {
-            if (value == 'assign') {
-              Get.toNamed(AppRoutes.assignExecutive);
-            } else {
-            Get.toNamed(AppRoutes.addExecutive);
-            }
-          },
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'assign',
-              child: Text('Assign Executive'),
-            ),
-            const PopupMenuItem(value: 'add', child: Text('Add Executive')),
-          ],
-        ),
-      ],
       bottom: PreferredSize(
         preferredSize: Size.fromHeight(0),
-        child: Divider(
-          color: AppColors.grey.withOpacity(0.5),
-          // thickness: 2,
-          height: 0,
-        ),
+        child: Divider(color: AppColors.grey.withOpacity(0.5), height: 0),
       ),
     );
   }
@@ -105,6 +81,7 @@ class _MySurveyDeatilListViewState extends State<MySurveyDeatilListView> {
           _buildSummaryCards(),
           SizedBox(height: ResponsiveHelper.spacing(20)),
           _buildExecutorList(),
+          SizedBox(height: ResponsiveHelper.spacing(20)),
         ],
       ),
     );
@@ -244,8 +221,22 @@ class _MySurveyDeatilListViewState extends State<MySurveyDeatilListView> {
       return ListView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: controller.filteredExecutorList.length,
+        controller: controller.scrollController,
+        itemCount:
+            controller.filteredExecutorList.length +
+            (controller.hasMoreData.value ? 1 : 0),
         itemBuilder: (context, index) {
+          if (index >= controller.filteredExecutorList.length) {
+            if (!controller.isLoadingMore.value) {
+              controller.loadMore(controller.surveyId);
+            }
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
+            );
+          }
           return _buildExecutorCard(index);
         },
       );
@@ -254,13 +245,10 @@ class _MySurveyDeatilListViewState extends State<MySurveyDeatilListView> {
 
   Widget _buildExecutorCard(int index) {
     final executor = controller.filteredExecutorList[index];
-    final countController = TextEditingController(
-      text: '${executor.currentCount}',
-    );
 
+    // REMOVED Obx() wrapper — this was causing the error
     return Container(
       margin: EdgeInsets.only(bottom: ResponsiveHelper.spacing(12)),
-
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(12)),
@@ -307,19 +295,6 @@ class _MySurveyDeatilListViewState extends State<MySurveyDeatilListView> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      // SizedBox(height: ResponsiveHelper.spacing(2)),
-                      // Text(
-                      //   'Status : ${executor.isAssigned ? "Assigned" : "Not Assign"}',
-                      //   style: AppStyle.bodySmallPoppinsPrimary.responsive
-                      //       .copyWith(
-                      //         fontSize: ResponsiveHelper.getResponsiveFontSize(
-                      //           11,
-                      //         ),
-                      //         color: executor.isAssigned
-                      //             ? Colors.green
-                      //             : AppColors.primary,
-                      //       ),
-                      // ),
                     ],
                   ),
                 ),
@@ -343,7 +318,6 @@ class _MySurveyDeatilListViewState extends State<MySurveyDeatilListView> {
               ],
             ),
           ),
-          // SizedBox(height: ResponsiveHelper.spacing(5)),
           Container(
             padding: ResponsiveHelper.paddingSymmetric(
               horizontal: 16,
@@ -358,11 +332,11 @@ class _MySurveyDeatilListViewState extends State<MySurveyDeatilListView> {
             ),
             child: Column(
               children: [
-                _buildTargetInfo(
-                  'Today Completed Target',
-                  executor.todayCompletedTarget,
-                ),
-                SizedBox(height: ResponsiveHelper.spacing(5)),
+                // _buildTargetInfo(
+                //   'Today Completed Target',
+                //   executor.todayCompletedTarget,
+                // ),
+                // SizedBox(height: ResponsiveHelper.spacing(5)),
                 _buildTargetInfo(
                   'Total Assigned Target',
                   executor.totalAssignedTarget,
@@ -370,10 +344,9 @@ class _MySurveyDeatilListViewState extends State<MySurveyDeatilListView> {
                 SizedBox(height: ResponsiveHelper.spacing(5)),
                 _buildTargetInfo(
                   'Total Completed Target',
-                  executor.totalAssignedTarget,
+                  executor.totalCompletedTarget,
                 ),
                 SizedBox(height: ResponsiveHelper.spacing(5)),
-                //    _buildCounterRow(index, countController),
               ],
             ),
           ),
@@ -401,217 +374,6 @@ class _MySurveyDeatilListViewState extends State<MySurveyDeatilListView> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildCounterRow(int index, TextEditingController countController) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        _buildCounterButton(
-          icon: Icons.remove,
-          onPressed: () => controller.decrementCount(index),
-          color: AppColors.grey,
-        ),
-        SizedBox(width: ResponsiveHelper.spacing(16)),
-        SizedBox(
-          width: ResponsiveHelper.spacing(60),
-          child: TextFormField(
-            controller: countController,
-            textAlign: TextAlign.center,
-            keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              NumberInputFormatter(),
-            ],
-            onChanged: (value) {
-              final count = int.tryParse(value) ?? 0;
-              controller.updateCount(index, count);
-            },
-            decoration: InputDecoration(
-              contentPadding: ResponsiveHelper.paddingSymmetric(
-                horizontal: 8,
-                vertical: 8,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(
-                  ResponsiveHelper.spacing(8),
-                ),
-                borderSide: BorderSide(
-                  color: AppColors.lightGrey.withOpacity(0.3),
-                  width: 1,
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(
-                  ResponsiveHelper.spacing(8),
-                ),
-                borderSide: BorderSide(
-                  color: AppColors.lightGrey.withOpacity(0.3),
-                  width: 1,
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(
-                  ResponsiveHelper.spacing(8),
-                ),
-                borderSide: const BorderSide(
-                  color: AppColors.primary,
-                  width: 1.5,
-                ),
-              ),
-            ),
-            style: AppStyle.bodyRegularPoppinsBlack.responsive.copyWith(
-              fontSize: ResponsiveHelper.getResponsiveFontSize(14),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-        SizedBox(width: ResponsiveHelper.spacing(16)),
-        _buildCounterButton(
-          icon: Icons.add,
-          onPressed: () => controller.incrementCount(index),
-          color: AppColors.defaultBlack,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCounterButton({
-    required IconData icon,
-    required VoidCallback onPressed,
-    required Color color,
-  }) {
-    return Container(
-      width: ResponsiveHelper.spacing(25),
-      height: ResponsiveHelper.spacing(25),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(6)),
-      ),
-      child: IconButton(
-        padding: EdgeInsets.zero,
-        icon: Icon(
-          icon,
-          color: AppColors.white,
-          size: ResponsiveHelper.spacing(18),
-        ),
-        onPressed: onPressed,
-      ),
-    );
-  }
-
-  Widget _buildBottomButton() {
-    return Container(
-      padding: ResponsiveHelper.paddingSymmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: ElevatedButton(
-        onPressed: () => _showConfirmDialog(),
-        style: AppButtonStyles.elevatedLargeBlack(),
-        child: Text(
-          'Assign Target',
-          style: AppStyle.buttonTextPoppinsWhite.responsive.copyWith(
-            fontSize: ResponsiveHelper.getResponsiveFontSize(16),
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showConfirmDialog() {
-    Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(16)),
-        ),
-        child: Container(
-          padding: ResponsiveHelper.paddingSymmetric(
-            horizontal: 24,
-            vertical: 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Image.asset(
-                AppImages.thanks,
-                width: ResponsiveHelper.spacing(80),
-                height: ResponsiveHelper.spacing(80),
-                fit: BoxFit.contain,
-              ),
-              SizedBox(height: ResponsiveHelper.spacing(16)),
-              Text(
-                'Confirm Your Request',
-                style: AppStyle.heading1PoppinsBlack.responsive.copyWith(
-                  fontSize: ResponsiveHelper.getResponsiveFontSize(18),
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: ResponsiveHelper.spacing(8)),
-              Text(
-                'Are you sure you want to assign\ntarget',
-                style: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
-                  fontSize: ResponsiveHelper.getResponsiveFontSize(13),
-                  color: AppColors.grey,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: ResponsiveHelper.spacing(24)),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Get.back(),
-                      style: AppButtonStyles.outlinedMediumBlack(),
-                      child: Text(
-                        'No',
-                        style: AppStyle.buttonTextSmallPoppinsBlack.responsive
-                            .copyWith(
-                              fontSize: ResponsiveHelper.getResponsiveFontSize(
-                                14,
-                              ),
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: ResponsiveHelper.spacing(12)),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Get.back();
-                        controller.assignTarget();
-                      },
-                      style: AppButtonStyles.elevatedMediumBlack(),
-                      child: Text(
-                        'Yes',
-                        style: AppStyle.buttonTextSmallPoppinsWhite.responsive
-                            .copyWith(
-                              fontSize: ResponsiveHelper.getResponsiveFontSize(
-                                14,
-                              ),
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-      barrierDismissible: false,
     );
   }
 }

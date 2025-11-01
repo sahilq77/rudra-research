@@ -15,7 +15,7 @@ String getMySurveyListResponseToJson(List<GetMySurveyListResponse> data) =>
 class GetMySurveyListResponse {
   String status;
   String message;
-  List<Datum> data;
+  List<MySurveyData> data;
 
   GetMySurveyListResponse({
     required this.status,
@@ -27,7 +27,7 @@ class GetMySurveyListResponse {
       GetMySurveyListResponse(
         status: json["status"],
         message: json["message"],
-        data: List<Datum>.from(json["data"].map((x) => Datum.fromJson(x))),
+        data: List<MySurveyData>.from(json["data"].map((x) => MySurveyData.fromJson(x))),
       );
 
   Map<String, dynamic> toJson() => {
@@ -37,7 +37,7 @@ class GetMySurveyListResponse {
   };
 }
 
-class Datum {
+class MySurveyData {
   String surveyId;
   String surveyTitle;
   String teamId;
@@ -46,7 +46,7 @@ class Datum {
   String isLive;
   String response;
 
-  Datum({
+  MySurveyData({
     required this.surveyId,
     required this.surveyTitle,
     required this.teamId,
@@ -56,7 +56,7 @@ class Datum {
     required this.response,
   });
 
-  factory Datum.fromJson(Map<String, dynamic> json) => Datum(
+  factory MySurveyData.fromJson(Map<String, dynamic> json) => MySurveyData(
     surveyId: json["survey_id"] ?? "",
     surveyTitle: json["survey_title"] ?? "",
     teamId: json["team_id"] ?? "",

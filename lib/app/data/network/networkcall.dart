@@ -13,6 +13,7 @@ import 'package:rudra/app/data/models/home/get_live_survey_response.dart';
 import 'package:rudra/app/data/models/interviewer_info/get_cast_response.dart';
 import 'package:rudra/app/data/models/interviewer_info/get_set_interviewer_info.dart';
 import 'package:rudra/app/data/models/login/get_login_response.dart';
+import 'package:rudra/app/data/models/my_survey/get_my_survey_list_response.dart';
 import 'package:rudra/app/data/models/my_team/get_my_team_member_detail.dart';
 import 'package:rudra/app/data/models/my_team/get_my_team_member_response.dart';
 import 'package:rudra/app/data/models/my_team/get_my_team_response.dart';
@@ -155,6 +156,9 @@ class Networkcall {
           case 19:
             final setExeutive = setExecutiveResponseFromJson(str);
             return setExeutive;
+          case 21:
+            final getMySurveyList = getMySurveyListResponseFromJson(str);
+            return getMySurveyList;
 
           default:
             log("Invalid request code: $requestCode");

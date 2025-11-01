@@ -58,6 +58,9 @@ class Networkutility {
       "${baseUrl + "upload_audio_api"}";
   static int uploadAudioApi = 20;
 
+    static String getMySurveyList = "${baseUrl + "get_survey_title_name_api"}";
+  static int getMySurveyListApi = 21;
+
 
   
 
