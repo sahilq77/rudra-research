@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import 'package:rudra/app/data/models/home/get_live_survey_response.dart';
 import 'package:rudra/app/modules/executive_module/executive_home/executive_home_controller.dart';
 import 'package:rudra/bottom_navigation/bottom_navigation_view.dart';
 
@@ -47,7 +48,7 @@ class _ExecutiveHomeViewState extends State<ExecutiveHomeView> {
       child: RefreshIndicator(
         onRefresh: () async {
           await Future.delayed(const Duration(seconds: 1));
-          controller.refreshData();
+          // controller.refreshData();
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -162,7 +163,7 @@ class _ExecutiveHomeViewState extends State<ExecutiveHomeView> {
             ),
             onPressed: () async {
               await Future.delayed(const Duration(seconds: 1));
-              controller.refreshData();
+              //  controller.refreshData();
             },
           ),
         ),
@@ -187,7 +188,7 @@ class _ExecutiveHomeViewState extends State<ExecutiveHomeView> {
               fit: BoxFit.contain,
             ),
             onPressed: () {
-              Get.toNamed(AppRoutes.notifications);
+              Get.toNamed(AppRoutes.executiveNotification);
             },
           ),
         ),
@@ -312,7 +313,7 @@ class _ExecutiveHomeViewState extends State<ExecutiveHomeView> {
             ),
             onPressed: () async {
               await Future.delayed(const Duration(seconds: 1));
-              controller.refreshData();
+              controller.refresSurveyhData();
             },
           ),
         ),
@@ -324,15 +325,16 @@ class _ExecutiveHomeViewState extends State<ExecutiveHomeView> {
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: controller.liveSurveys.length,
+      itemCount: controller.liveSurveysList.length,
       itemBuilder: (context, index) {
-        final survey = controller.liveSurveys[index];
+        final survey = controller.liveSurveysList[index];
+        print(survey.surveyId);
         return _buildSurveyCard(survey, index);
       },
     );
   }
 
-  Widget _buildSurveyCard(Map<String, dynamic> survey, int index) {
+  Widget _buildSurveyCard(LiveSurveyData survey, int index) {
     return Container(
       margin: EdgeInsets.only(bottom: ResponsiveHelper.spacing(12)),
       padding: ResponsiveHelper.paddingSymmetric(horizontal: 16, vertical: 16),
@@ -355,18 +357,18 @@ class _ExecutiveHomeViewState extends State<ExecutiveHomeView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     ResponsiveHelper.safeText(
-                      survey['title'],
+                      survey.surveyTitle,
                       style: AppStyle.bodyBoldPoppinsBlack.responsive.copyWith(
-                        fontSize: ResponsiveHelper.getResponsiveFontSize(15),
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(13),
                         fontWeight: FontWeight.w600,
                       ),
-                      maxLines: 1,
+                      maxLines: 2,
                     ),
                     SizedBox(height: ResponsiveHelper.spacing(4)),
                     ResponsiveHelper.safeText(
-                      survey['subtitle'],
+                      survey.districtName,
                       style: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
-                        fontSize: ResponsiveHelper.getResponsiveFontSize(13),
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(12),
                         color: AppColors.grey,
                       ),
                       maxLines: 1,
@@ -374,7 +376,7 @@ class _ExecutiveHomeViewState extends State<ExecutiveHomeView> {
                   ],
                 ),
               ),
-              if (survey['isLive']) ...[
+              if (survey.isLive == "1") ...[
                 SizedBox(width: ResponsiveHelper.spacing(8)),
                 Container(
                   padding: EdgeInsets.symmetric(
@@ -417,87 +419,23 @@ class _ExecutiveHomeViewState extends State<ExecutiveHomeView> {
             ],
           ),
           SizedBox(height: ResponsiveHelper.spacing(16)),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    Get.toNamed(AppRoutes.executiveSurveyDetail);
-                  },
-                  style: AppButtonStyles.elevatedLargeBlack(),
-                  child: Text(
-                    'Start Survey',
-                    style: AppStyle.buttonTextSmallPoppinsWhite.responsive
-                        .copyWith(
-                          fontSize: ResponsiveHelper.getResponsiveFontSize(14),
-                          fontWeight: FontWeight.w500,
-                        ),
-                  ),
-                ),
+          ElevatedButton(
+            onPressed: () {
+              Get.toNamed(
+                AppRoutes.executiveSurveyDetail,
+                arguments: {'survey_id': survey.surveyId},
+              );
+            },
+            style: AppButtonStyles.elevatedLargeBlack(),
+            child: Text(
+              'Start Survey',
+              style: AppStyle.buttonTextSmallPoppinsWhite.responsive.copyWith(
+                fontSize: ResponsiveHelper.getResponsiveFontSize(14),
+                fontWeight: FontWeight.w500,
               ),
-              // SizedBox(width: ResponsiveHelper.spacing(12)),
-              // Expanded(
-              //   child: OutlinedButton(
-              //     onPressed: () {
-              //       Get.toNamed(AppRoutes.assignedSurveyTarget);
-              //     },
-              //     style: AppButtonStyles.outlinedLargeBlack(),
-              //     child: Text(
-              //       'Assign Target',
-              //       style: AppStyle.buttonTextSmallPoppinsBlack.responsive
-              //           .copyWith(
-              //             fontSize: ResponsiveHelper.getResponsiveFontSize(14),
-              //             fontWeight: FontWeight.w500,
-              //           ),
-              //     ),
-              //   ),
-              // ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomNav() {
-    final navItems = controller.bottomNavItems;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: BottomNavigationBar(
-        currentIndex: controller.currentIndex.value,
-        onTap: controller.changeTab,
-        selectedItemColor: AppColors.defaultBlack,
-        unselectedItemColor: AppColors.grey.withOpacity(0.6),
-        type: BottomNavigationBarType.fixed,
-        elevation: 0,
-        backgroundColor: AppColors.white,
-        selectedLabelStyle: AppStyle.bodySmallPoppinsBlack.responsive.copyWith(
-          fontSize: ResponsiveHelper.getResponsiveFontSize(11),
-          fontWeight: FontWeight.w600,
-        ),
-        unselectedLabelStyle: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
-          fontSize: ResponsiveHelper.getResponsiveFontSize(11),
-          fontWeight: FontWeight.w500,
-        ),
-        items: navItems.map((item) {
-          return BottomNavigationBarItem(
-            icon: Padding(
-              padding: EdgeInsets.only(bottom: ResponsiveHelper.spacing(4)),
-              child: Icon(item['icon'], size: ResponsiveHelper.spacing(24)),
             ),
-            label: item['label'],
-          );
-        }).toList(),
+          ),
+        ],
       ),
     );
   }

@@ -6,15 +6,16 @@ import '../../../utils/app_colors.dart';
 import '../../../utils/responsive_utils.dart';
 import '../../../widgets/app_style.dart';
 
-
 class ExecutiveProfileDetailView extends StatefulWidget {
   const ExecutiveProfileDetailView({super.key});
 
   @override
-  State<ExecutiveProfileDetailView> createState() => _ExecutiveProfileDetailViewState();
+  State<ExecutiveProfileDetailView> createState() =>
+      _ExecutiveProfileDetailViewState();
 }
 
-class _ExecutiveProfileDetailViewState extends State<ExecutiveProfileDetailView> {
+class _ExecutiveProfileDetailViewState
+    extends State<ExecutiveProfileDetailView> {
   final ExecutiveProfileDetailController controller = Get.find();
 
   @override
@@ -29,17 +30,32 @@ class _ExecutiveProfileDetailViewState extends State<ExecutiveProfileDetailView>
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  SizedBox(height: ResponsiveHelper.spacing(24)),
-                  _buildProfileHeader(),
-                  SizedBox(height: ResponsiveHelper.spacing(24)),
-                  _buildProfileInfoCard(),
-                  SizedBox(height: ResponsiveHelper.spacing(24)),
-                  _buildPerformanceCard(),
-                  SizedBox(height: ResponsiveHelper.spacing(24)),
-                ],
-              ),
+              child: Obx(() {
+                if (controller.isLoading.value) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (controller.errorMessage.isNotEmpty) {
+                  return Center(
+                    child: Text(
+                      controller.errorMessage.value,
+                      style: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(14),
+                      ),
+                    ),
+                  );
+                }
+                return Column(
+                  children: [
+                    SizedBox(height: ResponsiveHelper.spacing(24)),
+                    _buildProfileHeader(),
+                    SizedBox(height: ResponsiveHelper.spacing(24)),
+                    _buildProfileInfoCard(),
+                    SizedBox(height: ResponsiveHelper.spacing(24)),
+                    _buildPerformanceCard(),
+                    SizedBox(height: ResponsiveHelper.spacing(24)),
+                  ],
+                );
+              }),
             ),
           ],
         ),
@@ -179,9 +195,12 @@ class _ExecutiveProfileDetailViewState extends State<ExecutiveProfileDetailView>
             _buildDivider(),
             _buildInfoItem('Designation', profile.designation),
             _buildDivider(),
-            _buildInfoItem('Joining Date', profile.joiningDate),
+            _buildInfoItem(
+              'Joining Date',
+              controller.formatDateTime(profile.joiningDate),
+            ),
             _buildDivider(),
-            _buildInfoItem('DOB', profile.dob),
+            _buildInfoItem('DOB', controller.formatDateTime(profile.dob)),
           ],
         ),
       );

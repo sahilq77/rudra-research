@@ -75,7 +75,7 @@ class ExecutiveProfileController extends GetxController {
         'Navigate to: ${item.route}',
         tag: 'ExecutiveProfileController',
       );
-      Get.toNamed(AppRoutes.executiveMySurvey );
+      Get.toNamed(AppRoutes.executiveMySurvey);
     } else if (item.route.isNotEmpty) {
       // Changed from else to else if
       AppLogger.d(
