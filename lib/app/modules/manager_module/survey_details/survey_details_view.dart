@@ -19,169 +19,183 @@ class SurveyDetailsView extends StatefulWidget {
 
 class _SurveyDetailsViewState extends State<SurveyDetailsView> {
   final SurveyDetailsController controller = Get.find();
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
   @override
   Widget build(BuildContext context) {
     ResponsiveHelper.init(context);
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Get.back(),
-        ),
-        title: Text(
-          'Select Section',
-          style: AppStyle.heading1PoppinsBlack.responsive,
+    return PopScope(
+      canPop: false, // This disables back navigation
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        // Optional: Show a confirmation dialog if needed later
+        debugPrint('Back navigation blocked');
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          // leading: IconButton(
+          //   icon: const Icon(Icons.arrow_back),
+          //   onPressed: () => Get.back(),
+          // ),
+          title: Text(
+            'Select Section',
+            style: AppStyle.heading1PoppinsBlack.responsive,
+          ),
+          backgroundColor: AppColors.white,
+          bottom: PreferredSize(
+            preferredSize: Size.fromHeight(0),
+            child: Divider(color: AppColors.grey.withOpacity(0.5), height: 0),
+          ),
         ),
         backgroundColor: AppColors.white,
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(0),
-          child: Divider(color: AppColors.grey.withOpacity(0.5), height: 0),
-        ),
-      ),
-      backgroundColor: AppColors.white,
-      // ---------------------------------------------------------------
-      // UPDATED: Show CircularProgressIndicator while fetchSurveyDetail
-      // ---------------------------------------------------------------
-      body: Obx(() {
-        // Show loading spinner when fetching survey details
-        if (controller.isLoading.value && controller.surveyDetailList.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
-        }
+        // ---------------------------------------------------------------
+        // UPDATED: Show CircularProgressIndicator while fetchSurveyDetail
+        // ---------------------------------------------------------------
+        body: Obx(() {
+          // Show loading spinner when fetching survey details
+          if (controller.isLoading.value &&
+              controller.surveyDetailList.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-        // Handle case when list is empty but not loading (e.g. API failed or no data)
-        if (controller.surveyDetailList.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline, size: 64, color: Colors.grey),
-                const SizedBox(height: 16),
-                Text(
-                  'No survey details available',
-                  style: AppStyle.bodySmallPoppinsBlack.responsive,
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: controller.refreshPage,
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
-          );
-        }
-
-        // SAFE: Now we know there's at least one item
-        final detail = controller.surveyDetailList.first;
-
-        return RefreshIndicator(
-          onRefresh: controller.refreshPage,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: ResponsiveHelper.paddingSymmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
-            child: Form(
-              key: controller.formKey,
+          // Handle case when list is empty but not loading (e.g. API failed or no data)
+          if (controller.surveyDetailList.isEmpty) {
+            return Center(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  const Icon(Icons.error_outline, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
                   Text(
-                    'Please Enter Details',
-                    style: AppStyle.headingSmallPoppinsBlack.responsive,
-                  ),
-                  const SizedBox(height: 24),
-
-                  // LANGUAGE DROPDOWN
-                  _buildDropdownField(
-                    label: 'Select Language',
-                    selectedValueObs: controller.selectedLanguage,
-                    items: controller.languages,
-                    onChanged: (value) {
-                      if (value != null) {
-                        controller.selectedLanguage.value = value;
-                        debugPrint(
-                          'Selected Language: $value  →  ID: ${controller.selectedLanguageId.value}',
-                        );
-                      }
-                    },
-                    validator: TextValidator.isEmpty,
-                  ),
-
-                  const SizedBox(height: 16),
-                  _buildReadOnlyField(
-                    label: 'Select State',
-                    value: detail.stateName,
+                    'No survey details available',
+                    style: AppStyle.bodySmallPoppinsBlack.responsive,
                   ),
                   const SizedBox(height: 16),
-                  _buildReadOnlyField(label: 'Region', value: detail.region),
-                  const SizedBox(height: 16),
-                  _buildReadOnlyField(
-                    label: 'Select District',
-                    value: detail.districtName,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildReadOnlyField(
-                    label: 'Select Loksabha',
-                    value: detail.loksabhaName,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildReadOnlyField(
-                    label: 'Select Assembly',
-                    value: detail.assemblyName,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildReadOnlyField(
-                    label: 'Select Ward/Zp',
-                    value: detail.wardName,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // AREA DROPDOWN
-                  _buildDropdownField(
-                    label: 'Select Area/Village',
-                    selectedValueObs: controller.selectedAreaVal,
-                    items: controller.getAreaNames(),
-                    onChanged: (value) {
-                      controller.setSelectedArea(value);
-                      debugPrint(
-                        'Selected Area/Village: $value  →  ID: ${controller.selectedAreaId.value}',
-                      );
-                    },
-                    validator: TextValidator.isEmpty,
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // SUBMIT BUTTON WITH LOADING
-                  Obx(
-                    () => ElevatedButton(
-                      onPressed: controller.isLoadings.value
-                          ? null
-                          : controller.nextPage,
-                      style: AppButtonStyles.elevatedLargeBlack(),
-                      child: controller.isLoadings.value
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : Text(
-                              'Start Survey',
-                              style: AppStyle.buttonTextPoppinsWhite.responsive,
-                            ),
-                    ),
+                  ElevatedButton(
+                    onPressed: controller.refreshPage,
+                    child: const Text('Retry'),
                   ),
                 ],
               ),
+            );
+          }
+
+          // SAFE: Now we know there's at least one item
+          final detail = controller.surveyDetailList.first;
+
+          return RefreshIndicator(
+            onRefresh: controller.refreshPage,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: ResponsiveHelper.paddingSymmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+              child: Form(
+                key: formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Please Enter Details',
+                      style: AppStyle.headingSmallPoppinsBlack.responsive,
+                    ),
+                    const SizedBox(height: 24),
+
+                    // LANGUAGE DROPDOWN
+                    _buildDropdownField(
+                      label: 'Select Language',
+                      selectedValueObs: controller.selectedLanguage,
+                      items: controller.languages,
+                      onChanged: (value) {
+                        if (value != null) {
+                          controller.selectedLanguage.value = value;
+                          debugPrint(
+                            'Selected Language: $value  →  ID: ${controller.selectedLanguageId.value}',
+                          );
+                        }
+                      },
+                      validator: TextValidator.isEmpty,
+                    ),
+
+                    const SizedBox(height: 16),
+                    _buildReadOnlyField(
+                      label: 'Select State',
+                      value: detail.stateName,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildReadOnlyField(label: 'Region', value: detail.region),
+                    const SizedBox(height: 16),
+                    _buildReadOnlyField(
+                      label: 'Select District',
+                      value: detail.districtName,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildReadOnlyField(
+                      label: 'Select Loksabha',
+                      value: detail.loksabhaName,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildReadOnlyField(
+                      label: 'Select Assembly',
+                      value: detail.assemblyName,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildReadOnlyField(
+                      label: 'Select Ward/Zp',
+                      value: detail.wardName,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // AREA DROPDOWN
+                    _buildDropdownField(
+                      label: 'Select Area/Village',
+                      selectedValueObs: controller.selectedAreaVal,
+                      items: controller.getAreaNames(),
+                      onChanged: (value) {
+                        controller.setSelectedArea(value);
+                        debugPrint(
+                          'Selected Area/Village: $value  →  ID: ${controller.selectedAreaId.value}',
+                        );
+                      },
+                      validator: TextValidator.isEmpty,
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // SUBMIT BUTTON WITH LOADING
+                    // Inside your widget tree (e.g. a Column)
+                    Obx(() {
+                      final isLoading = controller.isLoadings.value;
+
+                      return ElevatedButton(
+                        onPressed: isLoading
+                            ? null
+                            : () => controller.nextPage(formKey),
+                        style: AppButtonStyles.elevatedLargeBlack(),
+                        child: isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                'Start Survey',
+                                style:
+                                    AppStyle.buttonTextPoppinsWhite.responsive,
+                              ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
             ),
-          ),
-        );
-      }),
+          );
+        }),
+      ),
     );
   }
 

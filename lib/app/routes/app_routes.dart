@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 import 'package:rudra/app/modules/Manager_module/survey_detail_multiple/survey_detail_multiple_binding.dart';
+import 'package:rudra/app/modules/audio_recorder/audio_recorder_binding.dart';
+import 'package:rudra/app/modules/audio_recorder/audio_recorder_controller.dart';
 import 'package:rudra/app/modules/executive_module/executive_home/executive_home_binding.dart';
 import 'package:rudra/app/modules/executive_module/executive_my_survey/executive_my_survey_binding.dart';
 import 'package:rudra/app/modules/executive_module/executive_my_survey/executive_my_survey_view.dart';
@@ -131,14 +133,10 @@ class AppRoutes {
 
   static const String validatorProfile = '/validator-my-profile';
   static const String validatorProfileDetail = '/validator-my-profile-detail';
-static const String validatorNotification = '/validator-notification';
-
+  static const String validatorNotification = '/validator-notification';
 
   static const String noInternet = '/nointernet';
- static const String teamMemberDetail = '/team-member-detail';
-  
-
-  
+  static const String teamMemberDetail = '/team-member-detail';
 
   static List<GetPage> routes = [
     GetPage(name: splash, page: () => const SplashView()),
@@ -189,7 +187,7 @@ static const String validatorNotification = '/validator-notification';
     GetPage(
       name: surveyDetails,
       page: () => const SurveyDetailsView(),
-      binding: SurveyDetailsBinding(),
+      bindings: [SurveyDetailsBinding(), AudioRecorderBinding()],
     ),
     GetPage(
       name: surveyQuestion,
@@ -199,7 +197,7 @@ static const String validatorNotification = '/validator-notification';
     GetPage(
       name: surveyInterviewer,
       page: () => const SurveyInterviewerView(),
-      binding: SurveyInterviewerBinding(),
+      bindings: [SurveyInterviewerBinding(), AudioRecorderBinding()],
     ),
     //My Report
     GetPage(
@@ -279,13 +277,12 @@ static const String validatorNotification = '/validator-notification';
       page: () => ExecutiveProfileView(),
       binding: ExecutiveProfileBinding(),
     ),
-   GetPage(
+    GetPage(
       name: executivProfileDetail,
       page: () => ExecutiveProfileDetailView(),
       binding: ExecutiveProfileDetailBinding(),
     ),
 
-    
     GetPage(
       name: executiveNotification,
       page: () => ExecutiveNotificationView(),
@@ -328,13 +325,13 @@ static const String validatorNotification = '/validator-notification';
       page: () => ValidatorProfileDetailView(),
       binding: ValidatorProfileDetailBinding(),
     ),
-     GetPage(
+    GetPage(
       name: validatorNotification,
       page: () => ValidatorNotificationView(),
       binding: ValidatorNotificationBinding(),
     ),
-//no internet
-GetPage(
+    //no internet
+    GetPage(
       name: noInternet,
       page: () => NoInternetScreen(),
       transition: Transition.fadeIn,
@@ -342,10 +339,7 @@ GetPage(
     GetPage(
       name: teamMemberDetail,
       page: () => TeamMemberDetailView(),
-        binding: TeamMemberDetailBinding(),
+      binding: TeamMemberDetailBinding(),
     ),
-    
-
-    
   ];
 }

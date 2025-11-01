@@ -21,8 +21,6 @@ import 'package:rudra/app/widgets/app_snackbar_styles.dart';
 import '../../../routes/app_routes.dart';
 
 class SurveyDetailsController extends GetxController {
-  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-
   RxList<AreaData> areaList = <AreaData>[].obs;
   RxList<SurveyDetailData> surveyDetailList = <SurveyDetailData>[].obs;
   var isLoadingArea = false.obs;
@@ -77,7 +75,7 @@ class SurveyDetailsController extends GetxController {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await fetchArea(context: Get.context!, surveyId: surveyId);
       await fetchSurveyDetail(context: Get.context!, surveyId: surveyId);
-      await audioRecorder.startRecording();
+      await audioRecorder.autoStartRecording();
     });
   }
 
@@ -271,6 +269,9 @@ class SurveyDetailsController extends GetxController {
           title: 'Success',
           message: "Survey started",
         );
+        _resetForm();
+        await audioRecorder.startRecording();
+
         return newSurveyAppSideId;
       } else {
         final msg = response?[0].message ?? "No questions found";
@@ -300,7 +301,7 @@ class SurveyDetailsController extends GetxController {
     return null;
   }
 
-  void nextPage() async {
+  void nextPage(formKey) async {
     if (!formKey.currentState!.validate()) return;
 
     final newSurveyAppSideId = await setSurvey(context: Get.context!);
@@ -317,6 +318,13 @@ class SurveyDetailsController extends GetxController {
 
   Future<void> refreshPage() async {
     AppSnackbarStyles.showInfo(title: 'Refresh', message: 'Page refreshed');
+  }
+
+  void _resetForm() {
+    selectedAreaVal?.value = "";
+    selectedAreaId.value = "";
+    selectedLanguage.value = 'Marathi';
+    selectedLanguageId.value = 0;
   }
 
   // -----------------------------------------------------------------

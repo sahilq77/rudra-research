@@ -23,252 +23,137 @@ class SurveyInterviewerView extends StatefulWidget {
 
 class _SurveyInterviewerViewState extends State<SurveyInterviewerView> {
   final SurveyInterviewerController controller = Get.find();
-
+final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   @override
   Widget build(BuildContext context) {
     ResponsiveHelper.init(context);
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.defaultBlack),
-          onPressed: () => Get.back(),
-        ),
-        title: Text(
-          'Interviewer Information',
-          style: AppStyle.heading1PoppinsBlack.responsive,
+     return PopScope(
+      canPop: false, // This disables back navigation
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        // Optional: Show a confirmation dialog if needed later
+        debugPrint('Back navigation blocked');
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          // leading: IconButton(
+          //   icon: const Icon(Icons.arrow_back, color: AppColors.defaultBlack),
+          //   onPressed: () => Get.back(),
+          // ),
+          title: Text(
+            'Interviewer Information',
+            style: AppStyle.heading1PoppinsBlack.responsive,
+          ),
+          backgroundColor: AppColors.white,
+          elevation: 0,
+          surfaceTintColor: AppColors.white,
+          bottom: PreferredSize(
+            preferredSize: Size.fromHeight(0),
+            child: Divider(color: AppColors.grey.withOpacity(0.5), height: 0),
+          ),
         ),
         backgroundColor: AppColors.white,
-        elevation: 0,
-        surfaceTintColor: AppColors.white,
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(0),
-          child: Divider(color: AppColors.grey.withOpacity(0.5), height: 0),
-        ),
-      ),
-      backgroundColor: AppColors.white,
-      body: Obx(
-        () => Column(
-          children: [
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: controller.refreshPage,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: ResponsiveHelper.paddingSymmetric(
-                    horizontal: 16,
-                    vertical: 20,
-                  ),
-                  child: Form(
-                    key: controller.formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Please Enter Details',
-                          style: AppStyle.heading1PoppinsBlack.responsive,
-                        ),
-                        const SizedBox(height: 24),
-                        _buildTextField(
-                          label: 'Name',
-                          controller: controller.nameController,
-                          validator: TextValidator.isEmpty,
-                        ),
-                        const SizedBox(height: 20),
-                        _buildDropdownField(
-                          label: 'Age',
-                          selectedValueObs: controller.selectedAgeLabel,
-                          items: controller.ageRanges,
-                          onChanged: controller.setSelectedAge,
-                          validator: TextValidator.isEmpty,
-                        ),
-                        const SizedBox(height: 20),
-                        _buildDropdownField(
-                          label: 'Gender',
-                          selectedValueObs: controller.selectedGenderLabel,
-                          items: controller.genders,
-                          onChanged: controller.setSelectedGender,
-                          validator: TextValidator.isEmpty,
-                        ),
-                        const SizedBox(height: 20),
-                        _buildTextField(
-                          label: 'Phone Number',
-                          controller: controller.phoneController,
-                          keyboardType: TextInputType.phone,
-                          inputFormatters: [
-                            NumberInputFormatter(),
-                            SecureTextInputFormatter.deny(),
-                            LengthLimitingTextInputFormatter(10),
-                          ],
-                          validator: TextValidator.isMobileNumber,
-                        ),
-                        const SizedBox(height: 20),
-                        // --- CAST DROPDOWN (NOW BINDS NAME + ID) ---
-                        _buildDropdownField(
-                          label: 'Cast',
-                          selectedValueObs: controller.selectedCast,
-                          items: controller.getCastNames(),
-                          onChanged: (value) {
-                            controller.setSelectedCast(value);
-                            debugPrint(
-                              'Selected Cast: $value  →  ID: ${controller.selectedCastId.value}',
-                            );
-                          },
-                          validator: TextValidator.isEmpty,
-                        ),
-                      ],
+        body: Obx(
+          () => Column(
+            children: [
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: controller.refreshPage,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: ResponsiveHelper.paddingSymmetric(
+                      horizontal: 16,
+                      vertical: 20,
                     ),
-                  ),
-                ),
-              ),
-            ),
-            // Bottom Buttons
-            Container(
-              padding: ResponsiveHelper.paddingSymmetric(
-                horizontal: 16,
-                vertical: 16,
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: controller.discardSurvey,
-                      style: AppButtonStyles.outlinedLargeBlack(),
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          'Discard Survey',
-                          style:
-                              AppStyle.buttonTextSmallPoppinsBlack.responsive,
-                          maxLines: 1,
-                        ),
+                    child: Form(
+                      key: formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Please Enter Details',
+                            style: AppStyle.heading1PoppinsBlack.responsive,
+                          ),
+                          const SizedBox(height: 24),
+                          _buildTextField(
+                            label: 'Name',
+                            controller: controller.nameController,
+                            validator: TextValidator.isEmpty,
+                          ),
+                          const SizedBox(height: 20),
+                          _buildDropdownField(
+                            label: 'Age',
+                            selectedValueObs: controller.selectedAgeLabel,
+                            items: controller.ageRanges,
+                            onChanged: controller.setSelectedAge,
+                            validator: TextValidator.isEmpty,
+                          ),
+                          const SizedBox(height: 20),
+                          _buildDropdownField(
+                            label: 'Gender',
+                            selectedValueObs: controller.selectedGenderLabel,
+                            items: controller.genders,
+                            onChanged: controller.setSelectedGender,
+                            validator: TextValidator.isEmpty,
+                          ),
+                          const SizedBox(height: 20),
+                          _buildTextField(
+                            label: 'Phone Number',
+                            controller: controller.phoneController,
+                            keyboardType: TextInputType.phone,
+                            inputFormatters: [
+                              NumberInputFormatter(),
+                              SecureTextInputFormatter.deny(),
+                              LengthLimitingTextInputFormatter(10),
+                            ],
+                            validator: TextValidator.isMobileNumber,
+                          ),
+                          const SizedBox(height: 20),
+                          // --- CAST DROPDOWN (NOW BINDS NAME + ID) ---
+                          _buildDropdownField(
+                            label: 'Cast',
+                            selectedValueObs: controller.selectedCast,
+                            items: controller.getCastNames(),
+                            onChanged: (value) {
+                              controller.setSelectedCast(value);
+                              debugPrint(
+                                'Selected Cast: $value  →  ID: ${controller.selectedCastId.value}',
+                              );
+                            },
+                            validator: TextValidator.isEmpty,
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: // ──────────────────────────────────────────────────────────────
-                        // REPLACE ONLY THE ElevatedButton's onPressed (inside bottom buttons)
-                        // ──────────────────────────────────────────────────────────────
-                        ElevatedButton(
-                          onPressed: () async {
-                            // Validate form
-                            if (!(controller.formKey.currentState?.validate() ??
-                                false))
-                              return;
-
-                            // Call API
-                            final result = await controller.setSurvey(
-                              context: context,
-                            );
-
-                            // If success, show dialog
-                            if (result != null) {
-                              _showSuccessDialog(context);
-                            }
-                          },
-                          style: AppButtonStyles.elevatedLargeBlack(),
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              'Submit Survey',
-                              style: AppStyle
-                                  .buttonTextSmallPoppinsWhite
-                                  .responsive,
-                              maxLines: 1,
-                            ),
-                          ),
-                        ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showSuccessDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset(AppImages.thanks, width: 80, height: 80),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade400,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    'THANKS',
-                    style: AppStyle.buttonTextSmallPoppinsWhite.responsive,
-                  ),
+              // Bottom Buttons
+              Container(
+                padding: ResponsiveHelper.paddingSymmetric(
+                  horizontal: 16,
+                  vertical: 16,
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  'Response Submitted',
-                  style: AppStyle.heading1PoppinsBlack.responsive,
-                  textAlign: TextAlign.center,
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Your response has been submitted\nsuccessfully.',
-                  style: AppStyle.bodySmallPoppinsGrey.responsive,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                Row(
+                child: Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () {
-                          controller.resetForm();
-                          Get.back();
-                          Get.offAllNamed(AppRoutes.home);
-                        },
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.defaultBlack,
-                          side: const BorderSide(
-                            color: AppColors.defaultBlack,
-                            width: 1.5,
-                          ),
-                          minimumSize: const Size(double.infinity, 48),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 12,
-                          ),
-                        ),
+                        onPressed: controller.discardSurvey,
+                        style: AppButtonStyles.outlinedLargeBlack(),
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
-                            'Dashboard',
+                            'Discard Survey',
                             style:
                                 AppStyle.buttonTextSmallPoppinsBlack.responsive,
                             maxLines: 1,
@@ -278,45 +163,51 @@ class _SurveyInterviewerViewState extends State<SurveyInterviewerView> {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          controller.resetForm();
-                          Get.back();
-                          Get.offAllNamed(AppRoutes.surveyDetails);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.defaultBlack,
-                          foregroundColor: AppColors.white,
-                          elevation: 0,
-                          minimumSize: const Size(double.infinity, 48),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                      child: // ──────────────────────────────────────────────────────────────
+                          // REPLACE ONLY THE ElevatedButton's onPressed (inside bottom buttons)
+                          // ──────────────────────────────────────────────────────────────
+                          ElevatedButton(
+                            onPressed: () async {
+                              // Validate form
+                              if (!(formKey.currentState?.validate() ??
+                                  false))
+                                return;
+      
+                              // Call API
+                              final result = await controller.setSurvey(
+                                context: context,
+                                formKey: formKey
+                              );
+      
+                              // If success, show dialog
+                              // if (result != null) {
+                              //   _showSuccessDialog(context);
+                              // }
+                            },
+                            style: AppButtonStyles.elevatedLargeBlack(),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                'Submit Survey',
+                                style: AppStyle
+                                    .buttonTextSmallPoppinsWhite
+                                    .responsive,
+                                maxLines: 1,
+                              ),
+                            ),
                           ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 12,
-                          ),
-                        ),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            'Next Survey',
-                            style:
-                                AppStyle.buttonTextSmallPoppinsWhite.responsive,
-                            maxLines: 1,
-                          ),
-                        ),
-                      ),
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
+
+  
 
   // Updated to use RxString
   Widget _buildDropdownField({

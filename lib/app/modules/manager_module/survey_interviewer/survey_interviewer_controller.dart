@@ -20,6 +20,7 @@ import 'package:rudra/app/data/network/exceptions.dart';
 import 'package:rudra/app/data/network/networkcall.dart';
 import 'package:rudra/app/data/urls.dart';
 import 'package:rudra/app/modules/audio_recorder/audio_recorder_controller.dart';
+import 'package:rudra/app/utils/app_images.dart';
 import 'package:rudra/app/utils/app_utility.dart';
 import 'package:rudra/app/utils/responsive_utils.dart';
 import '../../../routes/app_routes.dart';
@@ -84,7 +85,6 @@ int _findChunk(Uint8List bytes, List<int> signature) {
 //  CONTROLLER
 // -----------------------------------------------------------------
 class SurveyInterviewerController extends GetxController {
-  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   RxList<CastData> castList = <CastData>[].obs;
   var isLoadings = false.obs;
   var errorMessages = ''.obs;
@@ -164,7 +164,10 @@ class SurveyInterviewerController extends GetxController {
   // -----------------------------------------------------------------
   //  SUBMIT SURVEY – STOPS RECORDING + UPLOADS AUDIO
   // -----------------------------------------------------------------
-  Future<String?> setSurvey({required BuildContext context}) async {
+  Future<String?> setSurvey({
+    required BuildContext context,
+    required formKey,
+  }) async {
     if (!formKey.currentState!.validate()) return null;
 
     if (audioRecorder.isRecording.value) {
@@ -207,11 +210,11 @@ class SurveyInterviewerController extends GetxController {
       if (response != null &&
           response.isNotEmpty &&
           response[0].status == "true") {
-        AppSnackbarStyles.showSuccess(
-          title: 'Success',
-          message: "Info submitted",
-        );
-
+        // AppSnackbarStyles.showSuccess(
+        //   title: 'Success',
+        //   message: "Info submitted",
+        // );
+        log("Info Submitted success");
         if (audioRecorder.recordingPath.value.isNotEmpty) {
           await uploadRecording();
         } else {
@@ -250,10 +253,10 @@ class SurveyInterviewerController extends GetxController {
     return null;
   }
 
-  void submitSurvey() {
+  void submitSurvey(formKey) {
     if (formKey.currentState!.validate()) {
       AppLogger.d('Survey submitted', tag: 'SurveyInterviewerController');
-      showSuccessDialog();
+      showSuccessDialog(Get.context!);
     }
   }
 
@@ -261,52 +264,136 @@ class SurveyInterviewerController extends GetxController {
     _showDiscardDialog(Get.context!);
   }
 
-  void showSuccessDialog() {
-    Get.dialog(
-      AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.sentiment_satisfied_alt,
-              size: 48,
-              color: AppColors.blue,
+  void showSuccessDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Prevents closing by tapping outside
+      builder: (BuildContext dialogContext) {
+        return PopScope(
+          canPop: false, // This disables back navigation
+          onPopInvoked: (didPop) {
+            if (didPop) return;
+            // Optional: Show a confirmation dialog if needed later
+            debugPrint('Back navigation blocked');
+          },
+          child: Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
             ),
-            const SizedBox(height: 16),
-            const Text('THANKS!'),
-            const SizedBox(height: 8),
-            const Text('Response Submitted'),
-            const SizedBox(height: 8),
-            const Text('Your response has been submitted successfully.'),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                TextButton(
-                  style: TextButton.styleFrom(minimumSize: const Size(100, 40)),
-                  onPressed: () => Get.offAllNamed(AppRoutes.home),
-                  child: const Text('Dashboard'),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(100, 40),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.asset(AppImages.thanks, width: 80, height: 80),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade400,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      'THANKS',
+                      style: AppStyle.buttonTextSmallPoppinsWhite.responsive,
+                    ),
                   ),
-                  onPressed: () {
-                    resetForm();
-                    Get.offAllNamed(
-                      AppRoutes.surveyDetails,
-                      arguments: {'survey_id': surveyId},
-                    );
-                  },
-                  child: const Text('Next Survey'),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  Text(
+                    'Response Submitted',
+                    style: AppStyle.heading1PoppinsBlack.responsive,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Your response has been submitted\nsuccessfully.',
+                    style: AppStyle.bodySmallPoppinsGrey.responsive,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            resetForm();
+                            Get.back(); // Close dialog
+                            Get.offAllNamed(AppRoutes.home);
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.defaultBlack,
+                            side: const BorderSide(
+                              color: AppColors.defaultBlack,
+                              width: 1.5,
+                            ),
+                            minimumSize: const Size(double.infinity, 48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                          ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'Dashboard',
+                              style: AppStyle
+                                  .buttonTextSmallPoppinsBlack
+                                  .responsive,
+                              maxLines: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            resetForm();
+                            Get.back(); // Close dialog
+                            Get.toNamed(
+                              AppRoutes.surveyDetails,
+                              arguments: {'survey_id': surveyId},
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.defaultBlack,
+                            foregroundColor: AppColors.white,
+                            elevation: 0,
+                            minimumSize: const Size(double.infinity, 48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                          ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'Next Survey',
+                              style: AppStyle
+                                  .buttonTextSmallPoppinsWhite
+                                  .responsive,
+                              maxLines: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
-      ),
-      barrierDismissible: false,
+          ),
+        );
+      },
     );
   }
 
@@ -701,9 +788,14 @@ class SurveyInterviewerController extends GetxController {
           if (json['status'] == 'true' || json['status'] == true) {
             log(resp.body);
             AppSnackbarStyles.showSuccess(
-              title: 'Uploaded',
-              message: 'Audio uploaded successfully',
+              title: 'Success',
+              message: "Interviewer info submitted successfully",
             );
+            // AppSnackbarStyles.showSuccess(
+            //   title: 'Uploaded',
+            //   message: 'Audio uploaded successfully',
+            // );
+            _showSuccessDialog(Get.context!);
             await audioRecorder.deleteRecording();
           } else {
             AppSnackbarStyles.showError(
@@ -764,6 +856,133 @@ class SurveyInterviewerController extends GetxController {
     } else {
       log('File NOT found: $path');
     }
+  }
+
+  void _showSuccessDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset(AppImages.thanks, width: 80, height: 80),
+                const SizedBox(height: 16),
+                // Thanks Badge
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade400,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'THANKS',
+                    style: AppStyle.buttonTextSmallPoppinsWhite.responsive,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Title
+                Text(
+                  'Response Submitted',
+                  style: AppStyle.heading1PoppinsBlack.responsive,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                // Message
+                Text(
+                  'Your response has been submitted\nsuccessfully.',
+                  style: AppStyle.bodySmallPoppinsGrey.responsive,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                // Buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          resetForm();
+                          Get.back();
+                          Get.offAllNamed(AppRoutes.home);
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.defaultBlack,
+                          side: const BorderSide(
+                            color: AppColors.defaultBlack,
+                            width: 1.5,
+                          ),
+                          minimumSize: const Size(double.infinity, 48),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                        ),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Dashboard',
+                            style:
+                                AppStyle.buttonTextSmallPoppinsBlack.responsive,
+                            maxLines: 1,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          resetForm();
+                          Get.back(); // Close dialog
+                          Get.toNamed(
+                            AppRoutes.surveyDetails,
+                            arguments: {'survey_id': surveyId},
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.defaultBlack,
+                          foregroundColor: AppColors.white,
+                          elevation: 0,
+                          minimumSize: const Size(double.infinity, 48),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                        ),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Next Survey',
+                            style:
+                                AppStyle.buttonTextSmallPoppinsWhite.responsive,
+                            maxLines: 1,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   // -----------------------------------------------------------------

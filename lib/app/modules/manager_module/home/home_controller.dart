@@ -220,26 +220,7 @@ class HomeController extends GetxController {
   }
 
   // Get bottom navigation items based on role
-  List<Map<String, dynamic>> get bottomNavItems {
-    // Manager has all 5 tabs
-    if (isManager) {
-      return [
-        {'icon': Icons.home, 'label': 'Home'},
-        {'icon': Icons.insert_chart_outlined, 'label': 'My Report'},
-        {'icon': Icons.people_outline, 'label': 'My Team'},
-        {'icon': Icons.description_outlined, 'label': 'My Survey'},
-        {'icon': Icons.person_outline, 'label': 'Profile'},
-      ];
-    }
-
-    // Executive and Validator have only 3 tabs: Home, My Survey, Profile
-    return [
-      {'icon': Icons.home, 'label': 'Home'},
-      {'icon': Icons.description_outlined, 'label': 'My Survey'},
-      {'icon': Icons.person_outline, 'label': 'Profile'},
-    ];
-  }
-
+ 
   // void changeTab(int index) {
   //   currentIndex.value = index;
 

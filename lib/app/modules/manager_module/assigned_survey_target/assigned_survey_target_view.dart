@@ -117,10 +117,48 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
           SizedBox(height: ResponsiveHelper.spacing(16)),
           _buildSummaryCards(),
           SizedBox(height: ResponsiveHelper.spacing(20)),
+          _buildDistributeButton(), // ← NEW BUTTON
+          SizedBox(height: ResponsiveHelper.spacing(8)),
+          Obx(() {
+            final totalAssigned = controller.filteredExecutorList.fold(
+              0,
+              (sum, e) => sum + e.currentCount,
+            );
+            final remaining = controller.surveyTarget.value - totalAssigned;
+            return Center(
+              child: Text(
+                'Remaining: $remaining / ${controller.surveyTarget.value}',
+                style: AppStyle.bodySmallPoppinsPrimary.responsive.copyWith(
+                  fontSize: ResponsiveHelper.getResponsiveFontSize(13),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            );
+          }),
+          SizedBox(height: ResponsiveHelper.spacing(12)),
           _buildExecutorList(),
         ],
       ),
     );
+  }
+
+  // ==================== NEW: Distribute Equally Button ====================
+  Widget _buildDistributeButton() {
+    return Obx(() {
+      final total = controller.surveyTarget.value;
+      final count = controller.filteredExecutorList.length;
+      final canDistribute = total > 0 && count > 0;
+
+      return Padding(
+        padding: ResponsiveHelper.paddingSymmetric(vertical: 8),
+        child: ElevatedButton.icon(
+          onPressed: canDistribute ? controller.distributeTargetEqually : null,
+          icon: const Icon(Icons.balance, size: 18),
+          label: const Text('Distribute Equally'),
+          style: AppButtonStyles.elevatedMediumBlack(),
+        ),
+      );
+    });
   }
 
   Widget _buildSearchField() {
@@ -527,67 +565,33 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
           ),
         ],
       ),
-      child: Obx(
-        () => Row(
-          children: [
-            Expanded(
-              child: ElevatedButton(
-                onPressed: controller.isLoading.value
-                    ? null
-                    : _showConfirmDialog,
-                style: AppButtonStyles.elevatedLargeBlack(),
-                child: controller.isLoading.value
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : Text(
-                        'Assign Target',
-                        style: AppStyle.buttonTextPoppinsWhite.responsive
-                            .copyWith(
-                              fontSize: ResponsiveHelper.getResponsiveFontSize(
-                                16,
-                              ),
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-              ),
-            ),
-            SizedBox(width: ResponsiveHelper.screenWidth * 0.05),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: controller.isLoading.value
-                    ? null
-                    : _showConfirmDialog,
-                style: AppButtonStyles.elevatedLargeBlack(),
-                child: controller.isLoading.value
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : Text(
-                        'Assign All',
-                        style: AppStyle.buttonTextPoppinsWhite.responsive
-                            .copyWith(
-                              fontSize: ResponsiveHelper.getResponsiveFontSize(
-                                16,
-                              ),
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-              ),
-            ),
-          ],
-        ),
-      ),
+      child: Obx(() {
+        final totalAssigned = controller.filteredExecutorList.fold(
+          0,
+          (sum, e) => sum + e.currentCount,
+        );
+        final canAssign = !controller.isLoading.value && totalAssigned > 0;
+        return ElevatedButton(
+          onPressed: canAssign ? _showConfirmDialog : null,
+          style: AppButtonStyles.elevatedLargeBlack(),
+          child: controller.isLoading.value
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+              : Text(
+                  'Assign Target',
+                  style: AppStyle.buttonTextPoppinsWhite.responsive.copyWith(
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(16),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+        );
+      }),
     );
   }
 

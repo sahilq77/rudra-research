@@ -209,45 +209,92 @@ class AssignedSurveyTargetController extends GetxController {
     );
   }
 
-  void incrementCount(int index) {
+  // Helper – current sum of all currentCount fields
+  int _totalAssigned() {
+    return filteredExecutorList
+        .fold(0, (sum, e) => sum + e.currentCount);
+  }
+
+  // Apply count with clamping to remaining target
+  void _applyCount(int index, int newCount) {
+    final currentOfThis = filteredExecutorList[index].currentCount;
+    final remaining = surveyTarget.value - (_totalAssigned() - currentOfThis);
+    final clamped = newCount.clamp(0, remaining);
+
     final executor = filteredExecutorList[index];
-    executor.currentCount++;
-    filteredExecutorList[index] = executor.copyWith(
-      currentCount: executor.currentCount,
-    );
+    executor.currentCount = clamped;
+    filteredExecutorList[index] = executor.copyWith(currentCount: clamped);
     filteredExecutorList.refresh();
+
+    if (clamped != newCount) {
+      Get.snackbar(
+        'Limit reached',
+        'Cannot assign more than remaining target: $remaining',
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+      );
+    }
+
     AppLogger.d(
-      'Incremented count for ${executor.executorName}: ${executor.currentCount}',
+      'Applied count for ${executor.executorName}: $clamped (requested: $newCount)',
       tag: 'AssignedSurveyTargetController',
     );
+  }
+
+  void incrementCount(int index) {
+    final executor = filteredExecutorList[index];
+    _applyCount(index, executor.currentCount + 1);
   }
 
   void decrementCount(int index) {
     final executor = filteredExecutorList[index];
     if (executor.currentCount > 0) {
-      executor.currentCount--;
-      filteredExecutorList[index] = executor.copyWith(
-        currentCount: executor.currentCount,
-      );
-      filteredExecutorList.refresh();
-      AppLogger.d(
-        'Decremented count for ${executor.executorName}: ${executor.currentCount}',
-        tag: 'AssignedSurveyTargetController',
-      );
+      _applyCount(index, executor.currentCount - 1);
     }
   }
 
   void updateCount(int index, int count) {
-    if (count >= 0) {
-      final executor = filteredExecutorList[index];
-      executor.currentCount = count;
-      filteredExecutorList[index] = executor.copyWith(currentCount: count);
-      filteredExecutorList.refresh();
-      AppLogger.d(
-        'Updated count for ${executor.executorName}: $count',
-        tag: 'AssignedSurveyTargetController',
-      );
+    _applyCount(index, count);
+  }
+
+  // ==================== NEW: Distribute Target Equally ====================
+  void distributeTargetEqually() {
+    final total = surveyTarget.value;
+    final executors = filteredExecutorList;
+    if (total == 0 || executors.isEmpty) return;
+
+    final perExecutor = total ~/ executors.length;
+    final remainder = total % executors.length;
+
+    int sum = 0;
+    for (int i = 0; i < executors.length; i++) {
+      final extra = i < remainder ? 1 : 0;
+      final newCount = perExecutor + extra;
+      sum += newCount;
+
+      final exec = executors[i];
+      exec.currentCount = newCount;
+      filteredExecutorList[i] = exec.copyWith(currentCount: newCount);
     }
+
+    // Defensive: shave excess if math overflowed (should never happen)
+    if (sum > total) {
+      int excess = sum - total;
+      for (int i = executors.length - 1; excess > 0 && i >= 0; i--) {
+        final exec = filteredExecutorList[i];
+        final shave = excess.clamp(0, exec.currentCount);
+        exec.currentCount -= shave;
+        filteredExecutorList[i] = exec.copyWith(currentCount: exec.currentCount);
+        excess -= shave;
+      }
+    }
+
+    filteredExecutorList.refresh();
+    AppLogger.d(
+      'Distributed $total targets → $perExecutor each + $remainder extra',
+      tag: 'AssignedSurveyTargetController',
+    );
   }
 
   // ==================== INTEGRATED assignTarget() ====================
@@ -288,89 +335,89 @@ class AssignedSurveyTargetController extends GetxController {
         await refreshData();
       }
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Failed to assign targets',
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  void makeCall(String executorId) {
-    AppLogger.d(
-      'Making call to executor: $executorId',
-      tag: 'AssignedSurveyTargetController',
-    );
-    Get.snackbar(
-      'Call',
-      'Calling executor...',
-      snackPosition: SnackPosition.TOP,
-      duration: const Duration(seconds: 2),
-    );
-  }
-
-  // ==================== FIXED setTarget() ====================
-  Future<String?> setTarget({
-    required List<Map<String, dynamic>> assignUsers,
-  }) async {
-    try {
-      isLoadings.value = true;
-      errorMessages.value = '';
-
-      final jsonBody = {
-        "survey_id": surveyId,
-        "assigned_by": AppUtility.userID,
-        "team_id": AppUtility.teamId,
-        "assign_users": assignUsers,
-      };
-
-      final response = await Networkcall().postMethod(
-            Networkutility.setAssignSurveyTargetApi,
-            Networkutility.setAssignSurveyTarget,
-            jsonEncode(jsonBody),
-            Get.context!,
-          ) as List<SeAssignSurveyTargetResponse>?;
-
-      if (response != null &&
-          response.isNotEmpty &&
-          response[0].status == "true") {
-        AppSnackbarStyles.showSuccess(
-          title: 'Success',
-          message: "Targets assigned successfully",
+        Get.snackbar(
+          'Error',
+          'Failed to assign targets',
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
         );
-        return response[0].data?.surveyId ?? '';
-      } else {
-        final msg = response?[0].message ?? "Assign target failed";
-        errorMessages.value = msg;
-        AppSnackbarStyles.showError(title: 'Failed', message: msg);
-        return null;
+      } finally {
+        isLoading.value = false;
       }
-    } on NoInternetException catch (e) {
-      errorMessages.value = e.message;
-      AppSnackbarStyles.showError(title: 'Error', message: e.message);
-    } on TimeoutException catch (e) {
-      errorMessages.value = e.message;
-      AppSnackbarStyles.showError(title: 'Error', message: e.message);
-    } on HttpException catch (e) {
-      errorMessages.value = '${e.message} (Code: ${e.statusCode})';
-      AppSnackbarStyles.showError(
-        title: 'Error',
-        message: '${e.message} (Code: ${e.statusCode})',
-      );
-    } on ParseException catch (e) {
-      errorMessages.value = e.message;
-      AppSnackbarStyles.showError(title: 'Error', message: e.message);
-    } catch (e, s) {
-      errorMessages.value = 'Unexpected error: $e';
-      log('setTarget error: $e', stackTrace: s);
-      AppSnackbarStyles.showError(title: 'Error', message: errorMessages.value);
-    } finally {
-      isLoadings.value = false;
     }
-    return null;
+
+    void makeCall(String executorId) {
+      AppLogger.d(
+        'Making call to executor: $executorId',
+        tag: 'AssignedSurveyTargetController',
+      );
+      Get.snackbar(
+        'Call',
+        'Calling executor...',
+        snackPosition: SnackPosition.TOP,
+        duration: const Duration(seconds: 2),
+      );
+    }
+
+    // ==================== FIXED setTarget() ====================
+    Future<String?> setTarget({
+      required List<Map<String, dynamic>> assignUsers,
+    }) async {
+      try {
+        isLoadings.value = true;
+        errorMessages.value = '';
+
+        final jsonBody = {
+          "survey_id": surveyId,
+          "assigned_by": AppUtility.userID,
+          "team_id": AppUtility.teamId,
+          "assign_users": assignUsers,
+        };
+
+        final response = await Networkcall().postMethod(
+              Networkutility.setAssignSurveyTargetApi,
+              Networkutility.setAssignSurveyTarget,
+              jsonEncode(jsonBody),
+              Get.context!,
+            ) as List<SeAssignSurveyTargetResponse>?;
+
+        if (response != null &&
+            response.isNotEmpty &&
+            response[0].status == "true") {
+          AppSnackbarStyles.showSuccess(
+            title: 'Success',
+            message: "Targets assigned successfully",
+          );
+          return response[0].data?.surveyId ?? '';
+        } else {
+          final msg = response?[0].message ?? "Assign target failed";
+          errorMessages.value = msg;
+          AppSnackbarStyles.showError(title: 'Failed', message: msg);
+          return null;
+        }
+      } on NoInternetException catch (e) {
+        errorMessages.value = e.message;
+        AppSnackbarStyles.showError(title: 'Error', message: e.message);
+      } on TimeoutException catch (e) {
+        errorMessages.value = e.message;
+        AppSnackbarStyles.showError(title: 'Error', message: e.message);
+      } on HttpException catch (e) {
+        errorMessages.value = '${e.message} (Code: ${e.statusCode})';
+        AppSnackbarStyles.showError(
+          title: 'Error',
+          message: '${e.message} (Code: ${e.statusCode})',
+        );
+      } on ParseException catch (e) {
+        errorMessages.value = e.message;
+        AppSnackbarStyles.showError(title: 'Error', message: e.message);
+      } catch (e, s) {
+        errorMessages.value = 'Unexpected error: $e';
+        log('setTarget error: $e', stackTrace: s);
+        AppSnackbarStyles.showError(title: 'Error', message: errorMessages.value);
+      } finally {
+        isLoadings.value = false;
+      }
+      return null;
+    }
   }
-}
