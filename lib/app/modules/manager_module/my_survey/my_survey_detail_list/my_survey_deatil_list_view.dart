@@ -247,110 +247,121 @@ class _MySurveyDetailListViewState extends State<MySurveyDetailListView> {
     final executor = controller.filteredExecutorList[index];
 
     // REMOVED Obx() wrapper — this was causing the error
-    return Container(
-      margin: EdgeInsets.only(bottom: ResponsiveHelper.spacing(12)),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(12)),
-        border: Border.all(
-          color: AppColors.lightGrey.withOpacity(0.2),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: ResponsiveHelper.paddingSymmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: ResponsiveHelper.spacing(20),
-                  backgroundColor: AppColors.lightGrey.withOpacity(0.3),
-                  child: Text(
-                    executor.executorName.isNotEmpty
-                        ? executor.executorName[0].toUpperCase()
-                        : 'E',
-                    style: AppStyle.bodyBoldPoppinsBlack.responsive.copyWith(
-                      fontSize: ResponsiveHelper.getResponsiveFontSize(16),
-                    ),
-                  ),
-                ),
-                SizedBox(width: ResponsiveHelper.spacing(12)),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        executor.executorName,
-                        style: AppStyle.bodyBoldPoppinsBlack.responsive
-                            .copyWith(
-                              fontSize: ResponsiveHelper.getResponsiveFontSize(
-                                15,
-                              ),
-                              fontWeight: FontWeight.w600,
-                            ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  width: ResponsiveHelper.spacing(30),
-                  height: ResponsiveHelper.spacing(30),
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.defaultBlack,
-                  ),
-                  child: IconButton(
-                    padding: EdgeInsets.zero,
-                    icon: Icon(
-                      Icons.phone,
-                      color: AppColors.white,
-                      size: ResponsiveHelper.spacing(20),
-                    ),
-                    onPressed: () => controller.makeCall(executor.id),
-                  ),
-                ),
-              ],
-            ),
+    return GestureDetector(
+      onTap: () {
+        // Navigate to survey response list for this executor
+        Get.toNamed(
+          AppRoutes.mySurveyResponse,
+          arguments: {
+            'surveyId': controller.surveyId,
+            'executorId': executor.id,
+          },
+        );
+      },
+      child: Container(
+        margin: EdgeInsets.only(bottom: ResponsiveHelper.spacing(12)),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(12)),
+          border: Border.all(
+            color: AppColors.lightGrey.withOpacity(0.2),
+            width: 1,
           ),
-          Container(
-            padding: ResponsiveHelper.paddingSymmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
-            decoration: BoxDecoration(
-              color: AppColors.grey.withOpacity(0.1),
-              borderRadius: const BorderRadius.only(
-                bottomRight: Radius.circular(10),
-                bottomLeft: Radius.circular(10),
+        ),
+        child: Column(
+          children: [
+            Padding(
+              padding: ResponsiveHelper.paddingSymmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: ResponsiveHelper.spacing(20),
+                    backgroundColor: AppColors.lightGrey.withOpacity(0.3),
+                    child: Text(
+                      executor.executorName.isNotEmpty
+                          ? executor.executorName[0].toUpperCase()
+                          : 'E',
+                      style: AppStyle.bodyBoldPoppinsBlack.responsive.copyWith(
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(16),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: ResponsiveHelper.spacing(12)),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          executor.executorName,
+                          style: AppStyle.bodyBoldPoppinsBlack.responsive
+                              .copyWith(
+                                fontSize:
+                                    ResponsiveHelper.getResponsiveFontSize(15),
+                                fontWeight: FontWeight.w600,
+                              ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: ResponsiveHelper.spacing(30),
+                    height: ResponsiveHelper.spacing(30),
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.defaultBlack,
+                    ),
+                    child: IconButton(
+                      padding: EdgeInsets.zero,
+                      icon: Icon(
+                        Icons.phone,
+                        color: AppColors.white,
+                        size: ResponsiveHelper.spacing(20),
+                      ),
+                      onPressed: () => controller.makeCall(executor.id),
+                    ),
+                  ),
+                ],
               ),
             ),
-            child: Column(
-              children: [
-                // _buildTargetInfo(
-                //   'Today Completed Target',
-                //   executor.todayCompletedTarget,
-                // ),
-                // SizedBox(height: ResponsiveHelper.spacing(5)),
-                _buildTargetInfo(
-                  'Total Assigned Target',
-                  executor.totalAssignedTarget,
+            Container(
+              padding: ResponsiveHelper.paddingSymmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.grey.withOpacity(0.1),
+                borderRadius: const BorderRadius.only(
+                  bottomRight: Radius.circular(10),
+                  bottomLeft: Radius.circular(10),
                 ),
-                SizedBox(height: ResponsiveHelper.spacing(5)),
-                _buildTargetInfo(
-                  'Total Completed Target',
-                  executor.totalCompletedTarget,
-                ),
-                SizedBox(height: ResponsiveHelper.spacing(5)),
-              ],
+              ),
+              child: Column(
+                children: [
+                  // _buildTargetInfo(
+                  //   'Today Completed Target',
+                  //   executor.todayCompletedTarget,
+                  // ),
+                  // SizedBox(height: ResponsiveHelper.spacing(5)),
+                  _buildTargetInfo(
+                    'Total Assigned Target',
+                    executor.totalAssignedTarget,
+                  ),
+                  SizedBox(height: ResponsiveHelper.spacing(5)),
+                  _buildTargetInfo(
+                    'Total Completed Target',
+                    executor.totalCompletedTarget,
+                  ),
+                  SizedBox(height: ResponsiveHelper.spacing(5)),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -36,43 +36,27 @@ class Networkutility {
   static String submitQuestionAnswer =
       "${baseUrl + "save_survey_questions_answers"}";
   static int submitQuestionAnswerApi = 13;
-  static String getCast =
-      "${baseUrl + "get_cast_according_to_survey_id_api"}";
+  static String getCast = "${baseUrl + "get_cast_according_to_survey_id_api"}";
   static int getCastApi = 14;
-  static String setInterviewerInfo =
-      "${baseUrl + "get_local_people_details"}";
+  static String setInterviewerInfo = "${baseUrl + "get_local_people_details"}";
   static int setInterviewerInfoApi = 15;
   static String getAssignSurveyTargetList =
       "${baseUrl + "assign_survey_to_executives"}";
   static int getAssignSurveyTargetListApi = 16;
- static String setAssignSurveyTarget =
-      "${baseUrl + "set_survey_target"}";
+  static String setAssignSurveyTarget = "${baseUrl + "set_survey_target"}";
   static int setAssignSurveyTargetApi = 17;
- static String getAllExecutive =
-      "${baseUrl + "get_all_execative"}";
+  static String getAllExecutive = "${baseUrl + "get_all_execative"}";
   static int getAllExecutiveApi = 18;
- static String setExecutive =
-      "${baseUrl + "set_execative_to_team"}";
+  static String setExecutive = "${baseUrl + "set_execative_to_team"}";
   static int setExecutiveApi = 19;
- static String uploadAudio =
-      "${baseUrl + "upload_audio_api"}";
+  static String uploadAudio = "${baseUrl + "upload_audio_api"}";
   static int uploadAudioApi = 20;
 
-    static String getMySurveyList = "${baseUrl + "get_survey_title_name_api"}";
+  static String getMySurveyList = "${baseUrl + "get_survey_title_name_api"}";
   static int getMySurveyListApi = 21;
-
-
-  
-
-
-  
-  
-  
-  
-  
-
-
-  
+  static String getMySurveySubmittedResponseList =
+      "${baseUrl + "get_response_data_acc_to_survey_id_and_user_id"}";
+  static int getMySurveySubmittedResponseListApi = 22;
 
   // static String logout = "${baseUrl + "post_app_logout"}";
   // static int logoutApi = 8;

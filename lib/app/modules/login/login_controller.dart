@@ -75,7 +75,7 @@ class LoginController extends GetxController {
 
           // Save credentials if "Remember Me" is checked
 
-          AppUtility.setUserInfo(
+       await   AppUtility.setUserInfo(
             "${user.firstName} " + "${user.lastName}",
             user.mobileNo,
             user.email,

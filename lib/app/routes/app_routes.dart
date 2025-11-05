@@ -15,6 +15,8 @@ import 'package:rudra/app/modules/executive_module/executive_survey_detail/execu
 import 'package:rudra/app/modules/executive_module/executive_survey_detail/executive_survey_question/executive_survey_question_binding.dart';
 import 'package:rudra/app/modules/executive_module/executive_profile_details/executive_profile_detail_binding.dart';
 import 'package:rudra/app/modules/executive_module/executive_profile_details/executive_profile_detail_view.dart';
+import 'package:rudra/app/modules/manager_module/my_survey/my_survey_detail_list/my_survey_response_list/my_survey_response_binding.dart';
+import 'package:rudra/app/modules/manager_module/my_survey/my_survey_detail_list/my_survey_response_list/my_survey_response_list.dart';
 import 'package:rudra/app/modules/manager_module/my_survey/my_survey_view.dart';
 import 'package:rudra/app/modules/manager_module/my_survey/my_survey_binding.dart';
 import 'package:rudra/app/modules/manager_module/my_survey/my_survey_detail_list/my_survey_detail_list_binding.dart';
@@ -108,6 +110,7 @@ class AppRoutes {
   static const String myteamdetail = '/myteam-detail';
   static const String mySurvey = '/mysurvey';
   static const String mySurveyDetailList = '/mysurvey-detail-list';
+  static const String mySurveyResponse = '/mysurvey-response-list';
   static const String surveyDetailsPreview = '/survey-details-preview';
 
   //<============================== Executive ==============================>
@@ -239,12 +242,20 @@ class AppRoutes {
       page: () =>  MySurveyDetailListView(),
       binding: MySurveyDetailListBinding(),
     ),
+    GetPage(
+      name: mySurveyResponse,
+      page: () => MySurveyResponseList(),
+      binding: MySurveyResponseBinding(),
+    ),
+
     //survey detail multiple
     GetPage(
       name: surveyDetailsPreview,
       page: () => SurveyDetailsMultipleView(),
       binding: SurveyDetailMultipleBinding(),
     ),
+ 
+    
 
     //<============================== Executive ==============================>
     GetPage(
