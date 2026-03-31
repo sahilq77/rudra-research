@@ -7,6 +7,8 @@ class MyReportSurveyChartController extends GetxController {
   var surveyData = <SurveyData>[].obs;
   final RxBool isLoading = true.obs;
   SurveyReportData? reportData;
+  List<LocationHierarchy> get locationHierarchy =>
+      reportData?.locationHierarchy ?? [];
 
   @override
   void onInit() {
@@ -33,7 +35,7 @@ class MyReportSurveyChartController extends GetxController {
               Colors.green,
               Colors.purple,
               Colors.pink,
-              Colors.blue
+              Colors.blue,
             ];
             return ChartSection(
               value: e.value.peopleDetails.length.toDouble(),
@@ -50,7 +52,7 @@ class MyReportSurveyChartController extends GetxController {
       final genderColors = {
         '0': Colors.cyan,
         '1': Colors.pink,
-        '2': Colors.orange
+        '2': Colors.orange,
       };
       surveyData.add(
         SurveyData(
@@ -76,7 +78,7 @@ class MyReportSurveyChartController extends GetxController {
               Colors.deepPurpleAccent,
               Colors.orange,
               Colors.green,
-              Colors.purple
+              Colors.purple,
             ];
             return ChartSection(
               value: e.value.peopleDetails.length.toDouble(),
@@ -98,7 +100,7 @@ class MyReportSurveyChartController extends GetxController {
               Colors.orange,
               Colors.deepPurpleAccent,
               Colors.pink,
-              Colors.green
+              Colors.green,
             ];
             return ChartSection(
               value: e.value.length.toDouble(),
@@ -119,7 +121,7 @@ class MyReportSurveyChartController extends GetxController {
               Colors.cyan,
               Colors.orange,
               Colors.green,
-              Colors.purple
+              Colors.purple,
             ];
             return ChartSection(
               value: e.value.peopleDetails.length.toDouble(),
@@ -141,7 +143,7 @@ class MyReportSurveyChartController extends GetxController {
               Colors.purple,
               Colors.deepPurpleAccent,
               Colors.blue,
-              Colors.orange
+              Colors.orange,
             ];
             return ChartSection(
               value: double.tryParse(e.value.responseCount) ?? 0.0,
@@ -152,49 +154,8 @@ class MyReportSurveyChartController extends GetxController {
         ),
       );
     }
-    // Ward Count
-    if (reportData!.wardDetail.isNotEmpty) {
-      surveyData.add(
-        SurveyData(
-          title: 'Ward Count (${reportData!.wardCount})',
-          sections: reportData!.wardDetail.asMap().entries.map((e) {
-            final colors = [
-              Colors.deepPurpleAccent,
-              Colors.cyan,
-              Colors.orange,
-              Colors.green
-            ];
-            return ChartSection(
-              value: double.tryParse(e.value.responseCount) ?? 0.0,
-              color: colors[e.key % colors.length],
-              label: e.value.wardName,
-            );
-          }).toList(),
-        ),
-      );
-    }
-    // Area Count
-    if (reportData!.villageAreaDetail.isNotEmpty) {
-      surveyData.add(
-        SurveyData(
-          title: 'Area Count (${reportData!.villageAreaCount})',
-          sections: reportData!.villageAreaDetail.asMap().entries.map((e) {
-            final colors = [
-              Colors.cyan,
-              Colors.deepPurpleAccent,
-              Colors.pink,
-              Colors.orange,
-              Colors.green
-            ];
-            return ChartSection(
-              value: double.tryParse(e.value.responseCount) ?? 0.0,
-              color: colors[e.key % colors.length],
-              label: e.value.areaName,
-            );
-          }).toList(),
-        ),
-      );
-    }
+    // Ward Count - REMOVED (replaced by location hierarchy section)
+    // Area Count - REMOVED (replaced by location hierarchy section)
   }
 
   // Method to handle refresh action

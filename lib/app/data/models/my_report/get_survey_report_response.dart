@@ -46,6 +46,7 @@ class SurveyReportData {
   List<WardDetail> wardDetail;
   String villageAreaCount;
   List<VillageAreaDetail> villageAreaDetail;
+  List<LocationHierarchy> locationHierarchy;
 
   SurveyReportData({
     required this.totalResponses,
@@ -65,6 +66,7 @@ class SurveyReportData {
     required this.wardDetail,
     required this.villageAreaCount,
     required this.villageAreaDetail,
+    required this.locationHierarchy,
   });
 
   factory SurveyReportData.fromJson(Map<String, dynamic> json) {
@@ -114,6 +116,10 @@ class SurveyReportData {
               ?.map((e) => VillageAreaDetail.fromJson(e))
               .toList() ??
           [],
+      locationHierarchy: (json['location_hierarchy'] as List?)
+              ?.map((e) => LocationHierarchy.fromJson(e))
+              .toList() ??
+          [],
     );
   }
 
@@ -138,6 +144,7 @@ class SurveyReportData {
       'ward_detail': wardDetail.map((e) => e.toJson()).toList(),
       'village_area_count': villageAreaCount,
       'village_area_detail': villageAreaDetail.map((e) => e.toJson()).toList(),
+      'location_hierarchy': locationHierarchy.map((e) => e.toJson()).toList(),
     };
   }
 }
@@ -369,4 +376,94 @@ List<GetSurveyReportResponse> getSurveyReportResponseFromJson(String str) {
 String getSurveyReportResponseToJson(List<GetSurveyReportResponse> data) {
   final dyn = data.map((item) => item.toJson()).toList();
   return json.encode(dyn);
+}
+
+class VillageHierarchy {
+  String villageAreaId;
+  String areaName;
+  String villageResponseCount;
+
+  VillageHierarchy({
+    required this.villageAreaId,
+    required this.areaName,
+    required this.villageResponseCount,
+  });
+
+  factory VillageHierarchy.fromJson(Map<String, dynamic> json) =>
+      VillageHierarchy(
+        villageAreaId: json['village_area_id']?.toString() ?? '',
+        areaName: json['area_name']?.toString() ?? '',
+        villageResponseCount:
+            json['village_response_count']?.toString() ?? '0',
+      );
+
+  Map<String, dynamic> toJson() => {
+        'village_area_id': villageAreaId,
+        'area_name': areaName,
+        'village_response_count': villageResponseCount,
+      };
+}
+
+class WardHierarchy {
+  String wardId;
+  String wardName;
+  String wardResponseCount;
+  List<VillageHierarchy> villages;
+
+  WardHierarchy({
+    required this.wardId,
+    required this.wardName,
+    required this.wardResponseCount,
+    required this.villages,
+  });
+
+  factory WardHierarchy.fromJson(Map<String, dynamic> json) => WardHierarchy(
+        wardId: json['ward_id']?.toString() ?? '',
+        wardName: json['ward_name']?.toString() ?? '',
+        wardResponseCount: json['ward_response_count']?.toString() ?? '0',
+        villages: (json['villages'] as List?)
+                ?.map((e) => VillageHierarchy.fromJson(e))
+                .toList() ??
+            [],
+      );
+
+  Map<String, dynamic> toJson() => {
+        'ward_id': wardId,
+        'ward_name': wardName,
+        'ward_response_count': wardResponseCount,
+        'villages': villages.map((e) => e.toJson()).toList(),
+      };
+}
+
+class LocationHierarchy {
+  String assemblyId;
+  String assemblyName;
+  String assemblyResponseCount;
+  List<WardHierarchy> wards;
+
+  LocationHierarchy({
+    required this.assemblyId,
+    required this.assemblyName,
+    required this.assemblyResponseCount,
+    required this.wards,
+  });
+
+  factory LocationHierarchy.fromJson(Map<String, dynamic> json) =>
+      LocationHierarchy(
+        assemblyId: json['assembly_id']?.toString() ?? '',
+        assemblyName: json['assembly_name']?.toString() ?? '',
+        assemblyResponseCount:
+            json['assembly_response_count']?.toString() ?? '0',
+        wards: (json['wards'] as List?)
+                ?.map((e) => WardHierarchy.fromJson(e))
+                .toList() ??
+            [],
+      );
+
+  Map<String, dynamic> toJson() => {
+        'assembly_id': assemblyId,
+        'assembly_name': assemblyName,
+        'assembly_response_count': assemblyResponseCount,
+        'wards': wards.map((e) => e.toJson()).toList(),
+      };
 }
