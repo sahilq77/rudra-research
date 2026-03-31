@@ -29,6 +29,9 @@ class _OtpViewState extends State<OtpView> with CodeAutoFill {
     SmsAutoFill().getAppSignature.then((signature) {
       AppLogger.d('App Signature: $signature');
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.focusNode.requestFocus();
+    });
   }
 
   @override
@@ -60,7 +63,6 @@ class _OtpViewState extends State<OtpView> with CodeAutoFill {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 SizedBox(height: ResponsiveHelper.spacing(60)),
-                // Logo without background
                 Image.asset(
                   AppImages.appLogo,
                   height: ResponsiveHelper.spacing(80),
@@ -72,7 +74,7 @@ class _OtpViewState extends State<OtpView> with CodeAutoFill {
                   style: AppStyle.heading2PoppinsBlack.responsive,
                   textAlign: TextAlign.center,
                 ),
-                SizedBox(height: ResponsiveHelper.spacing(24)),
+                SizedBox(height: ResponsiveHelper.spacing(12)),
                 Text(
                   'Please enter the 6 digit security code we just sent you at ${controller.maskedPhone}',
                   style: AppStyle.bodyRegularPoppinsBlack.responsive,
@@ -81,12 +83,11 @@ class _OtpViewState extends State<OtpView> with CodeAutoFill {
                   overflow: TextOverflow.visible,
                 ),
                 SizedBox(height: ResponsiveHelper.spacing(32)),
-                // OTP Input - 6 digits
                 Pinput(
                   length: 6,
                   controller: controller.otpController,
                   focusNode: controller.focusNode,
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   defaultPinTheme: PinTheme(
                     width: ResponsiveHelper.spacing(45),
                     height: ResponsiveHelper.spacing(45),
@@ -152,27 +153,34 @@ class _OtpViewState extends State<OtpView> with CodeAutoFill {
                   onCompleted: (value) {
                     controller.verify();
                   },
-                  onChanged: (value) {
-                    if (value.length == 6) {
-                      controller.verify();
-                    }
-                  },
                   keyboardType: TextInputType.number,
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,
                   ],
                 ),
-                SizedBox(height: ResponsiveHelper.spacing(48)),
-                // Verify Code Button
-                SizedBox(
-                  height: ResponsiveHelper.spacing(56),
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: controller.verify,
-                    style: AppButtonStyles.elevatedMediumPrimary(),
-                    child: ResponsiveHelper.safeText(
-                      'Verify Code',
-                      style: AppStyle.buttonTextSmallPoppinsWhite.responsive,
+                SizedBox(height: ResponsiveHelper.spacing(40)),
+                Obx(
+                  () => SizedBox(
+                    height: ResponsiveHelper.spacing(45),
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed:
+                          controller.isLoading.value ? null : controller.verify,
+                      style: AppButtonStyles.elevatedMediumPrimary(),
+                      child: controller.isLoading.value
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: AppColors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(
+                              'Verify Code',
+                              style: AppStyle
+                                  .buttonTextSmallPoppinsWhite.responsive,
+                            ),
                     ),
                   ),
                 ),

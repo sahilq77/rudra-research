@@ -4,14 +4,19 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:rudra/app/data/local/survey_local_repository.dart';
+import 'package:rudra/app/data/models/dashboard/get_dashboard_counter_response.dart';
 import 'package:rudra/app/data/network/exceptions.dart';
 import 'package:rudra/app/data/network/networkcall.dart';
+import 'package:rudra/app/data/service/survey_data_service.dart';
+import 'package:rudra/app/data/service/sync_service.dart';
 import 'package:rudra/app/data/urls.dart';
 import 'package:rudra/app/widgets/app_snackbar_styles.dart'
     show AppSnackbarStyles;
+import 'package:rudra/app/widgets/connctivityservice.dart';
 
 import '../../../data/models/home/get_live_survey_response.dart';
-import '../../../routes/app_routes.dart';
+import '../../../utils/app_colors.dart';
 import '../../../utils/app_images.dart';
 import '../../../utils/app_logger.dart';
 import '../../../utils/app_utility.dart';
@@ -26,6 +31,11 @@ class HomeController extends GetxController {
   final int limit = 10;
   RxBool hasMoreData = true.obs;
   RxBool isLoadingMore = false.obs;
+  RxBool hasPaginated = false.obs;
+  final SurveyLocalRepository _localRepo = SurveyLocalRepository();
+  final ConnectivityService _connectivityService =
+      Get.find<ConnectivityService>();
+  late SurveyDataService _surveyDataService;
   int get userRole => userRoleRx.value;
 
   // Check if user is Manager
@@ -40,6 +50,12 @@ class HomeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    if (Get.isRegistered<SurveyDataService>()) {
+      _surveyDataService = Get.find<SurveyDataService>();
+    } else {
+      _surveyDataService = Get.put(SurveyDataService());
+    }
+
     final args = Get.arguments;
     if (args != null && args['userRole'] != null) {
       userRoleRx.value = args['userRole'] as int;
@@ -47,39 +63,67 @@ class HomeController extends GetxController {
       userRoleRx.value = AppUtility.userRole ?? 0;
     }
 
+    _initializeData();
+  }
+
+  Future<void> _initializeData() async {
+    await AppUtility.fetchAndUpdateTeamIds(Get.context!);
+    fetchDashboardCounters(context: Get.context!);
     fetchLiveSurveys(context: Get.context!);
+    fetchPendingSubmissionsCount();
   }
 
   // Get filtered dashboard stats based on role
+  final RxString dailyAssignTarget = '0'.obs;
+  final RxString targetCompleted = '0'.obs;
+  final RxString inProgress = '0'.obs;
+  final RxString notStartedSurveys = '0'.obs;
+
+  final RxInt pendingSubmissionsCount = 0.obs;
+
+  Future<void> fetchPendingSubmissionsCount() async {
+    try {
+      final count = await _localRepo.getPendingSubmissionsCount();
+      pendingSubmissionsCount.value = count;
+      log('Pending submissions count: $count');
+    } catch (e) {
+      log('Error fetching pending submissions count: $e');
+    }
+  }
+
   List<Map<String, dynamic>> get dashboardStats {
     final allStats = [
       {
         'title': 'Daily Assigned Target',
-        'value': '1000',
-        'color': const Color(0xFFFFF9C4), // Yellow
+        'value': dailyAssignTarget.value,
+        'color': AppColors.dailyTargetBackground,
+        'borderColor': AppColors.dailyTargetBorder,
         'imagePath': AppImages.dailyTarget,
-        'textColor': Colors.black,
+        'textColor': const Color(0xFF4A4A4A),
       },
       {
         'title': 'Assigned Target Completed',
-        'value': '800',
-        'color': const Color(0xFFD7F5DC), // Light Green
+        'value': targetCompleted.value,
+        'color': const Color(0xFFE9F9EF),
+        'borderColor': const Color(0xFFA3EFC0),
         'imagePath': AppImages.targetCompleted,
-        'textColor': Colors.black,
+        'textColor': const Color(0xFF4A4A4A),
       },
       {
         'title': 'Number Of Surveys In Progress',
-        'value': '1500',
-        'color': const Color(0xFFD6EBFF), // Light Blue
+        'value': inProgress.value,
+        'color': const Color(0xFFE6F4FF),
+        'borderColor': const Color(0xFF99D6FF),
         'imagePath': AppImages.surveyInProgress,
-        'textColor': Colors.black,
+        'textColor': const Color(0xFF4A4A4A),
       },
       {
         'title': 'Number Of Pending Surveys',
-        'value': '500',
-        'color': const Color(0xFFFFE9D5), // Light Orange
+        'value': notStartedSurveys.value,
+        'color': const Color(0xFFFFF4E6),
+        'borderColor': const Color(0xFFFFD699),
         'imagePath': AppImages.pendingSurvey,
-        'textColor': Colors.black,
+        'textColor': const Color(0xFF4A4A4A),
       },
     ];
 
@@ -104,10 +148,20 @@ class HomeController extends GetxController {
     bool forceFetch = false,
   }) async {
     try {
+      // Check internet connectivity first
+      final isConnected = await _connectivityService.checkConnectivity();
+
       if (reset) {
         offset.value = 0;
         liveSurveysList.clear();
         hasMoreData.value = true;
+        // Only clear local cache on reset if user is online
+        if (isConnected) {
+          await _localRepo.clearSurveys();
+          log('Online: Cleared local cache on reset');
+        } else {
+          log('Offline: Skipped clearing local cache on reset');
+        }
       }
       if (!hasMoreData.value && !reset) {
         log('No more data to fetch');
@@ -116,24 +170,35 @@ class HomeController extends GetxController {
 
       if (isPagination) {
         isLoadingMore.value = true;
+        hasPaginated.value = true;
       } else {
         isLoading.value = true;
       }
       errorMessage.value = '';
 
+      if (!isConnected) {
+        // Load from local database (offline mode)
+        log('No internet, loading from local DB');
+        await _loadSurveysFromLocal();
+        return;
+      }
+
+      // ONLINE MODE: Fetch from API
+
       final jsonBody = {
         "team_id": AppUtility.teamId,
-        // "role_id": AppUtility.roleId,
+        "user_id": AppUtility.userID ?? "",
+        "limit": limit.toString(),
+        "offset": offset.value.toString(),
       };
 
       List<GetLiveSurveyListResponse>? response =
           (await Networkcall().postMethod(
-                Networkutility.getLiveSurveyListApi,
-                Networkutility.getLiveSurveyList,
-                jsonEncode(jsonBody),
-                context,
-              ))
-              as List<GetLiveSurveyListResponse>?;
+        Networkutility.getLiveSurveyListApi,
+        Networkutility.getLiveSurveyList,
+        jsonEncode(jsonBody),
+        context,
+      )) as List<GetLiveSurveyListResponse>?;
 
       if (response != null && response.isNotEmpty) {
         if (response[0].status == "true") {
@@ -143,18 +208,26 @@ class HomeController extends GetxController {
             hasMoreData.value = false;
             log('No more data or fewer items received: ${surveys.length}');
           }
+
+          // Add surveys to UI list
           for (var survey in surveys) {
             liveSurveysList.add(
               LiveSurveyData(
-                surveyId: survey.surveyId,
-                surveyTitle: survey.surveyTitle,
-                districtName: survey.districtName,
-                isLive: survey.isLive
-              ),
+                  surveyId: survey.surveyId,
+                  surveyTitle: survey.surveyTitle,
+                  districtName: survey.districtName,
+                  isLive: survey.isLive),
             );
           }
+
+          // Save to local database for offline access
+          await _saveSurveysToLocal(surveys);
+
+          // Fetch complete survey data in background
+          _fetchSurveyDataInBackground(context, surveys);
+
           offset.value += limit;
-          log('Offset updated to: ${offset.value}');
+          log('Online: Added ${surveys.length} surveys to list, offset: ${offset.value}');
         } else {
           hasMoreData.value = false;
           errorMessage.value = 'No surveys found';
@@ -176,18 +249,15 @@ class HomeController extends GetxController {
     } on NoInternetException catch (e) {
       errorMessage.value = e.message;
       log('NoInternetException: ${e.message}');
-      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+      await _loadSurveysFromLocal();
     } on TimeoutException catch (e) {
       errorMessage.value = e.message;
       log('TimeoutException: ${e.message}');
-      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+      await _loadSurveysFromLocal();
     } on HttpException catch (e) {
       errorMessage.value = '${e.message} (Code: ${e.statusCode})';
       log('HttpException: ${e.message} (Code: ${e.statusCode})');
-      AppSnackbarStyles.showError(
-        title: 'Error',
-        message: '${e.message} (Code: ${e.statusCode})',
-      );
+      await _loadSurveysFromLocal();
     } on ParseException catch (e) {
       errorMessage.value = e.message;
       log('ParseException: ${e.message}');
@@ -195,109 +265,174 @@ class HomeController extends GetxController {
     } catch (e) {
       errorMessage.value = 'Unexpected error: $e';
       log('Unexpected error: $e');
-      AppSnackbarStyles.showError(
-        title: 'Error',
-        message: 'Unexpected error: $e',
-      );
+      await _loadSurveysFromLocal();
     } finally {
       isLoading.value = false;
       isLoadingMore.value = false;
     }
   }
 
-  // Refresh data for pull-to-refresh
+  Future<void> _saveSurveysToLocal(List<LiveSurveyData> surveys) async {
+    try {
+      final surveyMaps = surveys
+          .map((s) => {
+                'survey_id': s.surveyId,
+                'survey_title': s.surveyTitle,
+                'district_name': s.districtName,
+                'is_live': s.isLive,
+              })
+          .toList();
+
+      await _localRepo.saveSurveys(surveyMaps);
+      log('Saved ${surveys.length} surveys to local DB');
+    } catch (e) {
+      log('Error saving surveys to local: $e');
+    }
+  }
+
+  Future<void> _loadSurveysFromLocal() async {
+    try {
+      final localSurveys = await _localRepo.getSurveys();
+
+      if (localSurveys.isEmpty) {
+        AppSnackbarStyles.showInfo(
+          title: 'Offline Mode',
+          message: 'No cached surveys available',
+        );
+        return;
+      }
+
+      // Convert local data to LiveSurveyData objects
+      final surveys = localSurveys
+          .map((survey) => LiveSurveyData(
+                surveyId: survey['survey_id'],
+                surveyTitle: survey['survey_title'],
+                districtName: survey['district_name'] ?? '',
+                isLive: survey['is_live'] ?? '0',
+              ))
+          .toList();
+
+      // Replace entire list with cached surveys (no duplicates)
+      liveSurveysList.assignAll(surveys);
+
+      hasMoreData.value = false;
+      AppSnackbarStyles.showInfo(
+        title: 'Offline Mode',
+        message: 'Showing ${localSurveys.length} cached surveys',
+      );
+      log('Offline: Loaded ${localSurveys.length} surveys from local DB');
+    } catch (e) {
+      log('Error loading surveys from local: $e');
+    }
+  }
+
+  // Background survey data fetching
+  void _fetchSurveyDataInBackground(
+    BuildContext context,
+    List<LiveSurveyData> surveys,
+  ) {
+    AppLogger.i(
+      '🔄 Starting background fetch for ${surveys.length} surveys',
+      tag: 'HomeController',
+    );
+
+    final surveyIds = surveys.map((s) => s.surveyId).toList();
+
+    // Run in background without blocking UI
+    Future.microtask(() async {
+      try {
+        await _surveyDataService.fetchMultipleSurveysInParallel(
+          surveyIds: surveyIds,
+          context: context,
+        );
+
+        AppLogger.i(
+          '✅ Background fetch completed for ${surveyIds.length} surveys',
+          tag: 'HomeController',
+        );
+      } catch (e, stackTrace) {
+        AppLogger.e(
+          '❌ Background fetch failed',
+          error: e,
+          stackTrace: stackTrace,
+          tag: 'HomeController',
+        );
+      }
+    });
+
+    AppLogger.i(
+      '📤 Background fetch initiated (non-blocking)',
+      tag: 'HomeController',
+    );
+  }
+
+  bool isSurveyDataLoading(String surveyId) {
+    return _surveyDataService.isSurveyLoading(surveyId);
+  }
+
+  Future<bool> isSurveyDataReady(String surveyId) async {
+    return await _surveyDataService.isSurveyDataAvailable(surveyId);
+  }
+
+  Future<void> fetchDashboardCounters({required BuildContext context}) async {
+    try {
+      final jsonBody = {
+        "team_id": AppUtility.teamId,
+        "user_id": AppUtility.userID ?? "",
+        "role_type": AppUtility.userRole.toString(),
+      };
+
+      final response = await Networkcall().postMethod(
+        Networkutility.getDashboardCounterApi,
+        Networkutility.getDashboardCounter,
+        jsonEncode(jsonBody),
+        context,
+      ) as List<GetDashboardCounterResponse>?;
+
+      if (response != null &&
+          response.isNotEmpty &&
+          response[0].status == "true") {
+        final data = response[0].data;
+        dailyAssignTarget.value = data.dailyAssignTarget ?? '0';
+        targetCompleted.value = data.targetCompleted ?? '0';
+        inProgress.value = data.inProgress ?? '0';
+        notStartedSurveys.value = data.notStartedSurveys ?? '0';
+      }
+    } catch (e) {
+      log('Error fetching dashboard counters: $e');
+    }
+  }
+
   Future<void> refresSurveyhData() async {
+    await AppUtility.fetchAndUpdateTeamIds(Get.context!);
+    // Trigger sync of pending submissions
+    if (Get.isRegistered<SyncService>()) {
+      final syncService = Get.find<SyncService>();
+      final syncStarted = await syncService.forceSyncNow();
+      if (!syncStarted) {
+        AppSnackbarStyles.showInfo(
+          title: 'Sync In Progress',
+          message: 'Survey upload is already running in background',
+        );
+      }
+    }
+    await fetchDashboardCounters(context: Get.context!);
     await fetchLiveSurveys(context: Get.context!, reset: true);
   }
 
-  String get userName {
-    return 'Hi, ${AppUtility.fullName ?? ''}';
-  }
+  String get userName => AppUtility.fullName ?? 'User';
 
   String get userRoleText {
-    final roles = ['Manager', 'Executor', 'Validator'];
-    return roles[userRole];
+    if (isManager) return 'Manager';
+    if (isExecutive) return 'Executive';
+    if (isValidator) return 'Validator';
+    return 'User';
   }
 
-  // Get bottom navigation items based on role
- 
-  // void changeTab(int index) {
-  //   currentIndex.value = index;
-
-  //   // Navigate based on tab selection
-  //   if (isManager) {
-  //     // Manager navigation (5 tabs)
-  //     switch (index) {
-  //       case 0:
-  //         // Already on Home, do nothing
-  //         AppLogger.d('Home tab selected', tag: 'HomeController');
-  //         break;
-  //       case 1:
-  //         AppLogger.d('My Report tab selected', tag: 'HomeController');
-  //         Get.toNamed(AppRoutes.myreport);
-  //         // Get.snackbar(
-  //         //   'Coming Soon',
-  //         //   'My Report feature will be available soon',
-  //         //   snackPosition: SnackPosition.TOP,
-  //         //   duration: const Duration(seconds: 2),
-  //         // );
-  //         break;
-  //       case 2:
-  //         AppLogger.d('My Team tab selected', tag: 'HomeController');
-  //         Get.toNamed(AppRoutes.myteam);
-  //         // Get.snackbar(
-  //         //   'Coming Soon',
-  //         //   'My Team feature will be available soon',
-  //         //   snackPosition: SnackPosition.TOP,
-  //         //   duration: const Duration(seconds: 2),
-  //         // );
-  //         break;
-  //       case 3:
-  //         AppLogger.d('My Survey tab selected', tag: 'HomeController');
-  //          Get.toNamed(AppRoutes.mySurvey);
-  //         // Get.snackbar(
-  //         //   'Coming Soon',
-  //         //   'My Survey feature will be available soon',
-  //         //   snackPosition: SnackPosition.TOP,
-  //         //   duration: const Duration(seconds: 2),
-  //         // );
-  //         break;
-  //       case 4:
-  //         AppLogger.d('Profile tab selected', tag: 'HomeController');
-  //         Get.toNamed(AppRoutes.profile);
-  //         break;
-  //     }
-  //   } else {
-  //     // Executive and Validator navigation (3 tabs)
-  //     switch (index) {
-  //       case 0:
-  //         // Already on Home, do nothing
-  //         AppLogger.d('Home tab selected', tag: 'HomeController');
-  //         break;
-  //       case 1:
-  //         AppLogger.d('My Survey tab selected', tag: 'HomeController');
-  //         Get.snackbar(
-  //           'Coming Soon',
-  //           'My Survey feature will be available soon',
-  //           snackPosition: SnackPosition.TOP,
-  //           duration: const Duration(seconds: 2),
-  //         );
-  //         break;
-  //       case 2:
-  //         AppLogger.d('Profile tab selected', tag: 'HomeController');
-  //         Get.toNamed(AppRoutes.profile);
-  //         break;
-  //     }
-  //   }
-  // }
-
-  void refreshData() {
-    AppLogger.d('Refreshing home data', tag: 'HomeController');
-    Get.snackbar(
-      'Refresh',
-      'Data refreshed successfully',
-      snackPosition: SnackPosition.TOP,
-      duration: const Duration(seconds: 2),
-    );
+  void refreshData() async {
+    await AppUtility.fetchAndUpdateTeamIds(Get.context!);
+    fetchDashboardCounters(context: Get.context!);
+    fetchLiveSurveys(context: Get.context!, reset: true);
+    fetchPendingSubmissionsCount();
   }
 }

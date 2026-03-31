@@ -10,13 +10,13 @@ class AppSnackbarStyles {
 
   static const double _radiusMedium = 8.0;
 
-  // Snackbar Margins
+  // Snackbar Margins (added top margin for spacing from SafeArea)
   static const EdgeInsets _margin =
-      EdgeInsets.symmetric(horizontal: 16, vertical: 12);
+      EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 8);
 
-  // Snackbar Padding
+  // Snackbar Padding (reduced for smaller size)
   static const EdgeInsets _padding =
-      EdgeInsets.symmetric(horizontal: 16, vertical: 12);
+      EdgeInsets.symmetric(horizontal: 12, vertical: 10);
 
   // ============ SUCCESS SNACKBAR ============
 
@@ -27,30 +27,52 @@ class AppSnackbarStyles {
     double? borderRadius,
   }) {
     Get.snackbar(
-      title,
-      message,
+      '',
+      '',
       snackPosition: SnackPosition.TOP,
-      backgroundColor: Colors.green.shade600,
-      colorText: AppColors.white,
+      backgroundColor: AppColors.lightGreen,
       duration: duration ?? _durationMedium,
       margin: _margin,
-      padding: _padding,
+      padding: EdgeInsets.zero,
       borderRadius: borderRadius ?? _radiusMedium,
-      icon: const Icon(
-        Icons.check_circle_rounded,
-        color: Colors.white,
-        size: 28,
-      ),
-      shouldIconPulse: true,
       isDismissible: true,
       dismissDirection: DismissDirection.horizontal,
-      titleText: Text(
-        title,
-        style: AppStyle.heading1PoppinsWhite,
-      ),
-      messageText: Text(
-        message,
-        style: AppStyle.subheading1PoppinsWhite,
+      titleText: const SizedBox.shrink(),
+      messageText: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(
+              Icons.check_circle_rounded,
+              color: AppColors.darkGreen,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: '$title : ',
+                      style: AppStyle.headingSmallPoppinsBlack.copyWith(
+                        color: AppColors.darkGreen,
+                        fontSize: 14,
+                      ),
+                    ),
+                    TextSpan(
+                      text: message,
+                      style: AppStyle.bodySmallPoppinsBlack.copyWith(
+                        color: AppColors.darkGreen,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -64,30 +86,52 @@ class AppSnackbarStyles {
     double? borderRadius,
   }) {
     Get.snackbar(
-      title,
-      message,
+      '',
+      '',
       snackPosition: SnackPosition.TOP,
-      backgroundColor: Colors.red.shade600,
-      colorText: AppColors.white,
+      backgroundColor: AppColors.lightRed,
       duration: duration ?? _durationMedium,
       margin: _margin,
-      padding: _padding,
+      padding: EdgeInsets.zero,
       borderRadius: borderRadius ?? _radiusMedium,
-      icon: const Icon(
-        Icons.error_rounded,
-        color: Colors.white,
-        size: 28,
-      ),
-      shouldIconPulse: true,
       isDismissible: true,
       dismissDirection: DismissDirection.horizontal,
-      titleText: Text(
-        title,
-        style: AppStyle.heading1PoppinsWhite,
-      ),
-      messageText: Text(
-        message,
-        style: AppStyle.subheading1PoppinsWhite,
+      titleText: const SizedBox.shrink(),
+      messageText: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(
+              Icons.error_rounded,
+              color: AppColors.primary,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: '$title : ',
+                      style: AppStyle.headingSmallPoppinsBlack.copyWith(
+                        color: AppColors.primary,
+                        fontSize: 14,
+                      ),
+                    ),
+                    TextSpan(
+                      text: message,
+                      style: AppStyle.bodySmallPoppinsBlack.copyWith(
+                        color: AppColors.primary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

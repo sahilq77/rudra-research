@@ -1,20 +1,18 @@
 // lib/app/modules/survey_question/survey_question_controller.dart
 import 'dart:convert';
-import 'dart:developer';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:record/record.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
-
-import 'package:rudra/app/data/models/survey_question/get_submit_answers_response.dart';
+import 'package:rudra/app/data/local/survey_local_repository.dart';
 import 'package:rudra/app/data/models/survey_question/get_survey_questions_response.dart';
-import 'package:rudra/app/data/network/networkcall.dart';
-import 'package:rudra/app/data/urls.dart';
 import 'package:rudra/app/routes/app_routes.dart';
+import 'package:rudra/app/utils/app_logger.dart';
+import 'package:rudra/app/widgets/connctivityservice.dart';
+
+import '../../../utils/app_utility.dart';
 import '../../../widgets/app_snackbar_styles.dart';
+import '../../audio_recorder/audio_recorder_controller.dart';
 
 class SurveyQuestionController extends GetxController {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
@@ -23,6 +21,9 @@ class SurveyQuestionController extends GetxController {
   //  ALL QUESTIONS FROM API
   // -----------------------------------------------------------------
   RxList<Question> questionDetail = <Question>[].obs;
+  List<Question> allQuestions = []; // Store all questions including contingency
+  RxList<Question> visibleQuestions =
+      <Question>[].obs; // Questions to show based on answers
 
   // -----------------------------------------------------------------
   //  UI STATE
@@ -31,12 +32,16 @@ class SurveyQuestionController extends GetxController {
   RxString selectedAnswerId = ''.obs;
   RxList<String> selectedAnswerIds = <String>[].obs;
   final Map<String, String> answers = {};
+  final Map<String, TextEditingController> textControllers = {};
 
   RxBool isLoadingq = true.obs;
   var errorMessageq = ''.obs;
   RxBool isSubmitting = false.obs;
   late String surveyId = "";
   late String surveyAppId = "";
+  late String languageId = "0";
+  late String zpWardId = "";
+  late String villageAreaId = "";
 
   // -----------------------------------------------------------------
   //  AUDIO RECORDING
@@ -44,6 +49,11 @@ class SurveyQuestionController extends GetxController {
   final AudioRecorder _audioRecorder = AudioRecorder();
   RxBool isRecording = false.obs;
   RxString recordingPath = ''.obs;
+  late AudioRecorderController audioRecorder;
+
+  final SurveyLocalRepository _localRepo = SurveyLocalRepository();
+  final ConnectivityService _connectivityService =
+      Get.find<ConnectivityService>();
 
   // -----------------------------------------------------------------
   //  INIT
@@ -54,74 +64,98 @@ class SurveyQuestionController extends GetxController {
     final args = Get.arguments as Map<String, dynamic>?;
     surveyId = args?['survey_id']?.toString() ?? "";
     surveyAppId = args?['survey_app_side_id']?.toString() ?? "";
+    languageId = args?['language_id']?.toString() ?? "0";
+    zpWardId = args?['zp_ward_id']?.toString() ?? "";
+    villageAreaId = args?['village_area_id']?.toString() ?? "";
+
+    // Get audio recorder instance
+    if (Get.isRegistered<AudioRecorderController>()) {
+      audioRecorder = Get.find<AudioRecorderController>();
+    }
+
+    AppLogger.i(
+      '📋 Survey Question Init:\n'
+      '   survey_id: $surveyId\n'
+      '   survey_app_side_id: $surveyAppId\n'
+      '   language_id: $languageId\n'
+      '   zp_ward_id: $zpWardId\n'
+      '   village_area_id: $villageAreaId',
+      tag: 'SurveyQuestionController',
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (Get.context != null) {
-        fetchallQestions(context: Get.context!, appSideId: surveyAppId);
-      }
+      _loadQuestionsFromCache();
     });
   }
 
   // -----------------------------------------------------------------
-  //  FETCH QUESTIONS
+  //  LOAD QUESTIONS FROM CACHE
   // -----------------------------------------------------------------
-  Future<void> fetchallQestions({
-    required BuildContext context,
-    bool reset = false,
-    required String appSideId,
-  }) async {
+  Future<void> _loadQuestionsFromCache() async {
     try {
       isLoadingq.value = true;
       errorMessageq.value = '';
 
-      final jsonBody = {
-        "survey_app_side_id": appSideId,
-        "limit": "",
-        "offset": "",
-      };
+      AppLogger.i(
+          'Loading questions from cache for survey: $surveyId, language: $languageId',
+          tag: 'SurveyQuestionController');
 
-      final response =
-          await Networkcall().postMethod(
-                Networkutility.getQustionsApi,
-                Networkutility.getQustions,
-                jsonEncode(jsonBody),
-                context,
-              )
-              as List<GetSurveyQuestionsResponse>?;
+      final questions =
+          await _localRepo.getSurveyQuestions(surveyId, languageId);
 
-      if (response != null &&
-          response.isNotEmpty &&
-          response[0].status == "true") {
-        if (reset) {
-          questionDetail.clear();
-          answers.clear();
-          currentIndex.value = 0;
-          selectedAnswerId.value = '';
-          selectedAnswerIds.clear();
-        }
+      if (questions.isNotEmpty) {
+        questionDetail.clear();
+        allQuestions.clear();
+        visibleQuestions.clear();
+        answers.clear();
+        currentIndex.value = 0;
+        selectedAnswerId.value = '';
+        selectedAnswerIds.clear();
 
-        for (var que in response[0].data.questions) {
-          questionDetail.add(
+        for (var q in questions) {
+          allQuestions.add(
             Question(
-              surveyQuestionId: que.surveyQuestionId,
-              questionId: que.questionId,
-              sequenceNumber: que.sequenceNumber,
-              question: que.question,
-              questionType: que.questionType,
-              options: que.options,
+              surveyQuestionId: q['question_id'],
+              questionId: q['question_id'],
+              sequenceNumber: q['sequence_number'],
+              question: q['question'],
+              questionType: q['question_type'],
+              parentQuestionId: q['parent_question_id'],
+              parentOptionId: q['parent_option_id'],
+              options: (q['options'] as List)
+                  .map((o) => Option(
+                        optionId: o['option_id'],
+                        choiceText: o['choice_text'],
+                        textFieldType: o['text_field_type'],
+                      ))
+                  .toList(),
             ),
           );
         }
+
+        _filterOrphanedQuestions();
+        _buildVisibleQuestions();
+
+        AppLogger.i(
+            '✅ Loaded ${allQuestions.length} questions, ${questionDetail.length} visible',
+            tag: 'SurveyQuestionController');
       } else {
-        errorMessageq.value = 'No response from server';
+        AppLogger.w('⚠️ No cached questions found',
+            tag: 'SurveyQuestionController');
+        errorMessageq.value = 'No questions available';
         AppSnackbarStyles.showError(
-          title: 'Error',
-          message: errorMessageq.value,
+          title: 'No Questions',
+          message: 'No questions found for this survey.',
         );
       }
-    } catch (e) {
-      errorMessageq.value = 'Unexpected error: $e';
-      AppSnackbarStyles.showError(title: 'Error', message: errorMessageq.value);
+    } catch (e, stackTrace) {
+      AppLogger.e('Error loading questions from cache',
+          error: e, stackTrace: stackTrace, tag: 'SurveyQuestionController');
+      errorMessageq.value = 'Failed to load questions';
+      AppSnackbarStyles.showError(
+        title: 'Error',
+        message: 'Failed to load questions',
+      );
     } finally {
       isLoadingq.value = false;
     }
@@ -141,14 +175,20 @@ class SurveyQuestionController extends GetxController {
   void nextPage() {
     if (!formKey.currentState!.validate()) return;
 
-    final bool hasAnswer = isMultiSelect
-        ? selectedAnswerIds.isNotEmpty
-        : selectedAnswerId.value.isNotEmpty;
+    final bool hasAnswer = isTextField
+        ? (textControllers[questionDetail[currentIndex.value].questionId]
+                ?.text
+                .trim()
+                .isNotEmpty ??
+            false)
+        : isMultiSelect
+            ? selectedAnswerIds.isNotEmpty
+            : selectedAnswerId.value.isNotEmpty;
 
     if (!hasAnswer) {
       AppSnackbarStyles.showError(
         title: 'Error',
-        message: 'Please select an answer',
+        message: 'Please provide an answer',
       );
       return;
     }
@@ -168,10 +208,18 @@ class SurveyQuestionController extends GetxController {
 
   void _saveCurrentAnswer() {
     final q = questionDetail[currentIndex.value];
-    if (isMultiSelect) {
+    if (isTextField) {
+      final textAnswer = textControllers[q.questionId]?.text.trim() ?? '';
+      answers[q.surveyQuestionId] = textAnswer;
+    } else if (isMultiSelect) {
       answers[q.surveyQuestionId] = jsonEncode(selectedAnswerIds);
     } else {
       answers[q.surveyQuestionId] = selectedAnswerId.value;
+    }
+
+    // Rebuild visible questions if this is a contingency parent
+    if (isContingency || q.questionType == "4") {
+      _buildVisibleQuestions();
     }
   }
 
@@ -179,7 +227,12 @@ class SurveyQuestionController extends GetxController {
     final q = questionDetail[currentIndex.value];
     final saved = answers[q.surveyQuestionId];
 
-    if (isMultiSelect) {
+    if (isTextField) {
+      if (!textControllers.containsKey(q.questionId)) {
+        textControllers[q.questionId] = TextEditingController();
+      }
+      textControllers[q.questionId]!.text = saved ?? '';
+    } else if (isMultiSelect) {
       selectedAnswerIds.clear();
       if (saved != null) {
         final List<dynamic> decoded = jsonDecode(saved);
@@ -195,78 +248,266 @@ class SurveyQuestionController extends GetxController {
     return questionDetail[currentIndex.value].questionType == "1";
   }
 
+  bool get isTextField {
+    if (questionDetail.isEmpty) return false;
+    return questionDetail[currentIndex.value].questionType == "2";
+  }
+
+  bool get isBoolean {
+    if (questionDetail.isEmpty) return false;
+    return questionDetail[currentIndex.value].questionType == "3";
+  }
+
+  bool get isContingency {
+    if (questionDetail.isEmpty) return false;
+    return questionDetail[currentIndex.value].questionType == "4";
+  }
+
+  // Filter out orphaned questions (child questions whose parent doesn't exist)
+  void _filterOrphanedQuestions() {
+    final validQuestionIds = allQuestions.map((q) => q.questionId).toSet();
+
+    allQuestions.removeWhere((q) {
+      // Keep root questions (no parent)
+      if (q.parentQuestionId == null || q.parentQuestionId!.isEmpty) {
+        return false;
+      }
+
+      // Remove if parent question doesn't exist
+      final hasParent = validQuestionIds.contains(q.parentQuestionId);
+      if (!hasParent) {
+        AppLogger.w(
+          '🚫 Filtering orphaned question: ${q.questionId} (parent: ${q.parentQuestionId} not found)',
+          tag: 'SurveyQuestionController',
+        );
+      }
+      return !hasParent;
+    });
+  }
+
+  // Build visible questions based on answers
+  void _buildVisibleQuestions() {
+    visibleQuestions.clear();
+
+    // Add root questions (no parent)
+    for (var q in allQuestions) {
+      if (q.parentQuestionId == null || q.parentQuestionId!.isEmpty) {
+        visibleQuestions.add(q);
+        _addChildQuestions(q.questionId);
+      }
+    }
+
+    questionDetail.assignAll(visibleQuestions);
+  }
+
+  // Recursively add child questions if parent option is selected
+  void _addChildQuestions(String parentQuestionId) {
+    final parentAnswer = answers.entries
+        .firstWhere(
+          (e) => allQuestions.any((q) =>
+              q.surveyQuestionId == e.key && q.questionId == parentQuestionId),
+          orElse: () => const MapEntry('', ''),
+        )
+        .value;
+
+    if (parentAnswer.isEmpty) return;
+
+    // Handle multiple select (JSON array)
+    List<String> selectedOptions = [];
+    if (parentAnswer.startsWith('[')) {
+      selectedOptions = List<String>.from(jsonDecode(parentAnswer));
+    } else {
+      selectedOptions = [parentAnswer];
+    }
+
+    // Find and add child questions
+    for (var q in allQuestions) {
+      if (q.parentQuestionId == parentQuestionId &&
+          selectedOptions.contains(q.parentOptionId)) {
+        visibleQuestions.add(q);
+        _addChildQuestions(q.questionId); // Recursive for nested contingency
+      }
+    }
+  }
+
   Future<void> _submitAllAnswers() async {
-    if (isSubmitting.value) return;
+    if (isSubmitting.value) {
+      AppLogger.w('⚠️ Already submitting, ignoring duplicate call',
+          tag: 'SurveyQuestionController');
+      return;
+    }
     isSubmitting.value = true;
 
     try {
+      AppLogger.i('🚀 Starting survey submission (offline-first)',
+          tag: 'SurveyQuestionController');
+      AppLogger.i(
+          '📊 Current state: questionDetail.length=${questionDetail.length}',
+          tag: 'SurveyQuestionController');
+
       Get.dialog(
         const Center(child: CircularProgressIndicator()),
         barrierDismissible: false,
       );
+      AppLogger.i('✅ Loading dialog shown', tag: 'SurveyQuestionController');
 
-      final List<Map<String, String>> payloadQuestions = answers.entries.map((
-        e,
-      ) {
-        return {"question_id": e.key, "answer_id": e.value};
-      }).toList();
+      final List<Map<String, dynamic>> payloadQuestions = [];
 
-      final jsonBody = {
-        "survey_app_side_id": surveyId,
-        "questions": payloadQuestions,
-      };
+      for (var q in questionDetail) {
+        final answer = answers[q.surveyQuestionId];
+        if (answer == null || answer.isEmpty) continue;
 
-      final response =
-          await Networkcall().postMethod(
-                Networkutility.submitQuestionAnswerApi,
-                Networkutility.submitQuestionAnswer,
-                jsonEncode(jsonBody),
-                Get.context!,
-              )
-              as List<GetSubmitAnswersResponse>?;
-
-      Get.back();
-
-      if (response != null &&
-          response.isNotEmpty &&
-          response[0].status == "true") {
-        AppSnackbarStyles.showSuccess(
-          title: 'Success',
-          message: "Survey submitted!",
-        );
-
-        questionDetail.clear();
-        answers.clear();
-        currentIndex.value = 0;
-        selectedAnswerId.value = '';
-        selectedAnswerIds.clear();
-
-        Get.offNamed(
-          AppRoutes.surveyInterviewer,
-          arguments: {'survey_id': surveyId, 'survey_app_side_id': surveyAppId},
-        );
-      } else {
-        final msg = response?[0].message ?? "Submission failed";
-        AppSnackbarStyles.showError(title: 'Failed', message: msg);
+        if (q.questionType == "2") {
+          // Text field type
+          final textFieldType =
+              q.options.isNotEmpty ? q.options.first.textFieldType : "0";
+          payloadQuestions.add({
+            "question_id": q.questionId,
+            "question_type": "2",
+            "text_field_type": textFieldType ?? "0",
+            "answer": answer,
+          });
+        } else if (q.questionType == "1") {
+          // Multi-select - answer is JSON array string
+          final List<dynamic> answerIds = jsonDecode(answer);
+          payloadQuestions.add({
+            "question_id": q.questionId,
+            "answer_id": answerIds,
+          });
+        } else {
+          // Single select (Boolean, Contingency) - answer is single ID
+          payloadQuestions.add({
+            "question_id": q.questionId,
+            "answer_id": answer,
+          });
+        }
       }
-    } catch (e) {
+
+      AppLogger.d('Prepared ${payloadQuestions.length} answers',
+          tag: 'SurveyQuestionController');
+
+      // Always save locally first (offline-first approach)
+      await _saveSubmissionLocally(payloadQuestions);
+
+      // Close dialog BEFORE navigation
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
+
+      // Small delay to ensure dialog closes
+      await Future.delayed(const Duration(milliseconds: 100));
+    } catch (e, stackTrace) {
+      AppLogger.e('Error during submission',
+          error: e, stackTrace: stackTrace, tag: 'SurveyQuestionController');
       Get.back();
       AppSnackbarStyles.showError(
         title: 'Error',
-        message: 'Submission failed: $e',
+        message: 'Failed to save survey',
       );
     } finally {
       isSubmitting.value = false;
     }
   }
 
+  Future<void> _saveSubmissionLocally(
+      List<Map<String, dynamic>> payloadQuestions) async {
+    try {
+      AppLogger.i(
+        '\n${'💾 ' * 20}\n💾 SAVING OFFLINE SUBMISSION\n${'💾 ' * 20}',
+        tag: 'SurveyQuestionController',
+      );
+
+      // Get audio path from AudioRecorderController
+      String audioPath = '';
+      if (Get.isRegistered<AudioRecorderController>()) {
+        final recorder = Get.find<AudioRecorderController>();
+        audioPath = recorder.recordingPath.value;
+      }
+
+      AppLogger.d(
+        '🎤 Audio path: ${audioPath.isEmpty ? "No audio" : audioPath}\n'
+        '📋 survey_app_side_id: $surveyAppId\n'
+        '🆔 offline_survey_id: $surveyAppId (from survey_details page)',
+        tag: 'SurveyQuestionController',
+      );
+
+      AppLogger.d(
+        '📊 Preparing submission data:\n'
+        '  surveyId: $surveyId\n'
+        '  languageId: $languageId\n'
+        '  zpWardId: "$zpWardId"\n'
+        '  villageAreaId: "$villageAreaId" (length: ${villageAreaId.length})\n'
+        '  surveyAppId: $surveyAppId',
+        tag: 'SurveyQuestionController',
+      );
+
+      final submission = {
+        'survey_app_side_id': '',
+        'offline_survey_id': surveyAppId,
+        'survey_id': surveyId,
+        'survey_language_id': languageId,
+        'zp_ward_id': zpWardId,
+        'village_area_id': villageAreaId,
+        'user_id': AppUtility.userID ?? '',
+        'interviewer_name': '',
+        'interviewer_age': '',
+        'interviewer_gender': '',
+        'interviewer_phone': '',
+        'interviewer_cast': '',
+        'answers': jsonEncode(payloadQuestions),
+        'audio_path': audioPath,
+        'completion_stage': 'interviewer_info',
+      };
+
+      AppLogger.d(
+        '💾 Submission map before save:\n'
+        '  village_area_id in map: "${submission['village_area_id']}"',
+        tag: 'SurveyQuestionController',
+      );
+
+      await _localRepo.savePendingSubmission(submission);
+
+      AppLogger.i(
+        '✅ Submission saved locally',
+        tag: 'SurveyQuestionController',
+      );
+
+      AppLogger.i(
+        '\n${'=' * 80}\n📋 PENDING SUBMISSION DATA:\n${'=' * 80}\n'
+        'offline_survey_id: $surveyAppId\n'
+        'survey_id: $surveyId\n'
+        'survey_language_id: $languageId\n'
+        'zp_ward_id: $zpWardId\n'
+        'village_area_id: $villageAreaId\n'
+        'user_id: ${AppUtility.userID}\n'
+        'answers_count: ${payloadQuestions.length}\n'
+        'audio_path: $audioPath\n'
+        '${'=' * 80}',
+        tag: 'SurveyQuestionController',
+      );
+
+      AppLogger.i('🚀 Navigating to interviewer page',
+          tag: 'SurveyQuestionController');
+
+      // Navigate to interviewer page
+      Get.offNamed(
+        AppRoutes.surveyInterviewer,
+        arguments: {'survey_id': surveyId, 'survey_app_side_id': surveyAppId},
+      );
+    } catch (e, stackTrace) {
+      AppLogger.e(
+        '❌ Failed to save submission locally',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'SurveyQuestionController',
+      );
+      rethrow;
+    }
+  }
+
   Future<void> refreshPage() async {
     await Future.delayed(const Duration(seconds: 1));
-    await fetchallQestions(
-      context: Get.context!,
-      reset: true,
-      appSideId: surveyId,
-    );
+    await _loadQuestionsFromCache();
     AppSnackbarStyles.showInfo(title: 'Refresh', message: 'Page refreshed');
   }
 
@@ -276,9 +517,4 @@ class SurveyQuestionController extends GetxController {
   }
 
   bool get isLastQuestion => currentIndex.value == questionDetail.length - 1;
-
-  @override
-  void onClose() {
-    super.onClose();
-  }
 }

@@ -1,4 +1,5 @@
 // lib/app/modules/assigned_survey_target/assigned_survey_target_view.dart
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -11,6 +12,7 @@ import '../../../utils/app_images.dart';
 import '../../../utils/responsive_utils.dart';
 import '../../../widgets/app_button_style.dart';
 import '../../../widgets/app_style.dart';
+import '../../../widgets/custom_shimmer_card.dart';
 import 'assigned_survey_target_controller.dart';
 
 class AssignedSurveyTargetView extends StatefulWidget {
@@ -23,6 +25,34 @@ class AssignedSurveyTargetView extends StatefulWidget {
 
 class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
   final AssignedSurveyTargetController controller = Get.find();
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_loadMore);
+  }
+
+  void _loadMore() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent * 0.9) {
+      if (controller.hasMoreData.value &&
+          !controller.isLoading.value &&
+          !controller.isLoadingMore.value) {
+        controller.fetchAssignSurveyTarget(
+          context: context,
+          isPagination: true,
+          surveyId: controller.surveyId,
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,17 +112,17 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  Icon(Icons.person),
+                  const Icon(Icons.person),
                   Text(' Assign Executive', style: AppStyle.reportCardRowCount),
                 ],
               ),
             ),
-            PopupMenuDivider(),
+            const PopupMenuDivider(),
             PopupMenuItem(
               value: 'add',
               child: Row(
                 children: [
-                  Icon(Icons.person_add),
+                  const Icon(Icons.person_add),
                   Text(' Add Executive', style: AppStyle.reportCardRowCount),
                 ],
               ),
@@ -101,7 +131,7 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
         ),
       ],
       bottom: PreferredSize(
-        preferredSize: Size.fromHeight(0),
+        preferredSize: const Size.fromHeight(0),
         child: Divider(color: AppColors.grey.withOpacity(0.5), height: 0),
       ),
     );
@@ -109,6 +139,7 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
 
   Widget _buildBody() {
     return SingleChildScrollView(
+      controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
       padding: ResponsiveHelper.paddingSymmetric(horizontal: 16, vertical: 16),
       child: Column(
@@ -124,10 +155,10 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
               0,
               (sum, e) => sum + e.currentCount,
             );
-            final remaining = controller.surveyTarget.value - totalAssigned;
+            final remaining = controller.remaningSurveys.value - totalAssigned;
             return Center(
               child: Text(
-                'Remaining: $remaining / ${controller.surveyTarget.value}',
+                'Remaining: $remaining / ${controller.remaningSurveys.value}',
                 style: AppStyle.bodySmallPoppinsPrimary.responsive.copyWith(
                   fontSize: ResponsiveHelper.getResponsiveFontSize(13),
                   fontWeight: FontWeight.w600,
@@ -145,7 +176,7 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
   // ==================== NEW: Distribute Equally Button ====================
   Widget _buildDistributeButton() {
     return Obx(() {
-      final total = controller.surveyTarget.value;
+      final total = controller.remaningSurveys.value;
       final count = controller.filteredExecutorList.length;
       final canDistribute = total > 0 && count > 0;
 
@@ -171,28 +202,40 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
           width: 1,
         ),
       ),
-      child: TextFormField(
-        controller: controller.searchController,
-        onChanged: controller.searchExecutors,
-        inputFormatters: [SecureTextInputFormatter.deny()],
-        decoration: InputDecoration(
-          hintText: 'Search.....',
-          hintStyle: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
+      child: Obx(
+        () => TextFormField(
+          controller: controller.searchController,
+          onChanged: controller.searchExecutors,
+          inputFormatters: [SecureTextInputFormatter.deny()],
+          decoration: InputDecoration(
+            hintText: 'Search.....',
+            hintStyle: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
+              fontSize: ResponsiveHelper.getResponsiveFontSize(14),
+            ),
+            prefixIcon: Icon(
+              Icons.search,
+              color: AppColors.grey,
+              size: ResponsiveHelper.spacing(20),
+            ),
+            suffixIcon: controller.searchQuery.value.isNotEmpty
+                ? IconButton(
+                    icon: Icon(
+                      Icons.cancel,
+                      color: AppColors.grey,
+                      size: ResponsiveHelper.spacing(20),
+                    ),
+                    onPressed: controller.clearSearch,
+                  )
+                : null,
+            border: InputBorder.none,
+            contentPadding: ResponsiveHelper.paddingSymmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+          ),
+          style: AppStyle.bodyRegularPoppinsBlack.responsive.copyWith(
             fontSize: ResponsiveHelper.getResponsiveFontSize(14),
           ),
-          prefixIcon: Icon(
-            Icons.search,
-            color: AppColors.grey,
-            size: ResponsiveHelper.spacing(20),
-          ),
-          border: InputBorder.none,
-          contentPadding: ResponsiveHelper.paddingSymmetric(
-            horizontal: 16,
-            vertical: 12,
-          ),
-        ),
-        style: AppStyle.bodyRegularPoppinsBlack.responsive.copyWith(
-          fontSize: ResponsiveHelper.getResponsiveFontSize(14),
         ),
       ),
     );
@@ -278,6 +321,15 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
 
   Widget _buildExecutorList() {
     return Obx(() {
+      if (controller.isSearching.value) {
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: 3,
+          itemBuilder: (_, __) => const CustomShimmerCard(),
+        );
+      }
+
       if (controller.filteredExecutorList.isEmpty) {
         return Center(
           child: Padding(
@@ -292,13 +344,39 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
         );
       }
 
-      return ListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: controller.filteredExecutorList.length,
-        itemBuilder: (context, index) {
-          return _buildExecutorCard(index);
-        },
+      return Column(
+        children: [
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: controller.filteredExecutorList.length,
+            itemBuilder: (context, index) {
+              return _buildExecutorCard(index);
+            },
+          ),
+          if (controller.isLoadingMore.value)
+            Padding(
+              padding: EdgeInsets.all(ResponsiveHelper.spacing(16)),
+              child: const Center(
+                child: CircularProgressIndicator(
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+          if (!controller.hasMoreData.value &&
+              controller.hasPaginated.value &&
+              controller.filteredExecutorList.isNotEmpty)
+            Padding(
+              padding: EdgeInsets.all(ResponsiveHelper.spacing(16)),
+              child: Text(
+                'No more executors to load',
+                style: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
+                  fontSize: ResponsiveHelper.getResponsiveFontSize(12),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+        ],
       );
     });
   }
@@ -328,18 +406,50 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
             ),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: ResponsiveHelper.spacing(20),
-                  backgroundColor: AppColors.lightGrey.withOpacity(0.3),
-                  child: Text(
-                    executor.executorName.isNotEmpty
-                        ? executor.executorName[0].toUpperCase()
-                        : 'E',
-                    style: AppStyle.bodyBoldPoppinsBlack.responsive.copyWith(
-                      fontSize: ResponsiveHelper.getResponsiveFontSize(16),
-                    ),
-                  ),
-                ),
+                executor.executorImage.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: executor.executorImage,
+                        imageBuilder: (context, imageProvider) => CircleAvatar(
+                          radius: ResponsiveHelper.spacing(20),
+                          backgroundImage: imageProvider,
+                        ),
+                        placeholder: (context, url) => CircleAvatar(
+                          radius: ResponsiveHelper.spacing(20),
+                          backgroundColor: AppColors.lightGrey.withOpacity(0.3),
+                          child: const CircularProgressIndicator(
+                            color: AppColors.primary,
+                            strokeWidth: 2,
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => CircleAvatar(
+                          radius: ResponsiveHelper.spacing(20),
+                          backgroundColor: AppColors.lightGrey.withOpacity(0.3),
+                          child: Text(
+                            executor.executorName.isNotEmpty
+                                ? executor.executorName[0].toUpperCase()
+                                : 'E',
+                            style: AppStyle.bodyBoldPoppinsBlack.responsive
+                                .copyWith(
+                              fontSize:
+                                  ResponsiveHelper.getResponsiveFontSize(16),
+                            ),
+                          ),
+                        ),
+                      )
+                    : CircleAvatar(
+                        radius: ResponsiveHelper.spacing(20),
+                        backgroundColor: AppColors.lightGrey.withOpacity(0.3),
+                        child: Text(
+                          executor.executorName.isNotEmpty
+                              ? executor.executorName[0].toUpperCase()
+                              : 'E',
+                          style:
+                              AppStyle.bodyBoldPoppinsBlack.responsive.copyWith(
+                            fontSize:
+                                ResponsiveHelper.getResponsiveFontSize(16),
+                          ),
+                        ),
+                      ),
                 SizedBox(width: ResponsiveHelper.spacing(12)),
                 Expanded(
                   child: Column(
@@ -347,13 +457,13 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
                     children: [
                       Text(
                         executor.executorName,
-                        style: AppStyle.bodyBoldPoppinsBlack.responsive
-                            .copyWith(
-                              fontSize: ResponsiveHelper.getResponsiveFontSize(
-                                15,
-                              ),
-                              fontWeight: FontWeight.w600,
-                            ),
+                        style:
+                            AppStyle.bodyBoldPoppinsBlack.responsive.copyWith(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            15,
+                          ),
+                          fontWeight: FontWeight.w600,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -362,13 +472,13 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
                         'Status : ${executor.isAssigned ? "Assigned" : "Not Assign"}',
                         style: AppStyle.bodySmallPoppinsPrimary.responsive
                             .copyWith(
-                              fontSize: ResponsiveHelper.getResponsiveFontSize(
-                                11,
-                              ),
-                              color: executor.isAssigned
-                                  ? Colors.green
-                                  : AppColors.primary,
-                            ),
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            11,
+                          ),
+                          color: executor.isAssigned
+                              ? Colors.green
+                              : AppColors.primary,
+                        ),
                       ),
                     ],
                   ),
@@ -420,7 +530,7 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
                 SizedBox(height: ResponsiveHelper.spacing(5)),
                 _buildTargetInfo(
                   'Total Completed Target',
-                  executor.totalAssignedTarget,
+                  executor.totalCompletedTarget,
                 ),
                 SizedBox(height: ResponsiveHelper.spacing(5)),
                 _buildCounterRow(index, countController),
@@ -644,11 +754,11 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
                         'No',
                         style: AppStyle.buttonTextSmallPoppinsBlack.responsive
                             .copyWith(
-                              fontSize: ResponsiveHelper.getResponsiveFontSize(
-                                14,
-                              ),
-                              fontWeight: FontWeight.w600,
-                            ),
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            14,
+                          ),
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
@@ -664,11 +774,11 @@ class _AssignedSurveyTargetViewState extends State<AssignedSurveyTargetView> {
                         'Yes',
                         style: AppStyle.buttonTextSmallPoppinsWhite.responsive
                             .copyWith(
-                              fontSize: ResponsiveHelper.getResponsiveFontSize(
-                                14,
-                              ),
-                              fontWeight: FontWeight.w600,
-                            ),
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            14,
+                          ),
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),

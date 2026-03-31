@@ -16,4 +16,13 @@ class AppColors {
   static const Color buttonColor = Color(0xFF434342);
   static const Color redColor = Color(0xFFE64B23);
   static const Color blue = Color(0xFF2563EB);
+
+  // Snackbar colors
+  static const Color lightRed = Color(0xFFFCE9E4);
+  static const Color lightGreen = Color(0xFFE8F5E9);
+  static const Color darkGreen = Color(0xFF2E7D32);
+
+  // Dashboard card colors
+  static const Color dailyTargetBackground = Color(0xFFFFF9E4);
+  static const Color dailyTargetBorder = Color(0xFFEBD4AC);
 }

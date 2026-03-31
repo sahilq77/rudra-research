@@ -4,22 +4,18 @@ import 'package:get/get.dart';
 import 'package:rudra/app/utils/app_colors.dart';
 import 'package:rudra/app/utils/app_images.dart';
 import 'package:rudra/app/utils/app_utility.dart';
+import 'package:rudra/app/utils/responsive_utils.dart';
 import 'package:rudra/bottom_navigation/bottom_navigation_controller.dart';
 
-class CustomBottomBar extends StatefulWidget {
+class CustomBottomBar extends StatelessWidget {
   const CustomBottomBar({super.key});
 
   @override
-  State<CustomBottomBar> createState() => _CustomBottomBarState();
-}
-
-class _CustomBottomBarState extends State<CustomBottomBar> {
-  @override
   Widget build(BuildContext context) {
-   
-    final controller = Get.put(BottomNavigationController());
+    ResponsiveHelper.init(context);
+    final controller = Get.find<BottomNavigationController>();
     return Container(
-      height: 70.0,
+      height: ResponsiveHelper.spacing(70),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -31,15 +27,15 @@ class _CustomBottomBarState extends State<CustomBottomBar> {
           ),
         ],
       ),
-      child: Obx(
-        () => AppUtility.userRole == 0
-            ? _indivisualUser(controller)
-            : _officer(controller),
-      ),
+      child: AppUtility.userRole == 0
+          ? _indivisualUser(controller)
+          : AppUtility.userRole == 3
+              ? _superAdmin(controller)
+              : _officer(controller),
     );
   }
 
-  Row _indivisualUser(BottomNavigationController controller) {
+  Widget _indivisualUser(BottomNavigationController controller) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
@@ -77,7 +73,7 @@ class _CustomBottomBarState extends State<CustomBottomBar> {
     );
   }
 
-  Row _officer(BottomNavigationController controller) {
+  Widget _officer(BottomNavigationController controller) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
@@ -93,9 +89,40 @@ class _CustomBottomBarState extends State<CustomBottomBar> {
           label: 'My Survey',
           controller: controller,
         ),
-
         _buildNavItem(
           index: 2,
+          assetPath: AppImages.profileIcon,
+          label: 'Profile',
+          controller: controller,
+        ),
+      ],
+    );
+  }
+
+  Widget _superAdmin(BottomNavigationController controller) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: [
+        _buildNavItem(
+          index: 0,
+          assetPath: AppImages.homeIcon,
+          label: 'Home',
+          controller: controller,
+        ),
+        _buildNavItem(
+          index: 1,
+          assetPath: AppImages.myTeambIcon,
+          label: 'All Surveys',
+          controller: controller,
+        ),
+        _buildNavItem(
+          index: 2,
+          assetPath: AppImages.reportIcon,
+          label: 'Report',
+          controller: controller,
+        ),
+        _buildNavItem(
+          index: 3,
           assetPath: AppImages.profileIcon,
           label: 'Profile',
           controller: controller,
@@ -110,51 +137,46 @@ class _CustomBottomBarState extends State<CustomBottomBar> {
     required String label,
     required BottomNavigationController controller,
   }) {
-    final isSelected = controller.selectedIndex.value == index;
-    final iconColor = isSelected ? AppColors.defaultBlack : Colors.grey;
-    final textColor = isSelected ? AppColors.defaultBlack : Colors.grey;
-    final fontWeight = isSelected ? FontWeight.w600 : FontWeight.normal;
+    return Obx(() {
+      final isSelected = controller.selectedIndex.value == index;
+      final iconColor = isSelected ? AppColors.defaultBlack : Colors.grey;
+      final textColor = isSelected ? AppColors.defaultBlack : Colors.grey;
+      final fontWeight = isSelected ? FontWeight.w600 : FontWeight.normal;
 
-    return GestureDetector(
-      onTap: () => controller.changeTab(index),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SvgPicture.asset(
-              assetPath,
-              width: 25.0,
-              height: 25.0,
-              color: iconColor,
-              colorBlendMode: BlendMode.srcIn,
-              errorBuilder: (context, error, stackTrace) =>
-                  const Icon(Icons.error, size: 20.0, color: Colors.red),
-            ),
-            // Image.asset(
-            //   assetPath,
-            //   width: 20.0,
-            //   height: 20.0,
-            //   color: iconColor,
-            //   colorBlendMode: BlendMode.srcIn,
-            //   errorBuilder: (context, error, stackTrace) => const Icon(
-            //     Icons.error,
-            //     size: 20.0,
-            //     color: Colors.red,
-            //   ),
-            // ),
-            const SizedBox(height: 4.0),
-            Text(
-              label,
-              style: TextStyle(
-                color: textColor,
-                fontSize: 12.0,
-                fontWeight: fontWeight,
+      return InkWell(
+        onTap: () => controller.changeTab(index),
+        splashColor: AppColors.primary.withOpacity(0.1),
+        highlightColor: AppColors.primary.withOpacity(0.05),
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            vertical: ResponsiveHelper.spacing(8),
+            horizontal: ResponsiveHelper.spacing(12),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SvgPicture.asset(
+                assetPath,
+                width: ResponsiveHelper.spacing(22),
+                height: ResponsiveHelper.spacing(22),
+                color: iconColor,
+                colorBlendMode: BlendMode.srcIn,
               ),
-            ),
-          ],
+              SizedBox(height: ResponsiveHelper.spacing(4)),
+              Text(
+                label,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: ResponsiveHelper.getResponsiveFontSize(11),
+                  fontWeight: fontWeight,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 }

@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
-import 'package:rudra/app/modules/executive_module/executive_profile/executive_profile_controller.dart';
 import 'package:rudra/app/modules/validator_module/validator_profile/validator_profile_controller.dart';
 import 'package:rudra/app/utils/app_colors.dart' show AppColors;
 import 'package:rudra/app/utils/app_images.dart';
@@ -11,6 +10,7 @@ import 'package:rudra/bottom_navigation/bottom_navigation_controller.dart';
 import 'package:rudra/bottom_navigation/bottom_navigation_view.dart';
 
 import '../../../widgets/app_style.dart';
+import '../../../widgets/profile_image_widget.dart';
 
 class ValidatorProfileView extends StatefulWidget {
   const ValidatorProfileView({super.key});
@@ -32,7 +32,7 @@ class _ValidatorProfileViewState extends State<ValidatorProfileView> {
       onWillPop: () => bottomController.onWillPop(),
       child: Scaffold(
         appBar: _buildAppbar(),
-        bottomNavigationBar: CustomBottomBar(),
+        bottomNavigationBar: const CustomBottomBar(),
         backgroundColor: AppColors.white,
         body: RefreshIndicator(
           onRefresh: controller.onRefresh,
@@ -81,83 +81,42 @@ class _ValidatorProfileViewState extends State<ValidatorProfileView> {
     return Column(
       children: [
         // Dark background container with proper positioning
-        Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.bottomCenter,
-          children: [
-            // Dark background - starts from top
-            Container(
-              width: double.infinity,
-              height: ResponsiveHelper.spacing(140),
-              margin: ResponsiveHelper.paddingSymmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: AppColors.faded,
-                borderRadius: BorderRadius.circular(
-                  ResponsiveHelper.spacing(16),
-                ),
-              ),
-            ),
-            // Profile picture overlapping the dark background
-            Positioned(
-              bottom: -ResponsiveHelper.spacing(50),
-              child: Column(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.white, width: 4),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+        SizedBox(
+          height: ResponsiveHelper.spacing(140) + ResponsiveHelper.spacing(50),
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.bottomCenter,
+            children: [
+              Positioned(
+                top: 0,
+                left: ResponsiveHelper.spacing(16),
+                right: ResponsiveHelper.spacing(16),
+                child: Container(
+                  width: double.infinity,
+                  height: ResponsiveHelper.spacing(140),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(
+                      ResponsiveHelper.spacing(16),
                     ),
-                    child: Stack(
-                      children: [
-                        CircleAvatar(
-                          radius: ResponsiveHelper.spacing(50),
-                          backgroundColor: AppColors.lightGrey,
-                          child: Icon(
-                            Icons.person,
-                            size: ResponsiveHelper.spacing(55),
-                            color: AppColors.grey,
-                          ),
-                        ),
-                        Positioned(
-                          bottom: ResponsiveHelper.spacing(4),
-                          right: ResponsiveHelper.spacing(4),
-                          child: Container(
-                            width: ResponsiveHelper.spacing(32),
-                            height: ResponsiveHelper.spacing(32),
-                            decoration: BoxDecoration(
-                              color: AppColors.white,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              Icons.edit,
-                              size: ResponsiveHelper.spacing(16),
-                              color: AppColors.defaultBlack,
-                            ),
-                          ),
-                        ),
-                      ],
+                    image: const DecorationImage(
+                      image: AssetImage(AppImages.profileBg),
+                      fit: BoxFit.cover,
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-          ],
+              Positioned(
+                bottom: 0,
+                child: ProfileImageWidget(
+                  radius: ResponsiveHelper.spacing(50),
+                  showEditIcon: false,
+                  enableImageViewer: true,
+                ),
+              ),
+            ],
+          ),
         ),
-        SizedBox(height: ResponsiveHelper.spacing(60)),
+        SizedBox(height: ResponsiveHelper.spacing(10)),
         Text(
           'Hi , ${controller.userName}',
           style: AppStyle.heading1PoppinsBlack.responsive.copyWith(
@@ -245,15 +204,14 @@ class _ValidatorProfileViewState extends State<ValidatorProfileView> {
             Expanded(
               child: Text(
                 item.title,
-                style:
-                    (item.isLogout
-                            ? AppStyle.bodyRegularPoppinsPrimary
-                            : AppStyle.bodyRegularPoppinsBlack)
-                        .responsive
-                        .copyWith(
-                          fontSize: ResponsiveHelper.getResponsiveFontSize(15),
-                          fontWeight: FontWeight.w500,
-                        ),
+                style: (item.isLogout
+                        ? AppStyle.bodyRegularPoppinsPrimary
+                        : AppStyle.bodyRegularPoppinsBlack)
+                    .responsive
+                    .copyWith(
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(15),
+                      fontWeight: FontWeight.w500,
+                    ),
               ),
             ),
             Icon(

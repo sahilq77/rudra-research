@@ -1,30 +1,21 @@
 // lib/app/modules/audio_recorder/audio_recorder_controller.dart
 import 'dart:developer';
 import 'dart:io';
-import 'package:flutter/material.dart';
+
 import 'package:get/get.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
-import 'package:path_provider/path_provider.dart';
-
 
 import '../../widgets/app_snackbar_styles.dart';
 
 class AudioRecorderController extends GetxController {
-  final AudioRecorder _audioRecorder = AudioRecorder();
+final AudioRecorder _audioRecorder = AudioRecorder();
 
   // Observable states
   final RxBool isRecording = false.obs;
   final RxString recordingPath = ''.obs;
   final RxBool isPermissionGranted = false.obs;
-
-  // Configuration
-  static const RecordConfig _config = RecordConfig(
-    encoder: AudioEncoder.wav,
-    sampleRate: 44100,
-    bitRate: 128000,
-    numChannels: 1,
-  );
 
   @override
   void onClose() {
@@ -66,17 +57,37 @@ class AudioRecorderController extends GetxController {
     try {
       final dir = await getApplicationDocumentsDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final path = '${dir.path}/recording_$timestamp.wav';
 
-      await _audioRecorder.start(_config, path: path);
+      // Check Opus support and fallback to AAC if needed
+      AudioEncoder encoder = AudioEncoder.opus;
+      String extension = 'opus';
+
+      final isOpusSupported =
+          await _audioRecorder.isEncoderSupported(AudioEncoder.opus);
+      if (!isOpusSupported) {
+        log('Opus not supported, falling back to AAC');
+        encoder = AudioEncoder.aacLc;
+        extension = 'm4a';
+      }
+
+      final path = '${dir.path}/recording_$timestamp.$extension';
+
+      // Optimized for speech: low bitrate, mono, 16kHz
+      await _audioRecorder.start(
+        RecordConfig(
+          encoder: encoder,
+          sampleRate: 16000,
+          bitRate: 12000,
+          numChannels: 1,
+        ),
+        path: path,
+      );
+
       recordingPath.value = path;
       isRecording.value = true;
 
-      log('Recording STARTED → $path');
-      AppSnackbarStyles.showInfo(
-        title: 'Recording',
-        message: 'Recording started (WAV)',
-      );
+      log('Recording STARTED → $path (encoder: $encoder, 16kHz, 12kbps, mono)');
+      // Silent recording - no snackbar
 
       return path;
     } catch (e, s) {
@@ -105,10 +116,7 @@ class AudioRecorderController extends GetxController {
       if (path != null) {
         recordingPath.value = path;
         log('Recording STOPPED → $path');
-        AppSnackbarStyles.showInfo(
-          title: 'Recording',
-          message: 'Recording stopped',
-        );
+        // Silent recording - no snackbar
       } else {
         log('Stop returned null path');
       }
@@ -181,6 +189,6 @@ class AudioRecorderController extends GetxController {
       final kb = (bytes / 1024).toStringAsFixed(2);
       final mb = (bytes / (1024 * 1024)).toStringAsFixed(2);
       log('Recording size: $bytes B | $kb KB | $mb MB');
-   }
+    }
   }
 }

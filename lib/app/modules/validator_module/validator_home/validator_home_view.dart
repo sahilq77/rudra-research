@@ -2,11 +2,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
-import 'package:rudra/app/modules/executive_module/executive_home/executive_home_controller.dart';
 import 'package:rudra/app/modules/validator_module/validator_home/validator_home_controller.dart';
 import 'package:rudra/bottom_navigation/bottom_navigation_controller.dart';
 import 'package:rudra/bottom_navigation/bottom_navigation_view.dart';
 
+import '../../../data/models/validator/validator_survey_model.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/app_colors.dart';
 import '../../../utils/app_images.dart';
@@ -35,7 +35,7 @@ class _ValidatorHomeViewState extends State<ValidatorHomeView> {
       child: Scaffold(
         backgroundColor: AppColors.white,
         body: Obx(() => _buildBody(context)),
-        bottomNavigationBar: CustomBottomBar(),
+        bottomNavigationBar: const CustomBottomBar(),
       ),
     );
   }
@@ -46,49 +46,53 @@ class _ValidatorHomeViewState extends State<ValidatorHomeView> {
     }
     return SafeArea(
       child: RefreshIndicator(
-        onRefresh: () async {
-          await Future.delayed(const Duration(seconds: 1));
-          controller.refreshData();
-        },
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: ResponsiveHelper.paddingSymmetric(
-            horizontal: 16,
-            vertical: 12,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
+        onRefresh: controller.refreshData,
+        child: Obx(() {
+          if (controller.isLoading.value) {
+            return const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            );
+          }
 
-              SizedBox(height: ResponsiveHelper.spacing(12)),
-              Divider(
-                color: AppColors.grey.withOpacity(0.5),
-                // thickness: 2,
-                height: 0,
-              ),
-              SizedBox(height: ResponsiveHelper.spacing(12)),
-              // Show Dashboard Overview only for Manager and Executive
-              if (!controller.isValidator) ...[
-                ResponsiveHelper.safeText(
-                  'Dashboard Overview',
-                  style: AppStyle.heading1PoppinsBlack.responsive.copyWith(
-                    fontSize: ResponsiveHelper.getResponsiveFontSize(17),
-                    fontWeight: FontWeight.w500,
-                  ),
+          return SingleChildScrollView(
+            controller: controller.scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: ResponsiveHelper.paddingSymmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(),
+
+                SizedBox(height: ResponsiveHelper.spacing(12)),
+                Divider(
+                  color: AppColors.grey.withOpacity(0.5),
+                  height: 0,
                 ),
-
+                SizedBox(height: ResponsiveHelper.spacing(12)),
+                // Show Dashboard Overview only for Manager and Executive
+                if (!controller.isValidator) ...[
+                  ResponsiveHelper.safeText(
+                    'Dashboard Overview',
+                    style: AppStyle.heading1PoppinsBlack.responsive.copyWith(
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(17),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  SizedBox(height: ResponsiveHelper.spacing(16)),
+                  _buildDashboardGrid(),
+                  SizedBox(height: ResponsiveHelper.spacing(24)),
+                ],
+                _buildLiveSurveysHeader(),
                 SizedBox(height: ResponsiveHelper.spacing(16)),
-                _buildDashboardGrid(),
+                _buildLiveSurveysList(),
                 SizedBox(height: ResponsiveHelper.spacing(24)),
               ],
-              _buildLiveSurveysHeader(),
-              SizedBox(height: ResponsiveHelper.spacing(16)),
-              _buildLiveSurveysList(),
-              SizedBox(height: ResponsiveHelper.spacing(24)),
-            ],
-          ),
-        ),
+            ),
+          );
+        }),
       ),
     );
   }
@@ -322,18 +326,97 @@ class _ValidatorHomeViewState extends State<ValidatorHomeView> {
   }
 
   Widget _buildLiveSurveysList() {
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: controller.liveSurveys.length,
-      itemBuilder: (context, index) {
-        final survey = controller.liveSurveys[index];
-        return _buildSurveyCard(survey, index);
-      },
-    );
+    return Obx(() {
+      // Show empty state when no surveys and not loading
+      if (controller.liveSurveys.isEmpty && !controller.isLoading.value) {
+        return Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              vertical: ResponsiveHelper.spacing(40),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SvgPicture.asset(
+                  AppImages.onboarding1,
+                  width: ResponsiveHelper.spacing(120),
+                  height: ResponsiveHelper.spacing(120),
+                ),
+                SizedBox(height: ResponsiveHelper.spacing(16)),
+                ResponsiveHelper.safeText(
+                  'No Surveys Available',
+                  style: AppStyle.heading1PoppinsBlack.responsive.copyWith(
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(16),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: ResponsiveHelper.spacing(8)),
+                ResponsiveHelper.safeText(
+                  'There are no live surveys at the moment',
+                  style: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(13),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
+      // Calculate item count: surveys + loading indicator + end message
+      int itemCount = controller.liveSurveys.length;
+      if (controller.isLoadingMore.value) {
+        itemCount += 1; // Add loading indicator
+      } else if (!controller.hasMoreData.value &&
+          controller.liveSurveys.isNotEmpty) {
+        itemCount += 1; // Add end message
+      }
+
+      return ListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: itemCount,
+        itemBuilder: (context, index) {
+          // Show loading indicator while paginating
+          if (index == controller.liveSurveys.length &&
+              controller.isLoadingMore.value) {
+            return Padding(
+              padding: EdgeInsets.all(ResponsiveHelper.spacing(16)),
+              child: const Center(
+                child: CircularProgressIndicator(
+                  color: AppColors.primary,
+                ),
+              ),
+            );
+          }
+
+          // Show end of list message
+          if (index == controller.liveSurveys.length &&
+              !controller.hasMoreData.value) {
+            return Padding(
+              padding: EdgeInsets.symmetric(
+                vertical: ResponsiveHelper.spacing(16),
+              ),
+              child: Center(
+                child: ResponsiveHelper.safeText(
+                  'No more surveys to load',
+                  style: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(13),
+                  ),
+                ),
+              ),
+            );
+          }
+
+          final survey = controller.liveSurveys[index];
+          return _buildSurveyCard(survey, index);
+        },
+      );
+    });
   }
 
-  Widget _buildSurveyCard(Map<String, dynamic> survey, int index) {
+  Widget _buildSurveyCard(ValidatorSurveyModel survey, int index) {
     return Container(
       margin: EdgeInsets.only(bottom: ResponsiveHelper.spacing(12)),
       padding: ResponsiveHelper.paddingSymmetric(horizontal: 16, vertical: 16),
@@ -356,7 +439,7 @@ class _ValidatorHomeViewState extends State<ValidatorHomeView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     ResponsiveHelper.safeText(
-                      survey['title'],
+                      survey.title,
                       style: AppStyle.bodyBoldPoppinsBlack.responsive.copyWith(
                         fontSize: ResponsiveHelper.getResponsiveFontSize(15),
                         fontWeight: FontWeight.w600,
@@ -365,7 +448,7 @@ class _ValidatorHomeViewState extends State<ValidatorHomeView> {
                     ),
                     SizedBox(height: ResponsiveHelper.spacing(4)),
                     ResponsiveHelper.safeText(
-                      survey['subtitle'],
+                      survey.subtitle,
                       style: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
                         fontSize: ResponsiveHelper.getResponsiveFontSize(13),
                         color: AppColors.grey,
@@ -375,7 +458,7 @@ class _ValidatorHomeViewState extends State<ValidatorHomeView> {
                   ],
                 ),
               ),
-              if (survey['isLive']) ...[
+              if (survey.isLive) ...[
                 SizedBox(width: ResponsiveHelper.spacing(8)),
                 Container(
                   padding: EdgeInsets.symmetric(
@@ -404,12 +487,12 @@ class _ValidatorHomeViewState extends State<ValidatorHomeView> {
                         'Live',
                         style: AppStyle.bodySmallPoppinsPrimary.responsive
                             .copyWith(
-                              color: const Color(0xFFFF4444),
-                              fontSize: ResponsiveHelper.getResponsiveFontSize(
-                                11,
-                              ),
-                              fontWeight: FontWeight.w600,
-                            ),
+                          color: const Color(0xFFFF4444),
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            11,
+                          ),
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),
@@ -423,36 +506,22 @@ class _ValidatorHomeViewState extends State<ValidatorHomeView> {
               Expanded(
                 child: ElevatedButton(
                   onPressed: () {
-                    Get.toNamed(AppRoutes.validatorStartSurveyList);
+                    Get.toNamed(
+                      AppRoutes.validatorStartSurveyList,
+                      arguments: {'survey_id': survey.surveyId},
+                    );
                   },
                   style: AppButtonStyles.elevatedLargeBlack(),
                   child: Text(
-                    'Start Survey',
+                    'Validate Survey',
                     style: AppStyle.buttonTextSmallPoppinsWhite.responsive
                         .copyWith(
-                          fontSize: ResponsiveHelper.getResponsiveFontSize(14),
-                          fontWeight: FontWeight.w500,
-                        ),
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(14),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
-              // SizedBox(width: ResponsiveHelper.spacing(12)),
-              // Expanded(
-              //   child: OutlinedButton(
-              //     onPressed: () {
-              //       Get.toNamed(AppRoutes.assignedSurveyTarget);
-              //     },
-              //     style: AppButtonStyles.outlinedLargeBlack(),
-              //     child: Text(
-              //       'Assign Target',
-              //       style: AppStyle.buttonTextSmallPoppinsBlack.responsive
-              //           .copyWith(
-              //             fontSize: ResponsiveHelper.getResponsiveFontSize(14),
-              //             fontWeight: FontWeight.w500,
-              //           ),
-              //     ),
-              //   ),
-              // ),
             ],
           ),
         ],

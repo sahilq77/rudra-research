@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 
@@ -23,13 +24,17 @@ class AssignExecutiveController extends GetxController {
 
   // -----  Pagination / raw data  -----
   final TextEditingController searchController = TextEditingController();
+  final RxString searchQuery = ''.obs;
+  Timer? _debounce;
   var isLoading = true.obs;
+  var isSearching = false.obs;
   var executiveList = <ExecutiveData>[].obs;
   var errorMessage = ''.obs;
   RxInt offset = 0.obs;
   final int limit = 10;
   RxBool hasMoreData = true.obs;
   RxBool isLoadingMore = false.obs;
+  RxBool hasPaginated = false.obs;
 
   // -----  Helper lists for pagination  -----
   final RxList<SurveyTargetModel> executorList = <SurveyTargetModel>[].obs;
@@ -41,6 +46,7 @@ class AssignExecutiveController extends GetxController {
   var errorMessages = ''.obs;
   @override
   void onClose() {
+    _debounce?.cancel();
     searchController.dispose();
     super.onClose();
   }
@@ -57,6 +63,7 @@ class AssignExecutiveController extends GetxController {
     required BuildContext context,
     bool reset = false,
     bool isPagination = false,
+    bool isSearch = false,
     bool forceFetch = false,
     required String surveyId,
   }) async {
@@ -67,6 +74,7 @@ class AssignExecutiveController extends GetxController {
         executorList.clear();
         filteredExecutorList.clear();
         hasMoreData.value = true;
+        hasPaginated.value = false;
       }
       if (!hasMoreData.value && !reset) {
         AppLogger.d('No more data to fetch');
@@ -75,6 +83,9 @@ class AssignExecutiveController extends GetxController {
 
       if (isPagination) {
         isLoadingMore.value = true;
+        hasPaginated.value = true;
+      } else if (isSearch) {
+        isSearching.value = true;
       } else {
         isLoading.value = true;
       }
@@ -82,19 +93,19 @@ class AssignExecutiveController extends GetxController {
 
       final jsonBody = {
         "team_id": AppUtility.teamId,
+        "user_id": AppUtility.userID ?? "",
         "survey_id": surveyId,
         "limit": limit.toString(),
         "offset": offset.value.toString(),
+        "search": searchQuery.value,
       };
 
-      final response =
-          await Networkcall().postMethod(
-                Networkutility.getAllExecutiveApi,
-                Networkutility.getAllExecutive,
-                jsonEncode(jsonBody),
-                context,
-              )
-              as List<GetExecutiveListResponse>?;
+      final response = await Networkcall().postMethod(
+        Networkutility.getAllExecutiveApi,
+        Networkutility.getAllExecutive,
+        jsonEncode(jsonBody),
+        context,
+      ) as List<GetExecutiveListResponse>?;
 
       if (response != null && response.isNotEmpty) {
         if (response[0].status == "true") {
@@ -105,9 +116,10 @@ class AssignExecutiveController extends GetxController {
             user,
           ) {
             return SurveyTargetModel(
-              executorImage: '',
+              executorImage: user.file,
               id: user.userId,
               executorName: '${user.firstName} ${user.lastName}'.trim(),
+              mobileNumber: user.mobileNo,
               totalAssignedTarget: int.tryParse('0') ?? 0,
               todayCompletedTarget: int.tryParse('0') ?? 0,
               totalCompletedTarget: int.tryParse('0') ?? 0,
@@ -187,27 +199,35 @@ class AssignExecutiveController extends GetxController {
     } finally {
       isLoading.value = false;
       isLoadingMore.value = false;
+      isSearching.value = false;
     }
   }
 
   // ---------- SEARCH ----------
   void searchExecutives(String query) {
-    if (query.isEmpty) {
-      filteredExecutives.assignAll(executives);
-    } else {
-      final lower = query.toLowerCase();
-      filteredExecutives.assignAll(
-        executives
-            .where(
-              (e) =>
-                  e.name.toLowerCase().contains(lower) ||
-                  e.mobile.contains(query) ||
-                  e.designation.toLowerCase().contains(lower),
-            )
-            .toList(),
+    searchQuery.value = query;
+
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      fetchAssignSurveyTarget(
+        context: Get.context!,
+        reset: true,
+        isSearch: true,
+        surveyId: surveyId,
       );
-    }
-    AppLogger.d('Search: $query → ${filteredExecutives.length}');
+    });
+  }
+
+  void clearSearch() {
+    _debounce?.cancel();
+    searchController.clear();
+    searchQuery.value = '';
+    fetchAssignSurveyTarget(
+      context: Get.context!,
+      reset: true,
+      surveyId: surveyId,
+    );
   }
 
   // ---------- SELECTION ----------
@@ -286,19 +306,21 @@ class AssignExecutiveController extends GetxController {
       errorMessages.value = '';
 
       // ---- Build payload with team_id and array of user_ids ----
-      final List<String> userIdList = userIds
-          .map((user) => user['user_id'] as String)
-          .toList();
-      final jsonBody = {"team_id": AppUtility.teamId, "user_id": userIdList};
+      final List<String> userIdList =
+          userIds.map((user) => user['user_id'] as String).toList();
+      final jsonBody = {
+        "team_id": AppUtility.teamId,
+        "user_id": userIdList,
+        "assigned_by": AppUtility.userID ?? "",
+        "logged_in_user_id": AppUtility.userID ?? "",
+      };
 
-      final response =
-          await Networkcall().postMethod(
-                Networkutility.setExecutiveApi,
-                Networkutility.setExecutive,
-                jsonEncode(jsonBody),
-                Get.context!,
-              )
-              as List<SetExecutiveResponse>?;
+      final response = await Networkcall().postMethod(
+        Networkutility.setExecutiveApi,
+        Networkutility.setExecutive,
+        jsonEncode(jsonBody),
+        Get.context!,
+      ) as List<SetExecutiveResponse>?;
 
       if (response != null &&
           response.isNotEmpty &&
@@ -307,7 +329,7 @@ class AssignExecutiveController extends GetxController {
           title: 'Success',
           message: "Targets assigned successfully",
         );
-        return response[0].data?.teamId ?? '';
+        return response[0].data.teamId ?? '';
       } else {
         final msg = response?[0].message ?? "Assign target failed";
         errorMessages.value = msg;

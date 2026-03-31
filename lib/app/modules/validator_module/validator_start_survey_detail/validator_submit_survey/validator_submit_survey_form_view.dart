@@ -62,16 +62,58 @@ class ValidatorSubmitSurveyFormView extends StatelessWidget {
                 },
                 validator: null,
               ),
-              SizedBox(height: ResponsiveHelper.screenHeight * 0.05),
+              SizedBox(height: ResponsiveHelper.screenHeight * 0.02),
+              Obx(() {
+                if (controller.isFetchingLocation.value) {
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentOrangeFaded,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.primary),
+                    ),
+                    child: Row(
+                      children: [
+                        const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Fetching your location...',
+                          style: AppStyle.labelPrimaryPoppinsBlack.responsive,
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              }),
+              SizedBox(height: ResponsiveHelper.screenHeight * 0.03),
               Center(
-                child: ElevatedButton(
-                  onPressed: controller.submitRemark,
-                  style: AppButtonStyles.elevatedLargeBlack(),
-                  child: Text(
-                    'Submit Feedback',
-                    style: AppStyle.buttonTextPoppinsWhite.responsive,
-                  ),
-                ),
+                child: Obx(() => ElevatedButton(
+                      onPressed: controller.isSubmitting.value
+                          ? null
+                          : controller.submitRemark,
+                      style: AppButtonStyles.elevatedLargeBlack(),
+                      child: controller.isSubmitting.value
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              'Submit Feedback',
+                              style: AppStyle.buttonTextPoppinsWhite.responsive,
+                            ),
+                    )),
               ),
             ],
           ),

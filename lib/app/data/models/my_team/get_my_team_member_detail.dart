@@ -6,13 +6,15 @@ import 'dart:convert';
 
 List<GetMyTeamMemberDetailResponse> getMyTeamMemberDetailResponseFromJson(
   String str,
-) => List<GetMyTeamMemberDetailResponse>.from(
-  json.decode(str).map((x) => GetMyTeamMemberDetailResponse.fromJson(x)),
-);
+) =>
+    List<GetMyTeamMemberDetailResponse>.from(
+      json.decode(str).map((x) => GetMyTeamMemberDetailResponse.fromJson(x)),
+    );
 
 String getMyTeamMemberDetailResponseToJson(
   List<GetMyTeamMemberDetailResponse> data,
-) => json.encode(List<dynamic>.from(data.map((x) => x.toJson())));
+) =>
+    json.encode(List<dynamic>.from(data.map((x) => x.toJson())));
 
 class GetMyTeamMemberDetailResponse {
   String status;
@@ -33,10 +35,10 @@ class GetMyTeamMemberDetailResponse {
       );
 
   Map<String, dynamic> toJson() => {
-    "status": status,
-    "message": message,
-    "data": data.toJson(),
-  };
+        "status": status,
+        "message": message,
+        "data": data.toJson(),
+      };
 }
 
 class TeamMemberDetail {
@@ -47,10 +49,10 @@ class TeamMemberDetail {
   String mobileNo;
   dynamic otp;
   String file;
-  DateTime dob;
+  DateTime? dob;
   String address;
   String roleId;
-  DateTime joiningDate;
+  DateTime? joiningDate;
   dynamic assignedBy;
   dynamic updatedBy;
   String status;
@@ -76,7 +78,6 @@ class TeamMemberDetail {
     required this.status,
     required this.flag,
     required this.updatedFlagReason,
-
     required this.role,
   });
 
@@ -89,39 +90,41 @@ class TeamMemberDetail {
         mobileNo: json["mobile_no"] ?? "",
         otp: json["otp"] ?? "",
         file: json["file"] ?? "",
-        dob: DateTime.parse(json["dob"]),
+        dob: json["dob"] != null ? DateTime.tryParse(json["dob"]) : null,
         address: json["address"] ?? "",
         roleId: json["role_id"] ?? "",
-        joiningDate: DateTime.parse(json["joining_date"]),
+        joiningDate: json["joining_date"] != null
+            ? DateTime.tryParse(json["joining_date"])
+            : null,
         assignedBy: json["assigned_by"] ?? "",
         updatedBy: json["updated_by"] ?? "",
         status: json["status"] ?? "",
         flag: json["flag"] ?? "",
         updatedFlagReason: json["updated_flag_reason"] ?? "",
-
         role: json["role"],
       );
 
   Map<String, dynamic> toJson() => {
-    "member_id": memberId,
-    "first_name": firstName,
-    "last_name": lastName,
-    "email": email,
-    "mobile_no": mobileNo,
-    "otp": otp,
-    "file": file,
-    "dob":
-        "${dob.year.toString().padLeft(4, '0')}-${dob.month.toString().padLeft(2, '0')}-${dob.day.toString().padLeft(2, '0')}",
-    "address": address,
-    "role_id": roleId,
-    "joining_date":
-        "${joiningDate.year.toString().padLeft(4, '0')}-${joiningDate.month.toString().padLeft(2, '0')}-${joiningDate.day.toString().padLeft(2, '0')}",
-    "assigned_by": assignedBy,
-    "updated_by": updatedBy,
-    "status": status,
-    "flag": flag,
-    "updated_flag_reason": updatedFlagReason,
-
-    "role": role,
-  };
+        "member_id": memberId,
+        "first_name": firstName,
+        "last_name": lastName,
+        "email": email,
+        "mobile_no": mobileNo,
+        "otp": otp,
+        "file": file,
+        "dob": dob != null
+            ? "${dob!.year.toString().padLeft(4, '0')}-${dob!.month.toString().padLeft(2, '0')}-${dob!.day.toString().padLeft(2, '0')}"
+            : null,
+        "address": address,
+        "role_id": roleId,
+        "joining_date": joiningDate != null
+            ? "${joiningDate!.year.toString().padLeft(4, '0')}-${joiningDate!.month.toString().padLeft(2, '0')}-${joiningDate!.day.toString().padLeft(2, '0')}"
+            : null,
+        "assigned_by": assignedBy,
+        "updated_by": updatedBy,
+        "status": status,
+        "flag": flag,
+        "updated_flag_reason": updatedFlagReason,
+        "role": role,
+      };
 }

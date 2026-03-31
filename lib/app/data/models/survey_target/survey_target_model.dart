@@ -3,6 +3,7 @@ class SurveyTargetModel {
   final String id;
   final String executorName;
   final String executorImage;
+  final String mobileNumber;
   final bool isAssigned;
   final int todayCompletedTarget;
   final int totalAssignedTarget;
@@ -13,6 +14,7 @@ class SurveyTargetModel {
     required this.id,
     required this.executorName,
     required this.executorImage,
+    required this.mobileNumber,
     required this.isAssigned,
     required this.todayCompletedTarget,
     required this.totalAssignedTarget,
@@ -25,6 +27,7 @@ class SurveyTargetModel {
       id: json['id'] ?? '',
       executorName: json['executor_name'] ?? '',
       executorImage: json['executor_image'] ?? '',
+      mobileNumber: json['mobile_number'] ?? '',
       isAssigned: json['is_assigned'] ?? false,
       todayCompletedTarget: json['today_completed_target'] ?? 0,
       totalAssignedTarget: json['total_assigned_target'] ?? 0,
@@ -38,6 +41,7 @@ class SurveyTargetModel {
       'id': id,
       'executor_name': executorName,
       'executor_image': executorImage,
+      'mobile_number': mobileNumber,
       'is_assigned': isAssigned,
       'today_completed_target': todayCompletedTarget,
       'total_assigned_target': totalAssignedTarget,
@@ -50,6 +54,7 @@ class SurveyTargetModel {
     String? id,
     String? executorName,
     String? executorImage,
+    String? mobileNumber,
     bool? isAssigned,
     int? todayCompletedTarget,
     int? totalAssignedTarget,
@@ -60,6 +65,7 @@ class SurveyTargetModel {
       id: id ?? this.id,
       executorName: executorName ?? this.executorName,
       executorImage: executorImage ?? this.executorImage,
+      mobileNumber: mobileNumber ?? this.mobileNumber,
       isAssigned: isAssigned ?? this.isAssigned,
       todayCompletedTarget: todayCompletedTarget ?? this.todayCompletedTarget,
       totalAssignedTarget: totalAssignedTarget ?? this.totalAssignedTarget,

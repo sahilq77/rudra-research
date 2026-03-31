@@ -1,15 +1,32 @@
 // lib/app/modules/home/home_controller.dart
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../data/models/validator/validator_survey_list_response.dart';
+import '../../../data/models/validator/validator_survey_model.dart';
+import '../../../data/network/exceptions.dart';
+import '../../../data/network/networkcall.dart';
+import '../../../data/urls.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/app_images.dart';
 import '../../../utils/app_logger.dart';
 import '../../../utils/app_utility.dart';
+import '../../../widgets/app_snackbar_styles.dart';
 
 class ValidatorHomeController extends GetxController {
   final RxInt currentIndex = 0.obs;
   final RxInt userRoleRx = 0.obs;
+  final RxBool isLoading = false.obs;
+  final RxBool isLoadingMore = false.obs;
+  final RxBool hasPaginated = false.obs;
+  final RxBool hasMoreData = true.obs;
+  final RxInt offset = 0.obs;
+  final RxList<ValidatorSurveyModel> liveSurveys = <ValidatorSurveyModel>[].obs;
+  final RxString errorMessage = ''.obs;
+  final int limit = 10;
+  final ScrollController scrollController = ScrollController();
 
   int get userRole => userRoleRx.value;
 
@@ -30,6 +47,29 @@ class ValidatorHomeController extends GetxController {
       userRoleRx.value = args['userRole'] as int;
     } else {
       userRoleRx.value = AppUtility.userRole ?? 0;
+    }
+    _initializeData();
+    scrollController.addListener(_onScroll);
+  }
+
+  Future<void> _initializeData() async {
+    await AppUtility.fetchAndUpdateTeamIds(Get.context!);
+    _fetchValidatorSurveys(context: Get.context!);
+  }
+
+  @override
+  void onClose() {
+    scrollController.dispose();
+    super.onClose();
+  }
+
+  void _onScroll() {
+    if (scrollController.position.pixels >=
+            scrollController.position.maxScrollExtent * 0.8 &&
+        !isLoadingMore.value &&
+        hasMoreData.value &&
+        !isLoading.value) {
+      loadMoreSurveys(context: Get.context!);
     }
   }
 
@@ -80,18 +120,118 @@ class ValidatorHomeController extends GetxController {
     return [];
   }
 
-  final List<Map<String, dynamic>> liveSurveys = [
-    {
-      'title': 'Maratha Question 13-09',
-      'subtitle': 'Sambhaji Nagar',
-      'isLive': true,
-    },
-    {
-      'title': 'Maratha Question 13-09',
-      'subtitle': 'Sambhaji Nagar',
-      'isLive': true,
-    },
-  ];
+  Future<void> _fetchValidatorSurveys({
+    required BuildContext context,
+    bool reset = false,
+    bool isPagination = false,
+  }) async {
+    try {
+      if (reset) {
+        offset.value = 0;
+        liveSurveys.clear();
+        hasMoreData.value = true;
+      }
+      if (!hasMoreData.value && !reset) {
+        return;
+      }
+
+      if (isPagination) {
+        isLoadingMore.value = true;
+        hasPaginated.value = true;
+      } else {
+        isLoading.value = true;
+      }
+      errorMessage.value = '';
+
+      final jsonBody = {
+        "validator_id": AppUtility.userID ?? "",
+        "limit": limit.toString(),
+        "offset": offset.value.toString(),
+        "user_id": AppUtility.userID,
+      };
+
+      List<ValidatorSurveyListResponse>? response =
+          (await Networkcall().postMethod(
+        Networkutility.getValidatorSurveyListApi,
+        Networkutility.getValidatorSurveyList,
+        jsonEncode(jsonBody),
+        context,
+      )) as List<ValidatorSurveyListResponse>?;
+
+      if (response != null && response.isNotEmpty) {
+        if (response[0].status == "true") {
+          final surveyData = response[0].data;
+          if (surveyData.isEmpty || surveyData.length < limit) {
+            hasMoreData.value = false;
+          } else {
+            hasMoreData.value = true;
+          }
+
+          for (var survey in surveyData) {
+            if (!liveSurveys.any(
+              (existing) =>
+                  existing.surveyId == survey.surveyInfo.surveyId &&
+                  existing.surveyDate == survey.surveyInfo.surveyDate,
+            )) {
+              liveSurveys.add(
+                ValidatorSurveyModel(
+                  surveyId: survey.surveyInfo.surveyId,
+                  title: survey.surveyInfo.surveyTitle,
+                  subtitle: survey.teamInfo.teamName,
+                  dateRange: survey.surveyInfo.surveyDateRange,
+                  surveyCount: survey.surveyInfo.surveyCount,
+                  surveyDate: survey.surveyInfo.surveyDate,
+                  teamName: survey.teamInfo.teamName,
+                  target: survey.teamInfo.target,
+                  managerName: survey.teamInfo.managerName,
+                  isLive: true,
+                ),
+              );
+            }
+          }
+
+          if (surveyData.isNotEmpty) {
+            offset.value += surveyData.length;
+          }
+        } else {
+          hasMoreData.value = false;
+          errorMessage.value = response[0].message;
+        }
+      } else {
+        hasMoreData.value = false;
+        errorMessage.value = 'No response from server';
+      }
+    } on NoInternetException catch (e) {
+      errorMessage.value = e.message;
+      AppLogger.e('NoInternetException: ${e.message}',
+          tag: 'ValidatorHomeController', error: e);
+    } on TimeoutException catch (e) {
+      errorMessage.value = e.message;
+      AppLogger.e('TimeoutException: ${e.message}',
+          tag: 'ValidatorHomeController', error: e);
+    } on HttpException catch (e) {
+      errorMessage.value = '${e.message} (Code: ${e.statusCode})';
+      AppLogger.e('HttpException: ${e.message}',
+          tag: 'ValidatorHomeController', error: e);
+    } on ParseException catch (e) {
+      errorMessage.value = e.message;
+      AppLogger.e('ParseException: ${e.message}',
+          tag: 'ValidatorHomeController', error: e);
+    } catch (e, stackTrace) {
+      errorMessage.value = 'Unexpected error: $e';
+      AppLogger.e('Unexpected error: $e',
+          tag: 'ValidatorHomeController', error: e, stackTrace: stackTrace);
+    } finally {
+      isLoading.value = false;
+      isLoadingMore.value = false;
+    }
+  }
+
+  Future<void> loadMoreSurveys({required BuildContext context}) async {
+    if (!isLoadingMore.value && hasMoreData.value && !isLoading.value) {
+      await _fetchValidatorSurveys(context: context, isPagination: true);
+    }
+  }
 
   String get userName {
     return 'Hi, ${AppUtility.fullName ?? 'Abhay'}';
@@ -196,13 +336,15 @@ class ValidatorHomeController extends GetxController {
     }
   }
 
-  void refreshData() {
-    AppLogger.d('Refreshing home data', tag: 'ExecutiveHomeController');
-    Get.snackbar(
-      'Refresh',
-      'Data refreshed successfully',
-      snackPosition: SnackPosition.TOP,
-      duration: const Duration(seconds: 2),
-    );
+  Future<void> refreshData() async {
+    AppLogger.d('Refreshing home data', tag: 'ValidatorHomeController');
+    await AppUtility.fetchAndUpdateTeamIds(Get.context!);
+    await _fetchValidatorSurveys(context: Get.context!, reset: true);
+    if (errorMessage.value.isEmpty) {
+      AppSnackbarStyles.showSuccess(
+        title: 'Success',
+        message: 'Data refreshed successfully',
+      );
+    }
   }
 }

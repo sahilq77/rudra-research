@@ -31,10 +31,10 @@ class GetLoginResponse {
       );
 
   Map<String, dynamic> toJson() => {
-    "status": status,
-    "message": message,
-    "data": data.toJson(),
-  };
+        "status": status,
+        "message": message,
+        "data": data.toJson(),
+      };
 }
 
 class Data {
@@ -49,6 +49,7 @@ class Data {
   String status;
   String deviceToken;
   String teamId;
+  String image;
 
   Data({
     required this.userId,
@@ -62,33 +63,36 @@ class Data {
     required this.status,
     required this.deviceToken,
     required this.teamId,
+    required this.image,
   });
 
   factory Data.fromJson(Map<String, dynamic> json) => Data(
-    userId: json["user_id"] ?? "",
-    firstName: json["first_name"] ?? "",
-    lastName: json["last_name"] ?? "",
-    email: json["email"] ?? "",
-    mobileNo: json["mobile_no"] ?? "",
-    roleId: json["role_id"] ?? "",
-    role: json["role"] ?? "",
-    roleValue: json["role_value"] ?? "",
-    status: json["status"] ?? "",
-    deviceToken: json["device_token"] ?? "",
-    teamId: json["team_id"] ?? "",
-  );
+        userId: json["user_id"] ?? "",
+        firstName: json["first_name"] ?? "",
+        lastName: json["last_name"] ?? "",
+        email: json["email"] ?? "",
+        mobileNo: json["mobile_no"] ?? "",
+        roleId: json["role_id"] ?? "",
+        role: json["role"] ?? "",
+        roleValue: json["role_value"] ?? "",
+        status: json["status"] ?? "",
+        deviceToken: json["device_token"] ?? "",
+        teamId: json["team_id"] ?? "",
+        image: json["image"] ?? "",
+      );
 
   Map<String, dynamic> toJson() => {
-    "user_id": userId,
-    "first_name": firstName,
-    "last_name": lastName,
-    "email": email,
-    "mobile_no": mobileNo,
-    "role_id": roleId,
-    "role": role,
-    "role_value": roleValue,
-    "status": status,
-    "device_token": deviceToken,
-    "team_id": teamId,
-  };
+        "user_id": userId,
+        "first_name": firstName,
+        "last_name": lastName,
+        "email": email,
+        "mobile_no": mobileNo,
+        "role_id": roleId,
+        "role": role,
+        "role_value": roleValue,
+        "status": status,
+        "device_token": deviceToken,
+        "team_id": teamId,
+        "image": image,
+      };
 }

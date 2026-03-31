@@ -7,7 +7,6 @@ import 'package:rudra/app/data/models/notification/get_notification_response.dar
 import 'package:rudra/app/data/network/exceptions.dart';
 import 'package:rudra/app/data/network/networkcall.dart';
 import 'package:rudra/app/data/urls.dart';
-import 'package:rudra/app/modules/executive_module/executive_notification/executive_notification_detail_bottom_sheet.dart';
 import 'package:rudra/app/modules/manager_module/notification/notification_detail_bottom_sheet.dart';
 import 'package:rudra/app/utils/app_utility.dart';
 import 'package:rudra/app/widgets/app_snackbar_styles.dart';
@@ -63,19 +62,17 @@ class ExecutiveNotificationController extends GetxController {
       errorMessage.value = '';
 
       final jsonBody = {
-        "user_id": AppUtility.userID,
+        "user_id": AppUtility.userID ?? "",
         "limit": limit.toString(),
         "offset": offset.value.toString(),
       };
 
-      List<GetNotificationResponse>? response =
-          (await Networkcall().postMethod(
-                Networkutility.notificationsApi,
-                Networkutility.notifications,
-                jsonEncode(jsonBody),
-                context,
-              ))
-              as List<GetNotificationResponse>?;
+      List<GetNotificationResponse>? response = (await Networkcall().postMethod(
+        Networkutility.notificationsApi,
+        Networkutility.notifications,
+        jsonEncode(jsonBody),
+        context,
+      )) as List<GetNotificationResponse>?;
 
       if (response != null && response.isNotEmpty) {
         if (response[0].status == "true") {
@@ -103,8 +100,7 @@ class ExecutiveNotificationController extends GetxController {
                   message: notification.body,
                   timeAgo: _calculateTimeAgo(notification.createdOn),
                   dateTime: notification.createdOn,
-                  isRead:
-                      notification.responseStatus ==
+                  isRead: notification.responseStatus ==
                       'read', // Adjust based on your API's read status logic
                   details: _mapToNotificationDetails(
                     notification,
@@ -247,14 +243,7 @@ class ExecutiveNotificationController extends GetxController {
     }
 
     // Show bottom sheet with details
-    if (notification.title != null) {
-      showNotificationDetails(notification);
-    } else {
-      AppSnackbarStyles.showInfo(
-        title: 'Notification',
-        message: notification.message,
-      );
-    }
+    showNotificationDetails(notification);
   }
 
   void showNotificationDetails(NotificationModel notification) {
@@ -347,8 +336,8 @@ class ExecutiveNotificationController extends GetxController {
     // Adjust this mapping based on your API response and NotificationDetails structure
     // Example: Parse notification.response if it contains structured data
     try {
-      if (notification.response.isNotEmpty) {
-        final responseJson = jsonDecode(notification.response);
+      if (notification.response!.isNotEmpty) {
+        final responseJson = jsonDecode(notification.response!);
         return NotificationDetails(
           surveyName: responseJson['survey_name'] ?? notification.title,
           executiveName: responseJson['executive_name'] ?? '',

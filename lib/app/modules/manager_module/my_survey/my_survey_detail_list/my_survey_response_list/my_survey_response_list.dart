@@ -1,28 +1,54 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:rudra/app/data/models/my_survey/my_surevy_model.dart';
 import 'package:rudra/app/modules/manager_module/my_survey/my_survey_detail_list/my_survey_response_list/my_survey_response_controller.dart';
-import 'package:rudra/app/routes/app_routes.dart';
 import 'package:rudra/app/utils/app_colors.dart';
 import 'package:rudra/app/utils/responsive_utils.dart';
 import 'package:rudra/app/widgets/app_style.dart';
-import 'package:rudra/bottom_navigation/bottom_navigation_controller.dart';
-import 'package:shimmer/shimmer.dart';
 
-class MySurveyResponseList extends StatelessWidget {
+import '../../../../../routes/app_routes.dart';
+import '../../../../../widgets/custom_shimmer_card.dart';
+
+class MySurveyResponseList extends StatefulWidget {
   const MySurveyResponseList({super.key});
 
   @override
+  State<MySurveyResponseList> createState() => _MySurveyResponseListState();
+}
+
+class _MySurveyResponseListState extends State<MySurveyResponseList> {
+  final MySurveyResponseController controller = Get.put(
+    MySurveyResponseController(),
+  );
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_loadMore);
+  }
+
+  void _loadMore() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent * 0.9) {
+      if (controller.hasMoreData.value &&
+          !controller.isLoading.value &&
+          !controller.isLoadingMore.value) {
+        controller.fetchMySurveyResponse(
+          context: context,
+          isPagination: true,
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // ---- Bind the correct controller ------------------------------------------------
-    final MySurveyResponseController controller = Get.put(
-      MySurveyResponseController(),
-    );
-
-    // Bottom navigation is optional – keep if you need it elsewhere
-    Get.put(BottomNavigationController());
-
     ResponsiveHelper.init(context);
 
     return Scaffold(
@@ -46,7 +72,20 @@ class MySurveyResponseList extends StatelessWidget {
                 // Loading (first page)
                 if (controller.isLoading.value &&
                     controller.mySurveyList.isEmpty) {
-                  return _buildShimmerEffect();
+                  return ListView.builder(
+                    padding: ResponsiveHelper.paddingSymmetric(horizontal: 16),
+                    itemCount: 5,
+                    itemBuilder: (_, __) => const CustomShimmerCard(),
+                  );
+                }
+
+                // Searching
+                if (controller.isSearching.value) {
+                  return ListView.builder(
+                    padding: ResponsiveHelper.paddingSymmetric(horizontal: 16),
+                    itemCount: 3,
+                    itemBuilder: (_, __) => const CustomShimmerCard(),
+                  );
                 }
 
                 // Empty state
@@ -55,20 +94,38 @@ class MySurveyResponseList extends StatelessWidget {
                 }
 
                 return ListView.builder(
+                  controller: _scrollController,
                   padding: ResponsiveHelper.paddingSymmetric(horizontal: 16),
-                  itemCount:
-                      controller.filteredSurveyList.length +
-                      (controller.hasMoreData.value ? 1 : 0),
+                  itemCount: controller.filteredSurveyList.length +
+                      (controller.isLoadingMore.value
+                          ? 1
+                          : (!controller.hasMoreData.value &&
+                                  controller.hasPaginated.value
+                              ? 1
+                              : 0)),
                   itemBuilder: (ctx, i) {
-                    // ---- Load-more placeholder (currently never shown) ----
                     if (i == controller.filteredSurveyList.length) {
-                      controller.loadMoreIfNeeded(i);
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(8.0),
-                          child: CircularProgressIndicator(),
-                        ),
-                      );
+                      if (controller.isLoadingMore.value) {
+                        return Padding(
+                          padding: EdgeInsets.all(ResponsiveHelper.spacing(16)),
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        );
+                      } else if (!controller.hasMoreData.value &&
+                          controller.hasPaginated.value) {
+                        return Padding(
+                          padding: EdgeInsets.all(ResponsiveHelper.spacing(16)),
+                          child: Center(
+                            child: Text(
+                              'No more items to load',
+                              style: AppStyle.bodySmallPoppinsGrey.responsive,
+                            ),
+                          ),
+                        );
+                      }
                     }
 
                     final survey = controller.filteredSurveyList[i];
@@ -87,15 +144,24 @@ class MySurveyResponseList extends StatelessWidget {
   // UI helpers
   // -------------------------------------------------------------------------
   Widget _buildSearchField(MySurveyResponseController controller) {
-    return TextFormField(
-      controller: controller.searchController,
-      decoration: InputDecoration(
-        hintText: 'Search....',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        suffixIcon: const Icon(Icons.search),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
+    return Obx(
+      () => TextFormField(
+        controller: controller.searchController,
+        onChanged: controller.searchSurveys,
+        decoration: InputDecoration(
+          hintText: 'Search....',
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: controller.searchQuery.value.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.cancel, color: AppColors.grey),
+                  onPressed: controller.clearSearch,
+                )
+              : null,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
         ),
       ),
     );
@@ -105,129 +171,46 @@ class MySurveyResponseList extends StatelessWidget {
     MySurveyResponseModel survey,
     MySurveyResponseController controller,
   ) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // ---- Title + subtitle -------------------------------------------------
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  survey.subtitle,
-                  style: AppStyle.reportCardTitle.responsive.copyWith(
-                    fontSize: ResponsiveHelper.getResponsiveFontSize(16),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // ---- Footer -----------------------------------------------------------
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.grey.withOpacity(0.1),
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(10),
-                bottomRight: Radius.circular(10),
-              ),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Name',
-                      style: AppStyle.reportCardRowTitle.responsive.copyWith(
-                        fontSize: ResponsiveHelper.getResponsiveFontSize(13),
-                      ),
-                    ),
-                    Text(
-                      survey.title,
-                      style: AppStyle.reportCardRowCount.responsive.copyWith(
-                        fontSize: ResponsiveHelper.getResponsiveFontSize(13),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 1),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Submitted At',
-                      style: AppStyle.reportCardRowTitle.responsive.copyWith(
-                        fontSize: ResponsiveHelper.getResponsiveFontSize(13),
-                      ),
-                    ),
-                    Text(
-                      controller.formatDateTime(survey.submittedAt),
-                      style: AppStyle.reportCardRowCount.responsive.copyWith(
-                        fontSize: ResponsiveHelper.getResponsiveFontSize(13),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // -------------------------------------------------------------------------
-  // Shimmer
-  // -------------------------------------------------------------------------
-  Widget _buildShimmerEffect() {
-    return ListView.builder(
-      padding: ResponsiveHelper.paddingSymmetric(horizontal: 16),
-      itemCount: 5,
-      itemBuilder: (_, __) => _buildShimmerCard(),
-    );
-  }
-
-  Widget _buildShimmerCard() {
-    return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
+    return GestureDetector(
+      onTap: () {
+        Get.toNamed(
+          AppRoutes.surveyDetailsPreview,
+          arguments: {
+            'surveyId': survey.surveyId,
+            'userId': controller.userId,
+            'peopleDetailsId': survey.peopleDetailsId,
+          },
+        );
+      },
       child: Card(
         margin: const EdgeInsets.only(bottom: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
+            // ---- Title + subtitle -------------------------------------------------
+            Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: double.infinity,
-                    height: 20,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    width: double.infinity,
-                    height: 16,
-                    color: Colors.white,
+                  Text(
+                    survey.subtitle,
+                    style: AppStyle.reportCardTitle.responsive.copyWith(
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(16),
+                    ),
                   ),
                 ],
               ),
             ),
+
+            // ---- Footer -----------------------------------------------------------
             Container(
               decoration: BoxDecoration(
                 color: AppColors.grey.withOpacity(0.1),
                 borderRadius: const BorderRadius.only(
-                  bottomRight: Radius.circular(10),
                   bottomLeft: Radius.circular(10),
+                  bottomRight: Radius.circular(10),
                 ),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -236,16 +219,36 @@ class MySurveyResponseList extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(width: 100, height: 16, color: Colors.white),
-                      Container(width: 50, height: 16, color: Colors.white),
+                      Text(
+                        'Name',
+                        style: AppStyle.reportCardRowTitle.responsive.copyWith(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(13),
+                        ),
+                      ),
+                      Text(
+                        survey.title,
+                        style: AppStyle.reportCardRowCount.responsive.copyWith(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(13),
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 1),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(width: 100, height: 16, color: Colors.white),
-                      Container(width: 50, height: 16, color: Colors.white),
+                      Text(
+                        'Submitted At',
+                        style: AppStyle.reportCardRowTitle.responsive.copyWith(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(13),
+                        ),
+                      ),
+                      Text(
+                        controller.formatDateTime(survey.submittedAt),
+                        style: AppStyle.reportCardRowCount.responsive.copyWith(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(13),
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -264,7 +267,7 @@ class MySurveyResponseList extends StatelessWidget {
       elevation: 0,
       centerTitle: false,
       title: Text(
-        'My Survey',
+        'Response Search',
         style: AppStyle.heading1PoppinsBlack.responsive.copyWith(
           fontSize: ResponsiveHelper.getResponsiveFontSize(18),
           fontWeight: FontWeight.w600,

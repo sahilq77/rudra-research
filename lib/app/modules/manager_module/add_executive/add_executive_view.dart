@@ -88,6 +88,8 @@ class _AddExecutiveViewState extends State<AddExecutiveView> {
                   inputFormatters: [
                     NumberInputFormatter(),
                     SecureTextInputFormatter.deny(),
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
                   ],
                   keyboardType: TextInputType.phone,
                 ),
@@ -97,10 +99,10 @@ class _AddExecutiveViewState extends State<AddExecutiveView> {
                 _buildTextFormField(
                   controller: controller.addressController,
                   label: 'Address',
-                  validator: TextValidator.isEmpty,
+                  validator: TextValidator.isValidAddress,
                   inputFormatters: [SecureTextInputFormatter.deny()],
                   keyboardType: TextInputType.streetAddress,
-                  maxLines: 3,
+                  maxLines: 4,
                 ),
                 SizedBox(height: ResponsiveHelper.spacing(24)),
                 Text(
@@ -113,7 +115,11 @@ class _AddExecutiveViewState extends State<AddExecutiveView> {
                 SizedBox(height: ResponsiveHelper.spacing(16)),
                 _buildImageUpload(),
                 SizedBox(height: ResponsiveHelper.spacing(16)),
-                _buildDateField(label: 'Joining Date', isDob: false),
+                _buildDateField(
+                  label: 'Joining Date',
+                  isDob: false,
+                  isMandatory: false,
+                ),
                 SizedBox(height: ResponsiveHelper.spacing(16)),
                 _buildRoleDropdown(),
                 SizedBox(height: ResponsiveHelper.spacing(32)),
@@ -142,7 +148,7 @@ class _AddExecutiveViewState extends State<AddExecutiveView> {
         ),
       ),
       bottom: PreferredSize(
-        preferredSize: Size.fromHeight(0),
+        preferredSize: const Size.fromHeight(0),
         child: Divider(
           color: AppColors.grey.withOpacity(0.5),
           // thickness: 2,
@@ -159,6 +165,7 @@ class _AddExecutiveViewState extends State<AddExecutiveView> {
     List<TextInputFormatter>? inputFormatters,
     TextInputType? keyboardType,
     int maxLines = 1,
+    bool isMandatory = true,
   }) {
     return TextFormField(
       controller: controller,
@@ -167,7 +174,7 @@ class _AddExecutiveViewState extends State<AddExecutiveView> {
       keyboardType: keyboardType,
       maxLines: maxLines,
       decoration: InputDecoration(
-        labelText: label,
+        labelText: isMandatory ? '$label *' : label,
         labelStyle: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
           fontSize: ResponsiveHelper.getResponsiveFontSize(12),
         ),
@@ -200,7 +207,11 @@ class _AddExecutiveViewState extends State<AddExecutiveView> {
     );
   }
 
-  Widget _buildDateField({required String label, required bool isDob}) {
+  Widget _buildDateField({
+    required String label,
+    required bool isDob,
+    bool isMandatory = true,
+  }) {
     final controller = isDob
         ? this.controller.dobController
         : this.controller.joiningDateController;
@@ -209,7 +220,7 @@ class _AddExecutiveViewState extends State<AddExecutiveView> {
       readOnly: true,
       onTap: () => this.controller.pickDate(isDob),
       decoration: InputDecoration(
-        labelText: label,
+        labelText: isMandatory ? '$label *' : label,
         labelStyle: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
           fontSize: ResponsiveHelper.getResponsiveFontSize(12),
         ),
@@ -250,10 +261,18 @@ class _AddExecutiveViewState extends State<AddExecutiveView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Upload Profile Image',
-          style: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
-            fontSize: ResponsiveHelper.getResponsiveFontSize(12),
+        RichText(
+          text: TextSpan(
+            text: 'Upload Profile Image',
+            style: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
+              fontSize: ResponsiveHelper.getResponsiveFontSize(12),
+            ),
+            children: const [
+              TextSpan(
+                text: ' (Optional)',
+                style: TextStyle(color: AppColors.grey),
+              ),
+            ],
           ),
         ),
         SizedBox(height: ResponsiveHelper.spacing(8)),
@@ -297,9 +316,9 @@ class _AddExecutiveViewState extends State<AddExecutiveView> {
                           'Upload Image',
                           style: AppStyle.bodyRegularPoppinsGrey.responsive
                               .copyWith(
-                                fontSize:
-                                    ResponsiveHelper.getResponsiveFontSize(14),
-                              ),
+                            fontSize:
+                                ResponsiveHelper.getResponsiveFontSize(14),
+                          ),
                         ),
                       ],
                     ),
@@ -310,61 +329,62 @@ class _AddExecutiveViewState extends State<AddExecutiveView> {
     );
   }
 
- Widget _buildRoleDropdown() {
-  return Obx(
-    () => DropdownSearch<int>(
-      selectedItem: controller.selectedRole.value,
-      items: controller.roleValues, // Use roleValues from controller
-      itemAsString: (item) => controller.roles[controller.roleValues.indexOf(item)],
-      onChanged: (value) {
-        controller.selectedRole.value = value ?? controller.roleValues[0];
-      },
-      validator: (value) => value == null ? 'Please select a role' : null,
-      dropdownDecoratorProps: DropDownDecoratorProps(
-        dropdownSearchDecoration: InputDecoration(
-          labelText: 'Role',
-          labelStyle: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
-            fontSize: ResponsiveHelper.getResponsiveFontSize(12),
-          ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(8)),
-            borderSide: BorderSide(
-              color: AppColors.lightGrey.withOpacity(0.3),
-              width: 1,
+  Widget _buildRoleDropdown() {
+    return Obx(
+      () => DropdownSearch<int>(
+        selectedItem: controller.selectedRole.value,
+        items: controller.roleValues, // Use roleValues from controller
+        itemAsString: (item) =>
+            controller.roles[controller.roleValues.indexOf(item)],
+        onChanged: (value) {
+          controller.selectedRole.value = value ?? controller.roleValues[0];
+        },
+        validator: (value) => value == null ? 'Please select a role' : null,
+        dropdownDecoratorProps: DropDownDecoratorProps(
+          dropdownSearchDecoration: InputDecoration(
+            labelText: 'Role *',
+            labelStyle: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
+              fontSize: ResponsiveHelper.getResponsiveFontSize(12),
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(8)),
+              borderSide: BorderSide(
+                color: AppColors.lightGrey.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(8)),
+              borderSide: BorderSide(
+                color: AppColors.lightGrey.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(8)),
+              borderSide: const BorderSide(
+                color: AppColors.primary,
+                width: 1.5,
+              ),
+            ),
+            contentPadding: ResponsiveHelper.paddingSymmetric(
+              horizontal: 16,
+              vertical: 12,
             ),
           ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(8)),
-            borderSide: BorderSide(
-              color: AppColors.lightGrey.withOpacity(0.3),
-              width: 1,
+        ),
+        popupProps: const PopupProps.menu(
+          showSearchBox: true,
+          searchFieldProps: TextFieldProps(
+            decoration: InputDecoration(
+              hintText: 'Search role',
+              border: InputBorder.none,
             ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(8)),
-            borderSide: const BorderSide(
-              color: AppColors.primary,
-              width: 1.5,
-            ),
-          ),
-          contentPadding: ResponsiveHelper.paddingSymmetric(
-            horizontal: 16,
-            vertical: 12,
           ),
         ),
       ),
-      popupProps: const PopupProps.menu(
-        showSearchBox: true,
-        searchFieldProps: TextFieldProps(
-          decoration: InputDecoration(
-            hintText: 'Search role',
-            border: InputBorder.none,
-          ),
-        ),
-      ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildBottomButton() {
     return Container(
@@ -381,9 +401,8 @@ class _AddExecutiveViewState extends State<AddExecutiveView> {
       ),
       child: Obx(
         () => ElevatedButton(
-          onPressed: controller.isLoading.value
-              ? null
-              : controller.addExecutive,
+          onPressed:
+              controller.isLoading.value ? null : controller.addExecutive,
           style: AppButtonStyles.elevatedLargeBlack(),
           child: controller.isLoading.value
               ? SizedBox(

@@ -12,6 +12,7 @@ import '../../../utils/app_colors.dart';
 import '../../../utils/app_images.dart';
 import '../../../utils/responsive_utils.dart';
 import '../../../widgets/app_button_style.dart';
+import '../../../widgets/app_snackbar_styles.dart';
 import '../../../widgets/app_style.dart';
 
 class ExecutiveHomeView extends StatefulWidget {
@@ -26,6 +27,40 @@ class _ExecutiveHomeViewState extends State<ExecutiveHomeView> {
   final BottomNavigationController bottomController = Get.put(
     BottomNavigationController(),
   );
+  final ScrollController _scrollController = ScrollController();
+  bool _isLoadingMore = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_loadMore);
+  }
+
+  void _loadMore() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent * 0.9) {
+      if (controller.hasMoreData.value &&
+          !controller.isLoading.value &&
+          !controller.isLoadingMore.value &&
+          !_isLoadingMore) {
+        _isLoadingMore = true;
+        controller
+            .fetchLiveSurveys(
+          context: context,
+          isPagination: true,
+        )
+            .then((_) {
+          _isLoadingMore = false;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +70,7 @@ class _ExecutiveHomeViewState extends State<ExecutiveHomeView> {
       child: Scaffold(
         backgroundColor: AppColors.white,
         body: Obx(() => _buildBody(context)),
-        bottomNavigationBar: CustomBottomBar(),
+        bottomNavigationBar: const CustomBottomBar(),
       ),
     );
   }
@@ -47,10 +82,11 @@ class _ExecutiveHomeViewState extends State<ExecutiveHomeView> {
     return SafeArea(
       child: RefreshIndicator(
         onRefresh: () async {
+          controller.refresSurveyhData();
           await Future.delayed(const Duration(seconds: 1));
-          // controller.refreshData();
         },
         child: SingleChildScrollView(
+          controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
           padding: ResponsiveHelper.paddingSymmetric(
             horizontal: 16,
@@ -77,7 +113,6 @@ class _ExecutiveHomeViewState extends State<ExecutiveHomeView> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-
                 SizedBox(height: ResponsiveHelper.spacing(16)),
                 _buildDashboardGrid(),
                 SizedBox(height: ResponsiveHelper.spacing(24)),
@@ -168,6 +203,78 @@ class _ExecutiveHomeViewState extends State<ExecutiveHomeView> {
           ),
         ),
         SizedBox(width: ResponsiveHelper.spacing(8)),
+        Obx(
+          () => Stack(
+            children: [
+              Container(
+                width: ResponsiveHelper.spacing(40),
+                height: ResponsiveHelper.spacing(40),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.white,
+                  border: Border.all(
+                    color: AppColors.lightGrey.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  icon: Icon(
+                    Icons.cloud_upload_outlined,
+                    size: ResponsiveHelper.spacing(20),
+                    color: AppColors.defaultBlack,
+                  ),
+                  onPressed: () async {
+                    await controller.fetchPendingSubmissionsCount();
+                    if (controller.pendingSubmissionsCount.value > 0) {
+                      AppSnackbarStyles.showInfo(
+                        title: 'Pending Uploads',
+                        message:
+                            '${controller.pendingSubmissionsCount.value} survey(s) waiting to be uploaded',
+                      );
+                    } else {
+                      AppSnackbarStyles.showSuccess(
+                        title: 'All Synced',
+                        message: 'No pending surveys to upload',
+                      );
+                    }
+                  },
+                ),
+              ),
+              if (controller.pendingSubmissionsCount.value > 0)
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  child: Container(
+                    padding: EdgeInsets.all(ResponsiveHelper.spacing(4)),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: BoxConstraints(
+                      minWidth: ResponsiveHelper.spacing(18),
+                      minHeight: ResponsiveHelper.spacing(18),
+                    ),
+                    child: Center(
+                      child: Text(
+                        controller.pendingSubmissionsCount.value > 99
+                            ? '99+'
+                            : controller.pendingSubmissionsCount.value
+                                .toString(),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(9),
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        SizedBox(width: ResponsiveHelper.spacing(8)),
         Container(
           width: ResponsiveHelper.spacing(40),
           height: ResponsiveHelper.spacing(40),
@@ -228,6 +335,10 @@ class _ExecutiveHomeViewState extends State<ExecutiveHomeView> {
       decoration: BoxDecoration(
         color: stat['color'],
         borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(16)),
+        border: Border.all(
+          color: stat['borderColor'],
+          width: 1.5,
+        ),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -322,16 +433,95 @@ class _ExecutiveHomeViewState extends State<ExecutiveHomeView> {
   }
 
   Widget _buildLiveSurveysList() {
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: controller.liveSurveysList.length,
-      itemBuilder: (context, index) {
-        final survey = controller.liveSurveysList[index];
-        print(survey.surveyId);
-        return _buildSurveyCard(survey, index);
-      },
-    );
+    return Obx(() {
+      // Show empty state when no surveys and not loading
+      if (controller.liveSurveysList.isEmpty && !controller.isLoading.value) {
+        return Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              vertical: ResponsiveHelper.spacing(40),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SvgPicture.asset(
+                  AppImages.onboarding1,
+                  width: ResponsiveHelper.spacing(120),
+                  height: ResponsiveHelper.spacing(120),
+                ),
+                SizedBox(height: ResponsiveHelper.spacing(16)),
+                ResponsiveHelper.safeText(
+                  'No Surveys Available',
+                  style: AppStyle.heading1PoppinsBlack.responsive.copyWith(
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(16),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: ResponsiveHelper.spacing(8)),
+                ResponsiveHelper.safeText(
+                  'There are no live surveys at the moment',
+                  style: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(13),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
+      // Calculate item count: surveys + loading indicator + end message
+      int itemCount = controller.liveSurveysList.length;
+      if (controller.isLoadingMore.value) {
+        itemCount += 1; // Add loading indicator
+      } else if (!controller.hasMoreData.value &&
+          controller.liveSurveysList.isNotEmpty) {
+        itemCount += 1; // Add end message
+      }
+
+      return ListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: itemCount,
+        itemBuilder: (context, index) {
+          // Show loading indicator while paginating
+          if (index == controller.liveSurveysList.length &&
+              controller.isLoadingMore.value) {
+            return Padding(
+              padding: EdgeInsets.all(ResponsiveHelper.spacing(16)),
+              child: const Center(
+                child: CircularProgressIndicator(
+                  color: AppColors.primary,
+                ),
+              ),
+            );
+          }
+
+          // Show end of list message
+          if (index == controller.liveSurveysList.length &&
+              !controller.hasMoreData.value) {
+            return Padding(
+              padding: EdgeInsets.symmetric(
+                vertical: ResponsiveHelper.spacing(16),
+              ),
+              child: Center(
+                child: ResponsiveHelper.safeText(
+                  'No more surveys to load',
+                  style: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(13),
+                  ),
+                ),
+              ),
+            );
+          }
+
+          final survey = controller.liveSurveysList[index];
+          print(survey.surveyId);
+          return _buildSurveyCard(survey, index);
+        },
+      );
+    });
   }
 
   Widget _buildSurveyCard(LiveSurveyData survey, int index) {
@@ -405,12 +595,12 @@ class _ExecutiveHomeViewState extends State<ExecutiveHomeView> {
                         'Live',
                         style: AppStyle.bodySmallPoppinsPrimary.responsive
                             .copyWith(
-                              color: const Color(0xFFFF4444),
-                              fontSize: ResponsiveHelper.getResponsiveFontSize(
-                                11,
-                              ),
-                              fontWeight: FontWeight.w600,
-                            ),
+                          color: const Color(0xFFFF4444),
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            11,
+                          ),
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),

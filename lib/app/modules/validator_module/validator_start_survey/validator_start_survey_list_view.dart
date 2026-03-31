@@ -1,56 +1,145 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:rudra/app/modules/manager_module/my_survey/my_survey_controller.dart';
 import 'package:rudra/app/modules/validator_module/validator_start_survey/validator_start_survey_list_controller.dart';
-
 import 'package:rudra/app/routes/app_routes.dart';
-import 'package:shimmer/shimmer.dart';
 
 import '../../../utils/app_colors.dart';
 import '../../../utils/responsive_utils.dart';
-import '../../../widgets/app_button_style.dart';
 import '../../../widgets/app_style.dart';
+import '../../../widgets/custom_shimmer_card.dart';
 
-class ValidatorStartSurveyListView extends StatelessWidget {
+class ValidatorStartSurveyListView extends StatefulWidget {
   const ValidatorStartSurveyListView({super.key});
 
   @override
+  State<ValidatorStartSurveyListView> createState() =>
+      _ValidatorStartSurveyListViewState();
+}
+
+class _ValidatorStartSurveyListViewState
+    extends State<ValidatorStartSurveyListView> {
+  late final ValidatorStartSurveyListController controller;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.find<ValidatorStartSurveyListController>();
+    _scrollController.addListener(_loadMore);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _loadMore() {
+    if (controller.hasMoreData.value &&
+        !controller.isLoading.value &&
+        !controller.isLoadingMore.value &&
+        _scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent * 0.9) {
+      controller.loadMoreResponses(context: context);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Initialize the controller
-    final ValidatorStartSurveyListController controller = Get.put(
-      ValidatorStartSurveyListController(),
-    );
     ResponsiveHelper.init(context);
 
     return Scaffold(
       appBar: _buildAppbar(),
       body: RefreshIndicator(
         onRefresh: controller.refreshData,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: ResponsiveHelper.paddingSymmetric(
-            horizontal: 16,
-            vertical: 16,
-          ),
-          child: Column(
+        child: Obx(() {
+          if (controller.isLoading.value && controller.surveyList.isEmpty) {
+            return Column(
+              children: [
+                Padding(
+                  padding: ResponsiveHelper.paddingSymmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
+                  child: _buildSerachField(controller),
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    padding: ResponsiveHelper.paddingSymmetric(horizontal: 16),
+                    itemCount: 5,
+                    itemBuilder: (_, __) => const CustomShimmerCard(),
+                  ),
+                ),
+              ],
+            );
+          }
+
+          return Column(
             children: [
-              _buildSerachField(controller),
-              const SizedBox(height: 16),
-              Obx(
-                () => controller.isLoading.value
-                    ? _buildShimmerEffect()
-                    : controller.filteredSurveyList.isEmpty
-                    ? const Center(child: Text('No reports found'))
-                    : Column(
-                        children: controller.filteredSurveyList.asMap().entries.map((
-                          entry,
-                        ) {
-                          final report = entry.value;
+              Padding(
+                padding: ResponsiveHelper.paddingSymmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                child: _buildSerachField(controller),
+              ),
+              Expanded(
+                child: Obx(() {
+                  if (controller.isSearching.value) {
+                    return ListView.builder(
+                      padding: ResponsiveHelper.paddingSymmetric(horizontal: 16),
+                      itemCount: 3,
+                      itemBuilder: (_, __) => const CustomShimmerCard(),
+                    );
+                  }
+
+                  if (controller.filteredSurveyList.isEmpty) {
+                    return const Center(child: Text('No reports found'));
+                  }
+
+                  return ListView.separated(
+                    controller: _scrollController,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: ResponsiveHelper.paddingSymmetric(
+                      horizontal: 16,
+                      vertical: 0,
+                    ),
+                    itemCount: controller.filteredSurveyList.length +
+                        (controller.isLoadingMore.value ? 1 : (!controller.hasMoreData.value && controller.hasPaginated.value ? 1 : 0)),
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 16),
+                    itemBuilder: (context, index) {
+                      if (index == controller.filteredSurveyList.length) {
+                        if (controller.isLoadingMore.value) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: CircularProgressIndicator(
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          );
+                        } else if (!controller.hasMoreData.value && controller.hasPaginated.value) {
+                          return Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Center(
+                              child: Text(
+                                'No more items to load',
+                                style: AppStyle.bodySmallPoppinsGrey.responsive,
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                          final report = controller.filteredSurveyList[index];
                           return GestureDetector(
                             onTap: () => Get.toNamed(
                               AppRoutes.validatorStartSurveyDetail,
-                              arguments: {'report': report},
+                              arguments: {
+                                'report': report,
+                                'survey_id': controller.surveyId ?? '',
+                                'response_id': report.id,
+                              },
                             ),
                             child: Card(
                               margin: const EdgeInsets.only(bottom: 16),
@@ -65,16 +154,15 @@ class ValidatorStartSurveyListView extends StatelessWidget {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          report.title,
+                                          report.surveyId,
                                           style: AppStyle
-                                              .reportCardTitle
-                                              .responsive
+                                              .reportCardTitle.responsive
                                               .copyWith(
-                                                fontSize:
-                                                    ResponsiveHelper.getResponsiveFontSize(
-                                                      16,
-                                                    ),
-                                              ),
+                                            fontSize: ResponsiveHelper
+                                                .getResponsiveFontSize(
+                                              16,
+                                            ),
+                                          ),
                                         ),
                                         // SizedBox(
                                         //   height: ResponsiveHelper.spacing(5),
@@ -119,23 +207,29 @@ class ValidatorStartSurveyListView extends StatelessWidget {
                                                     .reportCardRowTitle
                                                     .responsive
                                                     .copyWith(
-                                                      fontSize:
-                                                          ResponsiveHelper.getResponsiveFontSize(
-                                                            13,
-                                                          ),
-                                                    ),
+                                                  fontSize: ResponsiveHelper
+                                                      .getResponsiveFontSize(
+                                                    13,
+                                                  ),
+                                                ),
                                               ),
-                                              Text(
-                                                report.surveyId,
-                                                style: AppStyle
-                                                    .reportCardRowCount
-                                                    .responsive
-                                                    .copyWith(
-                                                      fontSize:
-                                                          ResponsiveHelper.getResponsiveFontSize(
-                                                            13,
-                                                          ),
+                                              Expanded(
+                                                child: Text(
+                                                  report.title,
+                                                  style: AppStyle
+                                                      .reportCardRowCount
+                                                      .responsive
+                                                      .copyWith(
+                                                    fontSize: ResponsiveHelper
+                                                        .getResponsiveFontSize(
+                                                      13,
                                                     ),
+                                                  ),
+                                                  textAlign: TextAlign.end,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
                                               ),
                                             ],
                                           ),
@@ -151,10 +245,16 @@ class ValidatorStartSurveyListView extends StatelessWidget {
                                                 style:
                                                     AppStyle.reportCardRowTitle,
                                               ),
-                                              Text(
-                                                report.responseCount,
-                                                style:
-                                                    AppStyle.reportCardRowCount,
+                                              Expanded(
+                                                child: Text(
+                                                  report.responseCount,
+                                                  style: AppStyle
+                                                      .reportCardRowCount,
+                                                  textAlign: TextAlign.end,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
                                               ),
                                             ],
                                           ),
@@ -166,102 +266,38 @@ class ValidatorStartSurveyListView extends StatelessWidget {
                               ),
                             ),
                           );
-                        }).toList(),
-                      ),
+                    },
+                  );
+                }),
               ),
             ],
-          ),
-        ),
+          );
+        }),
       ),
     );
   }
 
-  TextFormField _buildSerachField(
+  Widget _buildSerachField(
     ValidatorStartSurveyListController controller,
   ) {
-    return TextFormField(
-      controller: controller.searchController,
-      decoration: InputDecoration(
-        hintText: 'Search....',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        suffixIcon: const Icon(Icons.search),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
-        ),
-      ),
-      onChanged: controller.searchSurveys,
-    );
-  }
-
-  Widget _buildShimmerEffect() {
-    return Column(children: List.generate(3, (index) => _buildShimmerCard()));
-  }
-
-  Widget _buildShimmerCard() {
-    return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
-      child: Card(
-        margin: const EdgeInsets.only(bottom: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: double.infinity,
-                    height: 20,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    width: double.infinity,
-                    height: 16,
-                    color: Colors.white,
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.grey.withOpacity(0.1),
-                borderRadius: const BorderRadius.only(
-                  bottomRight: Radius.circular(10),
-                  bottomLeft: Radius.circular(10),
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(width: 100, height: 16, color: Colors.white),
-                        Container(width: 50, height: 16, color: Colors.white),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(width: 100, height: 16, color: Colors.white),
-                        Container(width: 50, height: 16, color: Colors.white),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+    return Obx(
+      () => TextFormField(
+        controller: controller.searchController,
+        onChanged: controller.searchSurveys,
+        decoration: InputDecoration(
+          hintText: 'Search....',
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: controller.searchQuery.value.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.cancel, color: AppColors.grey),
+                  onPressed: controller.clearSearch,
+                )
+              : null,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
         ),
       ),
     );
@@ -274,7 +310,7 @@ class ValidatorStartSurveyListView extends StatelessWidget {
       elevation: 0,
       centerTitle: false,
       title: Text(
-        'My Survey',
+        'Response Search',
         style: AppStyle.heading1PoppinsBlack.responsive.copyWith(
           fontSize: ResponsiveHelper.getResponsiveFontSize(18),
           fontWeight: FontWeight.w600,

@@ -1,142 +1,206 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:rudra/app/data/models/my_report/get_survey_report_response.dart';
 import 'package:rudra/app/data/models/my_report/my_report_chart.dart';
 
 class MyReportSurveyChartController extends GetxController {
   var surveyData = <SurveyData>[].obs;
   final RxBool isLoading = true.obs;
+  SurveyReportData? reportData;
 
   @override
   void onInit() {
     super.onInit();
-    _loadSurveyData();
+    final args = Get.arguments as Map<String, dynamic>?;
+    if (args != null && args['data'] != null) {
+      reportData = args['data'] as SurveyReportData;
+      _loadSurveyData();
+    }
   }
 
-  // Method to load or reset survey data
   void _loadSurveyData() {
+    if (reportData == null) return;
     surveyData.clear();
     // Executive Count
-    surveyData.add(
-      SurveyData(
-        title: 'Executive Count',
-        sections: [
-          ChartSection(value: 3.0, color: Colors.cyan, label: 'Pradeep Pathak'),
-          ChartSection(value: 2.0, color: Colors.orange, label: 'Amol Naik'),
-        ],
-      ),
-    );
+    if (reportData!.executiveInfo.isNotEmpty) {
+      surveyData.add(
+        SurveyData(
+          title: 'Executive Count (${reportData!.executiveCount})',
+          sections: reportData!.executiveInfo.asMap().entries.map((e) {
+            final colors = [
+              Colors.cyan,
+              Colors.orange,
+              Colors.green,
+              Colors.purple,
+              Colors.pink,
+              Colors.blue
+            ];
+            return ChartSection(
+              value: e.value.peopleDetails.length.toDouble(),
+              color: colors[e.key % colors.length],
+              label: e.value.name,
+            );
+          }).toList(),
+        ),
+      );
+    }
     // Gender Count
-    surveyData.add(
-      SurveyData(
-        title: 'Gender Count',
-        sections: [
-          ChartSection(value: 2.0, color: Colors.cyan, label: 'Male'),
-          ChartSection(
-            value: 1.0,
-            color: Colors.deepPurpleAccent.withOpacity(0.8),
-            label: 'Female',
-          ),
-          ChartSection(value: 0.0, color: Colors.orange, label: 'Other'),
-        ],
-      ),
-    );
+    if (reportData!.genderDetail.isNotEmpty) {
+      final genderMap = {'0': 'Male', '1': 'Female', '2': 'Other'};
+      final genderColors = {
+        '0': Colors.cyan,
+        '1': Colors.pink,
+        '2': Colors.orange
+      };
+      surveyData.add(
+        SurveyData(
+          title: 'Gender Count (${reportData!.genderCount})',
+          sections: reportData!.genderDetail.entries.map((e) {
+            return ChartSection(
+              value: e.value.length.toDouble(),
+              color: genderColors[e.key] ?? Colors.grey,
+              label: genderMap[e.key] ?? 'Unknown',
+            );
+          }).toList(),
+        ),
+      );
+    }
     // Cast Count
-    surveyData.add(
-      SurveyData(
-        title: 'Cast Count',
-        sections: [
-          ChartSection(value: 2.0, color: Colors.cyan, label: 'OBC'),
-          ChartSection(
-            value: 1.0,
-            color: Colors.deepPurpleAccent.withOpacity(0.8),
-            label: 'Open',
-          ),
-          ChartSection(value: 0.0, color: Colors.orange, label: 'Other'),
-        ],
-      ),
-    );
+    if (reportData!.castDetail.isNotEmpty) {
+      surveyData.add(
+        SurveyData(
+          title: 'Cast Count (${reportData!.castCount})',
+          sections: reportData!.castDetail.asMap().entries.map((e) {
+            final colors = [
+              Colors.cyan,
+              Colors.deepPurpleAccent,
+              Colors.orange,
+              Colors.green,
+              Colors.purple
+            ];
+            return ChartSection(
+              value: e.value.peopleDetails.length.toDouble(),
+              color: colors[e.key % colors.length],
+              label: e.value.castName,
+            );
+          }).toList(),
+        ),
+      );
+    }
     // Age Count
-    surveyData.add(
-      SurveyData(
-        title: 'Age Count',
-        sections: [
-          ChartSection(value: 2.0, color: Colors.cyan, label: '18-25'),
-          ChartSection(value: 1.0, color: Colors.orange, label: '26-35'),
-          ChartSection(
-            value: 1.0,
-            color: Colors.deepPurpleAccent.withOpacity(0.8),
-            label: '40-59',
-          ),
-          ChartSection(value: 0.0, color: Colors.pink, label: '60+'),
-        ],
-      ),
-    );
+    if (reportData!.ageDetail.isNotEmpty) {
+      surveyData.add(
+        SurveyData(
+          title: 'Age Count (${reportData!.ageCount})',
+          sections: reportData!.ageDetail.entries.map((e) {
+            final colors = [
+              Colors.cyan,
+              Colors.orange,
+              Colors.deepPurpleAccent,
+              Colors.pink,
+              Colors.green
+            ];
+            return ChartSection(
+              value: e.value.length.toDouble(),
+              color: colors[int.tryParse(e.key) ?? 0 % colors.length],
+              label: 'Age ${e.key}',
+            );
+          }).toList(),
+        ),
+      );
+    }
     // Lok Sabha Count
-    surveyData.add(
-      SurveyData(
-        title: 'Lok Sabha Count',
-        sections: [ChartSection(value: 4.0, color: Colors.cyan, label: 'Pune')],
-      ),
-    );
+    if (reportData!.loksabhaDetail.isNotEmpty) {
+      surveyData.add(
+        SurveyData(
+          title: 'Lok Sabha Count (${reportData!.loksabhaCount})',
+          sections: reportData!.loksabhaDetail.asMap().entries.map((e) {
+            final colors = [
+              Colors.cyan,
+              Colors.orange,
+              Colors.green,
+              Colors.purple
+            ];
+            return ChartSection(
+              value: e.value.peopleDetails.length.toDouble(),
+              color: colors[e.key % colors.length],
+              label: e.value.loksabhaName,
+            );
+          }).toList(),
+        ),
+      );
+    }
     // Assembly Count
-    surveyData.add(
-      SurveyData(
-        title: 'Assembly Count',
-        sections: [
-          ChartSection(value: 1.0, color: Colors.green, label: 'Vadgaon Sheri'),
-          ChartSection(value: 1.0, color: Colors.purple, label: 'Kasaba Peth'),
-          ChartSection(
-            value: 1.0,
-            color: Colors.deepPurpleAccent.withOpacity(0.8),
-            label: 'Kothrud',
-          ),
-          ChartSection(value: 1.0, color: Colors.blue, label: '210-Kothrud'),
-        ],
-      ),
-    );
+    if (reportData!.assemblyDetail.isNotEmpty) {
+      surveyData.add(
+        SurveyData(
+          title: 'Assembly Count (${reportData!.assemblyCount})',
+          sections: reportData!.assemblyDetail.asMap().entries.map((e) {
+            final colors = [
+              Colors.green,
+              Colors.purple,
+              Colors.deepPurpleAccent,
+              Colors.blue,
+              Colors.orange
+            ];
+            return ChartSection(
+              value: double.tryParse(e.value.responseCount) ?? 0.0,
+              color: colors[e.key % colors.length],
+              label: e.value.assemblyName,
+            );
+          }).toList(),
+        ),
+      );
+    }
     // Ward Count
-    surveyData.add(
-      SurveyData(
-        title: 'Ward Count',
-        sections: [
-          ChartSection(
-            value: 4.0,
-            color: Colors.deepPurpleAccent.withOpacity(0.8),
-            label: 'Ward No. 1',
-          ),
-        ],
-      ),
-    );
+    if (reportData!.wardDetail.isNotEmpty) {
+      surveyData.add(
+        SurveyData(
+          title: 'Ward Count (${reportData!.wardCount})',
+          sections: reportData!.wardDetail.asMap().entries.map((e) {
+            final colors = [
+              Colors.deepPurpleAccent,
+              Colors.cyan,
+              Colors.orange,
+              Colors.green
+            ];
+            return ChartSection(
+              value: double.tryParse(e.value.responseCount) ?? 0.0,
+              color: colors[e.key % colors.length],
+              label: e.value.wardName,
+            );
+          }).toList(),
+        ),
+      );
+    }
     // Area Count
-    surveyData.add(
-      SurveyData(
-        title: 'Area Count',
-        sections: [
-          ChartSection(
-            value: 2.0,
-            color: Colors.cyan,
-            label: 'Dhanori Gaothan',
-          ),
-          ChartSection(
-            value: 1.0,
-            color: Colors.deepPurpleAccent.withOpacity(0.8),
-            label: 'Bhimnagar Vasahat',
-          ),
-          ChartSection(value: 1.0, color: Colors.pink, label: 'Siddharthnagar'),
-          ChartSection(
-            value: 0.0,
-            color: Colors.orange,
-            label: 'Khese Park (Port)',
-          ),
-        ],
-      ),
-    );
+    if (reportData!.villageAreaDetail.isNotEmpty) {
+      surveyData.add(
+        SurveyData(
+          title: 'Area Count (${reportData!.villageAreaCount})',
+          sections: reportData!.villageAreaDetail.asMap().entries.map((e) {
+            final colors = [
+              Colors.cyan,
+              Colors.deepPurpleAccent,
+              Colors.pink,
+              Colors.orange,
+              Colors.green
+            ];
+            return ChartSection(
+              value: double.tryParse(e.value.responseCount) ?? 0.0,
+              color: colors[e.key % colors.length],
+              label: e.value.areaName,
+            );
+          }).toList(),
+        ),
+      );
+    }
   }
 
   // Method to handle refresh action
   Future<void> refreshData() async {
     // Simulate a network delay or API call
-    await Future.delayed(Duration(seconds: 1));
+    await Future.delayed(const Duration(seconds: 1));
     _loadSurveyData();
     surveyData.refresh();
   }
@@ -149,5 +213,3 @@ class MyReportSurveyChartController extends GetxController {
     }
   }
 }
-
-

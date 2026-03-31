@@ -3,31 +3,33 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:http_parser/http_parser.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:path/path.dart' as p;
-
+import 'package:path_provider/path_provider.dart';
 // -----------------------------------------------------------------
 //  ORIGINAL IMPORTS (unchanged)
 // -----------------------------------------------------------------
 import 'package:rudra/app/data/models/interviewer_info/get_cast_response.dart';
-import 'package:rudra/app/data/models/interviewer_info/get_set_interviewer_info.dart';
 import 'package:rudra/app/data/network/exceptions.dart';
-import 'package:rudra/app/data/network/networkcall.dart';
 import 'package:rudra/app/data/urls.dart';
 import 'package:rudra/app/modules/audio_recorder/audio_recorder_controller.dart';
 import 'package:rudra/app/utils/app_images.dart';
 import 'package:rudra/app/utils/app_utility.dart';
 import 'package:rudra/app/utils/responsive_utils.dart';
+
+import '../../../data/local/database_helper.dart';
+import '../../../data/local/survey_local_repository.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/app_colors.dart';
 import '../../../utils/app_logger.dart';
 import '../../../widgets/app_snackbar_styles.dart';
 import '../../../widgets/app_style.dart';
+import '../../../widgets/connctivityservice.dart';
+import '../survey_question/survey_question_controller.dart';
 
 // -----------------------------------------------------------------
 //  WAV HEADER PARSER – top-level class (fixed indexOf)
@@ -91,6 +93,7 @@ class SurveyInterviewerController extends GetxController {
   var isLoadingCast = false.obs;
   var errorMessageCast = ''.obs;
   var isLoading = false.obs;
+  final RxBool isSubmitting = false.obs;
 
   final RxString selectedCast = ''.obs;
   final RxString selectedCastId = ''.obs;
@@ -98,7 +101,7 @@ class SurveyInterviewerController extends GetxController {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
 
-  final List<String> ageRanges = ['18-25', '26-39', '40-55', '56+'];
+  final List<String> ageRanges = ['18-25', '26-39', '40-60', '60+'];
   final RxString selectedAgeLabel = ''.obs;
   final RxInt selectedAgeId = 0.obs;
 
@@ -108,10 +111,14 @@ class SurveyInterviewerController extends GetxController {
 
   late String surveyId = "";
   late String surveyAppId = "";
+  late String villageAreaId = "";
 
-  // -----------------------------------------------------------------
-  //  AUDIO RECORDING – DELEGATED TO SEPARATE CONTROLLER
-  // -----------------------------------------------------------------
+  final RxBool isNameRequired = true.obs;
+  final RxBool isAgeRequired = true.obs;
+  final RxBool isGenderRequired = true.obs;
+  final RxBool isPhoneRequired = true.obs;
+  final RxBool isCasteRequired = true.obs;
+
   late final AudioRecorderController audioRecorder;
 
   @override
@@ -125,10 +132,37 @@ class SurveyInterviewerController extends GetxController {
     surveyAppId = args?['survey_app_side_id']?.toString() ?? "";
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (Get.context != null) {
-        await fetchCast(context: Get.context!, surveyId: surveyId);
-      }
+      await _loadValidationSettings();
+      await _loadCastsFromCache();
     });
+  }
+
+  Future<void> _loadValidationSettings() async {
+    try {
+      final db = await DatabaseHelper.instance.database;
+      final result = await db.query(
+        'survey_details',
+        where: 'survey_id = ?',
+        whereArgs: [surveyId],
+        limit: 1,
+      );
+
+      if (result.isNotEmpty) {
+        final data = result.first;
+        isNameRequired.value = (data['validation_name'] ?? '1') == '1';
+        isAgeRequired.value = (data['validation_age'] ?? '1') == '1';
+        isGenderRequired.value = (data['validation_gender'] ?? '1') == '1';
+        isPhoneRequired.value = (data['validation_phone'] ?? '1') == '1';
+        isCasteRequired.value = (data['validation_caste'] ?? '1') == '1';
+        AppLogger.i(
+          'Validation settings loaded: name=$isNameRequired, age=$isAgeRequired, gender=$isGenderRequired, phone=$isPhoneRequired, caste=$isCasteRequired',
+          tag: 'SurveyInterviewerController',
+        );
+      }
+    } catch (e) {
+      AppLogger.e('Error loading validation settings: $e',
+          tag: 'SurveyInterviewerController');
+    }
   }
 
   // -----------------------------------------------------------------
@@ -170,87 +204,232 @@ class SurveyInterviewerController extends GetxController {
   }) async {
     if (!formKey.currentState!.validate()) return null;
 
+    // Prevent double submission
+    if (isSubmitting.value) {
+      AppLogger.w('Submission already in progress',
+          tag: 'SurveyInterviewerController');
+      return null;
+    }
+
+    // Stop recording
     if (audioRecorder.isRecording.value) {
       final stoppedPath = await audioRecorder.stopRecording();
       if (stoppedPath != null) {
-        AppSnackbarStyles.showInfo(
-          title: 'Recording',
-          message: 'Recording stopped automatically',
-        );
-      } else {
-        AppSnackbarStyles.showError(
-          title: 'Warning',
-          message: 'Failed to stop recording – will try to upload anyway',
-        );
+        AppLogger.i('Recording stopped: $stoppedPath',
+            tag: 'SurveyInterviewerController');
       }
     }
 
     try {
+      isSubmitting.value = true;
       isLoadings.value = true;
       errorMessages.value = '';
 
-      final jsonBody = {
-        "survey_app_side_id": surveyAppId,
-        "name": nameController.text.trim(),
-        "age": selectedAgeId.value.toString(),
-        "gender": selectedGenderId.value.toString(),
-        "mob_number": phoneController.text.trim(),
-        "cast_id": selectedCastId.value,
-      };
+      // Save interviewer info locally with actual completion time
+      await _saveInterviewerInfoLocally();
 
-      final response =
-          await Networkcall().postMethod(
-                Networkutility.setInterviewerInfoApi,
-                Networkutility.setInterviewerInfo,
-                jsonEncode(jsonBody),
-                context,
-              )
-              as List<GetSetInterviewerInfoResponse>?;
+      // Show success dialog
+      _showSuccessDialog(Get.context!);
 
-      if (response != null &&
-          response.isNotEmpty &&
-          response[0].status == "true") {
-        // AppSnackbarStyles.showSuccess(
-        //   title: 'Success',
-        //   message: "Info submitted",
-        // );
-        log("Info Submitted success");
-        if (audioRecorder.recordingPath.value.isNotEmpty) {
-          await uploadRecording();
-        } else {
-          AppSnackbarStyles.showInfo(
-            title: 'No Audio',
-            message: 'No recording to upload',
-          );
-        }
-
-        return response[0].data?.surveyAppSideId ?? '';
-      } else {
-        final msg = response?[0].message ?? "Submission failed";
-        errorMessages.value = msg;
-        AppSnackbarStyles.showError(title: 'Failed', message: msg);
-        return null;
-      }
-    } on NoInternetException catch (e) {
-      errorMessages.value = e.message;
-      AppSnackbarStyles.showError(title: 'Error', message: e.message);
-    } on TimeoutException catch (e) {
-      errorMessages.value = e.message;
-      AppSnackbarStyles.showError(title: 'Error', message: e.message);
-    } on HttpException catch (e) {
-      errorMessages.value = '${e.message} (Code: ${e.statusCode})';
-      AppSnackbarStyles.showError(title: 'Error', message: errorMessages.value);
-    } on ParseException catch (e) {
-      errorMessages.value = e.message;
-      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+      return surveyAppId;
     } catch (e, s) {
-      errorMessages.value = 'Unexpected error: $e';
-      log('setSurvey error: $e', stackTrace: s);
-      AppSnackbarStyles.showError(title: 'Error', message: errorMessages.value);
+      AppLogger.e('Error saving interviewer info',
+          error: e, stackTrace: s, tag: 'SurveyInterviewerController');
+      AppSnackbarStyles.showError(
+        title: 'Error',
+        message: 'Failed to save interviewer info',
+      );
+      return null;
     } finally {
       isLoadings.value = false;
+      isSubmitting.value = false;
     }
-    return null;
+  }
+
+  Future<void> _saveInterviewerInfoLocally() async {
+    try {
+      AppLogger.i(
+        '\n${'💾 ' * 20}\n💾 UPDATING PENDING SUBMISSION WITH INTERVIEWER INFO\n${'💾 ' * 20}',
+        tag: 'SurveyInterviewerController',
+      );
+
+      final db = await DatabaseHelper.instance.database;
+
+      AppLogger.d(
+        '🔍 Searching for offline_survey_id: $surveyAppId',
+        tag: 'SurveyInterviewerController',
+      );
+
+      // Log ALL pending submissions BEFORE update
+      final allBefore =
+          await db.query('pending_submissions', where: 'synced = 0');
+      AppLogger.d(
+        '📊 ALL PENDING SUBMISSIONS BEFORE UPDATE (${allBefore.length}):\n${allBefore.map((s) => '  ID: ${s['id']}, offline_survey_id: ${s['offline_survey_id']}, name: ${s['interviewer_name']}, created: ${s['created_at']}').join('\n')}',
+        tag: 'SurveyInterviewerController',
+      );
+
+      // Find the latest pending submission by offline_survey_id
+      var results = await db.query(
+        'pending_submissions',
+        where: 'offline_survey_id = ? AND synced = 0',
+        whereArgs: [surveyAppId],
+        orderBy: 'created_at DESC',
+        limit: 1,
+      );
+
+      if (results.isEmpty) {
+        AppLogger.w(
+          '⚠️ No pending submission found for offline_survey_id: $surveyAppId',
+          tag: 'SurveyInterviewerController',
+        );
+
+        // Try to find most recent unsynced submission for this survey
+        results = await db.query(
+          'pending_submissions',
+          where: 'survey_id = ? AND synced = 0',
+          whereArgs: [surveyId],
+          orderBy: 'created_at DESC',
+          limit: 1,
+        );
+
+        if (results.isEmpty) {
+          AppLogger.e(
+            '❌ No pending submission found for survey_id: $surveyId',
+            tag: 'SurveyInterviewerController',
+          );
+          throw Exception('No pending submission found');
+        }
+
+        AppLogger.i(
+          '✅ Found fallback submission (ID: ${results.first['id']}) for survey_id: $surveyId',
+          tag: 'SurveyInterviewerController',
+        );
+      }
+
+      final submissionId = results.first['id'];
+
+      AppLogger.i(
+        '✅ Found pending submission ID: $submissionId',
+        tag: 'SurveyInterviewerController',
+      );
+
+      // Capture actual completion time
+      final completionTime = DateTime.now().toIso8601String();
+
+      // Update with interviewer info and mark as completed
+      await db.update(
+        'pending_submissions',
+        {
+          'interviewer_name': nameController.text.trim(),
+          'interviewer_age': selectedAgeId.value.toString(),
+          'interviewer_gender': selectedGenderId.value.toString(),
+          'interviewer_phone': phoneController.text.trim(),
+          'interviewer_cast': selectedCastId.value,
+          'audio_path': audioRecorder.recordingPath.value,
+          'completion_stage': 'completed',
+          'actual_completion_time': completionTime,
+          'updated_at': completionTime,
+        },
+        where: 'id = ?',
+        whereArgs: [submissionId],
+      );
+
+      // Log the complete submission data
+      final updatedSubmission = await db.query(
+        'pending_submissions',
+        where: 'id = ?',
+        whereArgs: [submissionId],
+      );
+
+      if (updatedSubmission.isNotEmpty) {
+        final data = updatedSubmission.first;
+
+        // Log database data
+        AppLogger.i(
+          '\n${'=' * 80}\n'
+          '📋 FINAL SUBMISSION DATA (Database):\n'
+          '${'=' * 80}\n'
+          'ID: ${data['id']}\n'
+          'offline_survey_id: ${data['offline_survey_id']}\n'
+          'survey_id: ${data['survey_id']}\n'
+          'survey_language_id: ${data['survey_language_id']}\n'
+          'zp_ward_id: ${data['zp_ward_id']}\n'
+          'village_area_id: ${data['village_area_id']}\n'
+          'user_id: ${data['user_id']}\n'
+          'interviewer_name: ${data['interviewer_name']}\n'
+          'interviewer_age: ${data['interviewer_age']}\n'
+          'interviewer_gender: ${data['interviewer_gender']}\n'
+          'interviewer_phone: ${data['interviewer_phone']}\n'
+          'interviewer_cast: ${data['interviewer_cast']}\n'
+          'answers: ${data['answers']}\n'
+          'audio_path: ${data['audio_path']}\n'
+          'synced: ${data['synced']}\n'
+          'created_at: ${data['created_at']}\n'
+          'updated_at: ${data['updated_at']}\n'
+          '${'=' * 80}',
+          tag: 'SurveyInterviewerController',
+        );
+
+        // Log API request format
+        AppLogger.i(
+          '\n${'🔥' * 40}\n'
+          '📤 API REQUEST FORMAT (Form-Data):\n'
+          '${'🔥' * 40}\n'
+          'URL: ${Networkutility.setCompleteSurvey}\n'
+          '\nFORM FIELDS:\n'
+          '  survey_id: ${data['survey_id']}\n'
+          '  survey_language_id: ${data['survey_language_id']}\n'
+          '  zp_ward_id: ${data['zp_ward_id']}\n'
+          '  village_area_id: ${data['village_area_id']}\n'
+          '  survey_done_by: ${data['user_id']}\n'
+          '  questions: ${data['answers']}\n'
+          '  name: ${data['interviewer_name']}\n'
+          '  age: ${data['interviewer_age']}\n'
+          '  gender: ${data['interviewer_gender']}\n'
+          '  mob_number: ${data['interviewer_phone']}\n'
+          '  cast_id: ${data['interviewer_cast']}\n'
+          '  created_on: ${data['created_at']}\n'
+          '  updated_on: ${data['updated_at']}\n'
+          '  recorded_audio: ${data['audio_path']}\n'
+          '${'🔥' * 40}',
+          tag: 'SurveyInterviewerController',
+        );
+
+        // Test API call only if online
+        _connectivityService.checkConnectivity().then((isConnected) {
+          if (isConnected) {
+            _testApiCall(data);
+          } else {
+            AppLogger.i(
+              '⚠️ Offline mode - Survey saved locally and will be uploaded when online',
+              tag: 'SurveyInterviewerController',
+            );
+          }
+        });
+      }
+
+      AppLogger.i('✅ Interviewer info saved successfully',
+          tag: 'SurveyInterviewerController');
+
+      // Clear question controller data after successful save
+      if (Get.isRegistered<SurveyQuestionController>()) {
+        final questionController = Get.find<SurveyQuestionController>();
+        questionController.questionDetail.clear();
+        questionController.answers.clear();
+        questionController.currentIndex.value = 0;
+        questionController.selectedAnswerId.value = '';
+        questionController.selectedAnswerIds.clear();
+      }
+
+      AppSnackbarStyles.showSuccess(
+        title: 'Survey Saved',
+        message: 'Survey saved successfully!',
+      );
+    } catch (e, stackTrace) {
+      AppLogger.e('Error saving interviewer info locally',
+          error: e, stackTrace: stackTrace, tag: 'SurveyInterviewerController');
+      rethrow;
+    }
   }
 
   void submitSurvey(formKey) {
@@ -343,8 +522,7 @@ class SurveyInterviewerController extends GetxController {
                             child: Text(
                               'Dashboard',
                               style: AppStyle
-                                  .buttonTextSmallPoppinsBlack
-                                  .responsive,
+                                  .buttonTextSmallPoppinsBlack.responsive,
                               maxLines: 1,
                             ),
                           ),
@@ -353,14 +531,16 @@ class SurveyInterviewerController extends GetxController {
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () {
-                            resetForm();
-                            Get.back(); // Close dialog
-                            Get.toNamed(
-                              AppRoutes.surveyDetails,
-                              arguments: {'survey_id': surveyId},
-                            );
-                          },
+                          onPressed: isSubmitting.value
+                              ? null
+                              : () {
+                                  resetForm();
+                                  Get.back(); // Close dialog
+                                  Get.offAllNamed(
+                                    AppRoutes.surveyDetails,
+                                    arguments: {'survey_id': surveyId},
+                                  );
+                                },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.defaultBlack,
                             foregroundColor: AppColors.white,
@@ -379,8 +559,7 @@ class SurveyInterviewerController extends GetxController {
                             child: Text(
                               'Next Survey',
                               style: AppStyle
-                                  .buttonTextSmallPoppinsWhite
-                                  .responsive,
+                                  .buttonTextSmallPoppinsWhite.responsive,
                               maxLines: 1,
                             ),
                           ),
@@ -441,8 +620,8 @@ class SurveyInterviewerController extends GetxController {
                     ElevatedButton(
                       onPressed: () {
                         resetForm();
-                        Get.back();
-                        Get.back();
+                        Get.back(); // Close dialog
+                        Get.offAllNamed(AppRoutes.home);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
@@ -485,67 +664,122 @@ class SurveyInterviewerController extends GetxController {
     AppSnackbarStyles.showInfo(title: 'Refresh', message: 'Page refreshed');
   }
 
+  Future<void> _testApiCall(Map<String, dynamic> data) async {
+    try {
+      AppLogger.i(
+        '\n${'🚀' * 40}\n'
+        '🚀 TESTING API CALL (Immediate Response)\n'
+        '${'🚀' * 40}',
+        tag: 'SurveyInterviewerController',
+      );
+
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse(Networkutility.setCompleteSurvey),
+      );
+
+      // Add form fields
+      request.fields['survey_id'] = data['survey_id']?.toString() ?? '';
+      request.fields['survey_language_id'] =
+          data['survey_language_id']?.toString() ?? '';
+      request.fields['zp_ward_id'] = data['zp_ward_id']?.toString() ?? '';
+      request.fields['village_area_id'] =
+          data['village_area_id']?.toString() ?? '';
+      request.fields['survey_done_by'] = data['user_id']?.toString() ?? '';
+      request.fields['questions'] = data['answers']?.toString() ?? '[]';
+      request.fields['name'] = data['interviewer_name']?.toString() ?? '';
+      request.fields['age'] = data['interviewer_age']?.toString() ?? '0';
+      request.fields['gender'] = data['interviewer_gender']?.toString() ?? '';
+      request.fields['mob_number'] =
+          data['interviewer_phone']?.toString() ?? '';
+      request.fields['cast_id'] = data['interviewer_cast']?.toString() ?? '';
+      request.fields['created_on'] = data['created_at']?.toString() ?? '';
+      request.fields['updated_on'] = data['updated_at']?.toString() ?? '';
+
+      // Add audio file if exists
+      final audioPath = data['audio_path']?.toString();
+      if (audioPath != null && audioPath.isNotEmpty) {
+        final file = File(audioPath);
+        if (await file.exists()) {
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              'recorded_audio',
+              audioPath,
+              filename: audioPath.split('/').last,
+            ),
+          );
+          AppLogger.i('📎 Audio file attached',
+              tag: 'SurveyInterviewerController');
+        }
+      }
+
+      // Send request
+      final response = await http.Response.fromStream(await request.send());
+
+      AppLogger.i(
+        '\n${'✅' * 40}\n'
+        '📥 API RESPONSE\n'
+        '${'✅' * 40}\n'
+        'Status Code: ${response.statusCode}\n'
+        'Response Body:\n${response.body}\n'
+        '${'✅' * 40}',
+        tag: 'SurveyInterviewerController',
+      );
+
+      // If successful, mark as synced and delete
+      if (response.statusCode == 200) {
+        try {
+          final jsonResponse = jsonDecode(response.body);
+          if (jsonResponse['status'] == 'true' ||
+              jsonResponse['status'] == true) {
+            final submissionId = data['id'];
+            await _localRepo.deletePendingSubmission(submissionId);
+            AppLogger.i(
+              '✅ Survey synced and deleted from local database',
+              tag: 'SurveyInterviewerController',
+            );
+          }
+        } catch (e) {
+          AppLogger.w('Could not parse response or delete submission: $e',
+              tag: 'SurveyInterviewerController');
+        }
+      }
+    } catch (e, stackTrace) {
+      AppLogger.e('Test API call failed',
+          error: e, stackTrace: stackTrace, tag: 'SurveyInterviewerController');
+    }
+  }
+
   // -----------------------------------------------------------------
   //  FETCH CAST
   // -----------------------------------------------------------------
-  Future<void> fetchCast({
-    required BuildContext context,
-    bool forceFetch = false,
-    required String? surveyId,
-  }) async {
-    if (!forceFetch && castList.isNotEmpty) return;
+  final SurveyLocalRepository _localRepo = SurveyLocalRepository();
+  final ConnectivityService _connectivityService =
+      Get.find<ConnectivityService>();
 
+  Future<void> _loadCastsFromCache() async {
     try {
       isLoadingCast.value = true;
-      errorMessageCast.value = '';
       castList.clear();
       selectedCast.value = "";
       selectedCastId.value = "";
 
-      final jsonBody = {"survey_id": surveyId};
-
-      List<GeCastResponse>? response =
-          await Networkcall().postMethod(
-                Networkutility.getCastApi,
-                Networkutility.getCast,
-                jsonEncode(jsonBody),
-                context,
-              )
-              as List<GeCastResponse>?;
-
-      if (response != null &&
-          response.isNotEmpty &&
-          response[0].status == "true") {
-        castList.value = response[0].data;
+      final casts = await _localRepo.getCasts(surveyId);
+      if (casts.isNotEmpty) {
+        castList.value = casts
+            .map((c) => CastData(
+                  castId: c['cast_id'],
+                  castName: c['cast_name'],
+                ))
+            .toList();
+        AppLogger.i('✅ Loaded ${casts.length} casts from cache',
+            tag: 'SurveyInterviewer');
       } else {
-        errorMessageCast.value = response?[0].message ?? 'No casts found';
-        AppSnackbarStyles.showError(
-          title: 'Error',
-          message: errorMessageCast.value,
-        );
+        AppLogger.w('⚠️ No cached casts found', tag: 'SurveyInterviewer');
       }
-    } on NoInternetException catch (e) {
-      errorMessageCast.value = e.message;
-      AppSnackbarStyles.showError(title: 'Error', message: e.message);
-    } on TimeoutException catch (e) {
-      errorMessageCast.value = e.message;
-      AppSnackbarStyles.showError(title: 'Error', message: e.message);
-    } on HttpException catch (e) {
-      errorMessageCast.value = '${e.message} (Code: ${e.statusCode})';
-      AppSnackbarStyles.showError(
-        title: 'Error',
-        message: errorMessageCast.value,
-      );
-    } on ParseException catch (e) {
-      errorMessageCast.value = e.message;
-      AppSnackbarStyles.showError(title: 'Error', message: e.message);
-    } catch (e, stackTrace) {
-      errorMessageCast.value = 'Unexpected error: $e';
-      log('Fetch Cast Exception: $e', stackTrace: stackTrace);
-      AppSnackbarStyles.showError(
-        title: 'Error',
-        message: errorMessageCast.value,
-      );
+    } catch (e) {
+      AppLogger.e('Error loading casts from cache: $e',
+          tag: 'SurveyInterviewer');
     } finally {
       isLoadingCast.value = false;
     }
@@ -570,7 +804,7 @@ class SurveyInterviewerController extends GetxController {
     }
 
     // 4. Resample to 16 kHz
-    final targetRate = 16000;
+    const targetRate = 16000;
     final resampled = _resampleInt16(
       samples: int16Samples,
       srcRate: header.sampleRate,
@@ -658,7 +892,9 @@ class SurveyInterviewerController extends GetxController {
     final mono = Int16List(frames);
     for (int i = 0; i < frames; i++) {
       int sum = 0;
-      for (final ch in channels) sum += ch[i];
+      for (final ch in channels) {
+        sum += ch[i];
+      }
       mono[i] = (sum ~/ channels.length);
     }
     return mono;
@@ -943,14 +1179,16 @@ class SurveyInterviewerController extends GetxController {
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () {
-                          resetForm();
-                          Get.back(); // Close dialog
-                          Get.toNamed(
-                            AppRoutes.surveyDetails,
-                            arguments: {'survey_id': surveyId},
-                          );
-                        },
+                        onPressed: isSubmitting.value
+                            ? null
+                            : () {
+                                resetForm();
+                                Get.back(); // Close dialog
+                                Get.offAllNamed(
+                                  AppRoutes.surveyDetails,
+                                  arguments: {'survey_id': surveyId},
+                                );
+                              },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.defaultBlack,
                           foregroundColor: AppColors.white,

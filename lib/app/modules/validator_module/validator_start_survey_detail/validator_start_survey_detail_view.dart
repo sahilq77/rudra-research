@@ -1,111 +1,142 @@
-import 'package:dropdown_search/dropdown_search.dart';
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:easy_stepper/easy_stepper.dart';
-import 'package:rudra/app/modules/validator_module/validator_start_survey_detail/validator_start_survey_controller.dart';
-import 'package:rudra/app/routes/app_routes.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_html/flutter_html.dart';
+import 'package:get/get.dart';
+import 'package:shimmer/shimmer.dart';
 
-import '../../../common/customvalidators/text_validator.dart';
+import '../../../routes/app_routes.dart';
 import '../../../utils/app_colors.dart';
 import '../../../utils/responsive_utils.dart';
 import '../../../widgets/app_button_style.dart';
 import '../../../widgets/app_style.dart';
+import 'validator_start_survey_controller.dart';
 
-class ValidatorStartSurveyDetailView extends StatelessWidget {
-  final ValidatorStartSurveyController controller = Get.put(
-    ValidatorStartSurveyController(),
-  );
+class ValidatorStartSurveyDetailView extends StatefulWidget {
+  const ValidatorStartSurveyDetailView({super.key});
+
+  @override
+  State<ValidatorStartSurveyDetailView> createState() =>
+      _ValidatorStartSurveyDetailViewState();
+}
+
+class _ValidatorStartSurveyDetailViewState
+    extends State<ValidatorStartSurveyDetailView> {
+  final ValidatorStartSurveyController controller =
+      Get.find<ValidatorStartSurveyController>();
 
   @override
   Widget build(BuildContext context) {
     ResponsiveHelper.init(context);
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Get.back(),
-        ),
-        title: Text(
-          'Select Section',
-          style: AppStyle.heading1PoppinsBlack.responsive,
-        ),
-        backgroundColor: AppColors.white,
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(0),
-          child: Divider(color: AppColors.grey.withOpacity(0.5), height: 0),
-        ),
-      ),
-      backgroundColor: AppColors.white,
-      body: Obx(
-        () => RefreshIndicator(
-          onRefresh: controller.refreshPage,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: ListView(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              scrollDirection: Axis.vertical,
-              padding: ResponsiveHelper.paddingSymmetric(
-                horizontal: 16,
-                vertical: 16,
-              ),
-              children: [
-                Obx(
-                  () => EasyStepper(
-                    activeStepBackgroundColor: AppColors.defaultBlack,
-                    showScrollbar: false,
-                    disableScroll: true,
-                    activeStep: controller.currentPage.value,
-                    lineStyle: LineStyle(
-                      lineType: LineType.normal,
-                      defaultLineColor: AppColors.grey.withOpacity(0.5),
-                      activeLineColor: AppColors.defaultBlack,
-                      lineThickness: 2,
-                    ),
-                    stepShape: StepShape.circle,
-                    stepBorderRadius: 15,
-                    activeStepTextColor: AppColors.defaultBlack,
-                    finishedStepTextColor: AppColors.defaultBlack,
-                    internalPadding: 20,
-                    stepRadius: 15,
-                    showLoadingAnimation: false,
-                    steps: [
-                      EasyStep(
-                        customStep: _buildStepWidget(0, '1'),
-                        topTitle: true,
-                      ),
-                      EasyStep(
-                        customStep: _buildStepWidget(1, '2'),
-                        topTitle: true,
-                      ),
-                      EasyStep(
-                        customStep: _buildStepWidget(2, '3'),
-                        topTitle: true,
-                      ),
-                      EasyStep(
-                        customStep: _buildStepWidget(3, '4'),
-                        topTitle: true,
-                      ),
-                      EasyStep(
-                        customStep: _buildStepWidget(4, '5'),
-                        topTitle: true,
-                      ),
-                    ],
-                    onStepReached: (index) {
-                      if (index <= controller.currentPage.value) {
-                        controller.currentPage.value = index;
-                      }
-                    },
-                  ),
-                ),
-                _buildStepContent(controller.currentPage.value),
-              ],
-            ),
+    return WillPopScope(
+      onWillPop: () async {
+        controller.clearAllComments();
+        return true;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              controller.clearAllComments();
+              Get.back();
+            },
+          ),
+          title: Text(
+            'Validate Survey',
+            style: AppStyle.heading1PoppinsBlack.responsive,
+          ),
+          backgroundColor: AppColors.white,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(0),
+            child: Divider(color: AppColors.grey.withOpacity(0.5), height: 0),
           ),
         ),
+        backgroundColor: AppColors.white,
+        body: Obx(() {
+          if (controller.isLoading.value) {
+            return _buildShimmer();
+          }
+
+          if (controller.surveyDetailData.value == null) {
+            return const Center(child: Text('No data available'));
+          }
+
+          return RefreshIndicator(
+            onRefresh: controller.refreshPage,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: ListView(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: ResponsiveHelper.paddingSymmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                children: [
+                  Obx(() => EasyStepper(
+                        activeStepBackgroundColor: AppColors.defaultBlack,
+                        showScrollbar: false,
+                        disableScroll: true,
+                        activeStep: controller.currentPage.value,
+                        lineStyle: LineStyle(
+                          lineType: LineType.normal,
+                          defaultLineColor: AppColors.grey.withOpacity(0.5),
+                          activeLineColor: AppColors.defaultBlack,
+                          lineThickness: 2,
+                        ),
+                        stepShape: StepShape.circle,
+                        stepBorderRadius: 15,
+                        activeStepTextColor: AppColors.defaultBlack,
+                        finishedStepTextColor: AppColors.defaultBlack,
+                        internalPadding: 20,
+                        stepRadius: 15,
+                        showLoadingAnimation: false,
+                        steps: _buildDynamicSteps(),
+                        onStepReached: (index) {
+                          if (index <= controller.currentPage.value) {
+                            controller.currentPage.value = index;
+                          }
+                        },
+                      )),
+                  _buildStepContent(controller.currentPage.value),
+                ],
+              ),
+            ),
+          );
+        }),
+        bottomNavigationBar: _buildControls(context),
       ),
-      bottomNavigationBar: _buildControls(context),
     );
+  }
+
+  List<EasyStep> _buildDynamicSteps() {
+    final data = controller.surveyDetailData.value;
+    if (data == null) return [];
+
+    List<EasyStep> steps = [
+      EasyStep(customStep: _buildStepWidget(0, '1'), topTitle: true),
+    ];
+
+    for (int i = 0; i < data.questionsAndAnswers.length; i++) {
+      steps.add(
+        EasyStep(
+          customStep: _buildStepWidget(i + 1, '${i + 2}'),
+          topTitle: true,
+        ),
+      );
+    }
+
+    steps.add(
+      EasyStep(
+        customStep: _buildStepWidget(
+          data.questionsAndAnswers.length + 1,
+          '${data.questionsAndAnswers.length + 2}',
+        ),
+        topTitle: true,
+      ),
+    );
+
+    return steps;
   }
 
   Widget _buildStepWidget(int stepIndex, String stepNumber) {
@@ -115,10 +146,10 @@ class ValidatorStartSurveyDetailView extends StatelessWidget {
     return CircleAvatar(
       backgroundColor: isActive ? AppColors.defaultBlack : AppColors.grey,
       child: isCompleted
-          ? Icon(Icons.check, color: AppColors.white, size: 20)
+          ? const Icon(Icons.check, color: AppColors.white, size: 20)
           : Text(
               stepNumber,
-              style: TextStyle(
+              style: const TextStyle(
                 color: AppColors.white,
                 fontWeight: FontWeight.bold,
               ),
@@ -127,233 +158,243 @@ class ValidatorStartSurveyDetailView extends StatelessWidget {
   }
 
   Widget _buildStepContent(int index) {
-    switch (index) {
-      case 0:
-        return _buildSectionScreen();
-      case 1:
-        return _buildQuestionScreen(0);
-      case 2:
-        return _buildQuestionScreen(1);
-      case 3:
-        return _buildQuestionScreen(2);
-      case 4:
-        return _buildInterviewerScreen();
-      default:
-        return Container();
+    final data = controller.surveyDetailData.value;
+    if (data == null) return Container();
+
+    if (index == 0) {
+      return _buildSectionScreen();
+    } else if (index <= data.questionsAndAnswers.length) {
+      return _buildQuestionScreen(index - 1);
+    } else {
+      return _buildInterviewerScreen();
     }
   }
 
+  int _getTotalSteps() {
+    final data = controller.surveyDetailData.value;
+    if (data == null) return 2;
+    return 2 + data.questionsAndAnswers.length;
+  }
+
   Widget _buildControls(BuildContext context) {
-    return Obx(
-      () => Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '00:45',
-                  style: AppStyle.labelPrimaryPoppinsGrey.responsive,
-                ),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Slider(
-                    activeColor: AppColors.buttonColor,
-                    value: 45,
-                    max: 150,
-                    onChanged: (val) {}, // Disabled slider
-                  ),
-                ),
-                SizedBox(width: 10),
-                Text(
-                  '02:30',
-                  style: AppStyle.labelPrimaryPoppinsGrey.responsive,
-                ),
-              ],
-            ),
-            SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: Icon(
-                    size: 30,
-                    Icons.replay_5,
-                    color: AppColors.buttonColor,
-                  ),
-                  onPressed: () {
-                    // Handle rewind 5 seconds
-                  },
-                ),
-                SizedBox(width: 20),
-                Container(
-                  width: ResponsiveHelper.screenWidth * 0.23,
-                  height: ResponsiveHelper.screenHeight * 0.07,
-                  decoration: BoxDecoration(
-                    color: AppColors.buttonColor,
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: Icon(Icons.play_arrow, color: Colors.white, size: 40),
-                ),
-                SizedBox(width: 20),
-                IconButton(
-                  icon: Icon(
-                    size: 30,
-                    Icons.forward_5,
-                    color: AppColors.buttonColor,
-                  ),
-                  onPressed: () {
-                    // Handle fast-forward 5 seconds
-                  },
-                ),
-              ],
-            ),
-            SizedBox(height: ResponsiveHelper.screenHeight * 0.03),
-            // Comments text field
-            _buildTextField(
-              label: 'Add Comments',
-              initialValue: "",
-              onChanged: (value) {
-                // controller.surveyModel.value.comments = value;
-              },
-            ),
-            SizedBox(height: ResponsiveHelper.screenHeight * 0.03),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                if (controller.currentPage.value > 0)
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: controller.previousPage,
-                      style: AppButtonStyles.outlinedLargeBlack(),
-                      child: Text(
-                        'Previous',
-                        style: AppStyle.buttonTextPoppinsBlack.responsive,
+    return Obx(() {
+      final data = controller.surveyDetailData.value;
+      final currentIndex = controller.currentPage.value;
+      TextEditingController? commentController;
+      String? audioPath;
+
+      // Get audio path for all pages
+      if (data != null) {
+        audioPath = data.audioDetails.audioUrl ?? data.audioDetails.audio;
+      }
+
+      if (data != null &&
+          currentIndex > 0 &&
+          currentIndex <= data.questionsAndAnswers.length) {
+        final qa = data.questionsAndAnswers[currentIndex - 1];
+        commentController = controller.commentControllers[qa.questionId];
+      }
+
+      return Container(
+        color: AppColors.white,
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 16,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Audio player section (only on last page)
+              if (audioPath != null && audioPath.isNotEmpty) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      controller
+                          .formatDuration(controller.currentPosition.value),
+                      style: AppStyle.labelPrimaryPoppinsGrey.responsive,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Slider(
+                        activeColor: AppColors.buttonColor,
+                        value: controller.currentPosition.value,
+                        max: controller.totalDuration.value > 0
+                            ? controller.totalDuration.value
+                            : 1,
+                        onChanged: (val) => controller.seekAudio(val),
                       ),
                     ),
-                  ),
-                if (controller.currentPage.value > 0 &&
-                    controller.currentPage.value < 4)
-                  SizedBox(width: ResponsiveHelper.screenWidth * 0.02),
-                SizedBox(width: ResponsiveHelper.screenWidth * 0.02),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (controller.currentPage.value == 4) {
-                        // Validate form if necessary (e.g., for interviewer details)
-                        if (controller.formKey.currentState?.validate() ??
-                            true) {
-                          Get.toNamed(AppRoutes.validatorSubmitSurvey);
-                        }
-                      } else {
-                        controller.nextPage();
-                      }
-                    },
-                    style: AppButtonStyles.elevatedLargeBlack(),
-                    child: Text(
-                      controller.currentPage.value == 4 ? 'Submit' : 'Next',
-                      style: AppStyle.buttonTextPoppinsWhite.responsive,
+                    const SizedBox(width: 10),
+                    Text(
+                      controller.formatDuration(controller.totalDuration.value),
+                      style: AppStyle.labelPrimaryPoppinsGrey.responsive,
                     ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(
+                        size: 30,
+                        Icons.replay_5,
+                        color: AppColors.buttonColor,
+                      ),
+                      onPressed: controller.rewind5Seconds,
+                    ),
+                    const SizedBox(width: 20),
+                    GestureDetector(
+                      onTap: () => controller.playPauseAudio(audioPath),
+                      child: Container(
+                        width: ResponsiveHelper.screenWidth * 0.23,
+                        height: ResponsiveHelper.screenHeight * 0.07,
+                        decoration: BoxDecoration(
+                          color: AppColors.buttonColor,
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: Icon(
+                          controller.isPlaying.value
+                              ? Icons.pause
+                              : Icons.play_arrow,
+                          color: Colors.white,
+                          size: 40,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+                    IconButton(
+                      icon: const Icon(
+                        size: 30,
+                        Icons.forward_5,
+                        color: AppColors.buttonColor,
+                      ),
+                      onPressed: controller.forward5Seconds,
+                    ),
+                  ],
+                ),
+                SizedBox(height: ResponsiveHelper.screenHeight * 0.02),
+              ],
+              // Comment field (only on question pages) - Optional
+              if (commentController != null) ...[
+                TextFormField(
+                  controller: commentController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    labelText: 'Add Comment (Optional)',
+                    hintText: 'Enter your validation comment here...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.all(12),
                   ),
                 ),
+                SizedBox(height: ResponsiveHelper.screenHeight * 0.02),
               ],
-            ),
-          ],
+              // Navigation buttons
+              Row(
+                children: [
+                  if (controller.currentPage.value > 0)
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: controller.previousPage,
+                        style: AppButtonStyles.outlinedLargeBlack(),
+                        child: Text(
+                          'Previous',
+                          style: AppStyle.buttonTextPoppinsBlack.responsive,
+                        ),
+                      ),
+                    ),
+                  if (controller.currentPage.value > 0 &&
+                      controller.currentPage.value < _getTotalSteps() - 1)
+                    SizedBox(width: ResponsiveHelper.screenWidth * 0.02),
+                  if (controller.currentPage.value < _getTotalSteps() - 1)
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => controller.nextPage(context),
+                        style: AppButtonStyles.elevatedLargeBlack(),
+                        child: Text(
+                          'Next',
+                          style: AppStyle.buttonTextPoppinsWhite.responsive,
+                        ),
+                      ),
+                    ),
+                  if (controller.currentPage.value == _getTotalSteps() - 1) ...[
+                    if (controller.currentPage.value > 0)
+                      SizedBox(width: ResponsiveHelper.screenWidth * 0.02),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Get.toNamed(
+                            AppRoutes.validatorSubmitRemark,
+                            arguments: {
+                              'survey_id': controller.surveyId,
+                              'survey_app_side_id': controller.responseId,
+                            },
+                          );
+                        },
+                        style: AppButtonStyles.elevatedLargeBlack(),
+                        child: Text(
+                          'Submit',
+                          style: AppStyle.buttonTextPoppinsWhite.responsive,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 
   Widget _buildSectionScreen() {
-    return Form(
-      key: controller.formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Please Enter Details',
-            style: AppStyle.headingSmallPoppinsBlack.responsive,
-          ),
-          const SizedBox(height: 24),
-          _buildDropdownField(
-            label: 'Select Language',
-            value: controller.selectedLanguage.value,
-            items: controller.languages,
-            onChanged: (value) {
-              if (value != null) controller.selectedLanguage.value = value;
-            },
-            validator: null,
-          ),
-          const SizedBox(height: 16),
-          _buildTextFormField(
-            label: 'Select State',
-            initialValue: controller.surveyModel.value.state ?? 'Maharashtra',
-            onChanged: (value) {
-              controller.surveyModel.update((val) => val?.state = value);
-            },
-          ),
-          const SizedBox(height: 16),
-          _buildTextFormField(
-            label: 'Region',
-            initialValue: controller.surveyModel.value.region ?? 'Western',
-            onChanged: (value) {
-              controller.surveyModel.update((val) => val?.region = value);
-            },
-          ),
-          const SizedBox(height: 16),
-          _buildTextFormField(
-            label: 'Select District',
-            initialValue: controller.surveyModel.value.district ?? 'Kolhapur',
-            onChanged: (value) {
-              controller.surveyModel.update((val) => val?.district = value);
-            },
-          ),
-          const SizedBox(height: 16),
-          _buildTextFormField(
-            label: 'Select Loksabha',
-            initialValue: controller.surveyModel.value.loksabha ?? 'Kolhapur',
-            onChanged: (value) {
-              controller.surveyModel.update((val) => val?.loksabha = value);
-            },
-          ),
-          const SizedBox(height: 16),
-          _buildDropdownField(
-            label: 'Select Assembly',
-            value: controller.selectedAssembly.value,
-            items: controller.assemblies,
-            onChanged: (value) {
-              if (value != null) controller.selectedAssembly.value = value;
-            },
-            validator: null,
-          ),
-          const SizedBox(height: 16),
-          _buildDropdownField(
-            label: 'Select Ward/ZP',
-            value: controller.selectedWardZp.value,
-            items: controller.wardsZp,
-            onChanged: (value) {
-              if (value != null) controller.selectedWardZp.value = value;
-            },
-            validator: null,
-          ),
-          const SizedBox(height: 16),
-          _buildDropdownField(
-            label: 'Select Area/Village',
-            value: controller.selectedArea.value,
-            items: controller.areas,
-            onChanged: (value) {
-              if (value != null) controller.selectedArea.value = value;
-            },
-            validator: null,
-          ),
-        ],
-      ),
+    final data = controller.surveyDetailData.value;
+    if (data == null) return Container();
+
+    final info = data.surveyInfo;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Survey Details',
+          style: AppStyle.headingSmallPoppinsBlack.responsive,
+        ),
+        const SizedBox(height: 24),
+        _buildReadOnlyField(label: 'Language', value: info.surveyLanguage),
+        const SizedBox(height: 16),
+        _buildReadOnlyField(label: 'State', value: info.state),
+        const SizedBox(height: 16),
+        _buildReadOnlyField(label: 'Region', value: info.region),
+        const SizedBox(height: 16),
+        _buildReadOnlyField(label: 'District', value: info.district),
+        const SizedBox(height: 16),
+        _buildReadOnlyField(label: 'Loksabha', value: info.loksabha),
+        const SizedBox(height: 16),
+        _buildReadOnlyField(label: 'Assembly', value: info.assembly),
+        const SizedBox(height: 16),
+        _buildReadOnlyField(label: 'Ward/ZP', value: info.ward),
+        const SizedBox(height: 16),
+        _buildReadOnlyField(label: 'Area/Village', value: info.villageArea),
+        const SizedBox(height: 16),
+        _buildReadOnlyField(label: 'Team', value: info.team),
+      ],
     );
   }
 
   Widget _buildQuestionScreen(int index) {
+    final data = controller.surveyDetailData.value;
+    if (data == null || index >= data.questionsAndAnswers.length) {
+      return Container();
+    }
+
+    final qa = data.questionsAndAnswers[index];
     return Card(
       child: Padding(
         padding: ResponsiveHelper.paddingSymmetric(
@@ -363,32 +404,30 @@ class ValidatorStartSurveyDetailView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'आपल्या प्रभागातील माजी नगरसेविका श्रीमती लक्ष्मीउदयकांत आंदेकर यांची कामगिरी कशी वाटते?',
-              style: AppStyle.headingSmallPoppinsBlack.responsive,
-            ),
-            ...[
-              'चांगली कामगिरी',
-              'सर्वसाधारण कामगिरी',
-              'खराब कामगिरी',
-              'सांगता येत नाही',
-            ].map((option) {
-              return Obx(
-                () => RadioListTile<String>(
-                  title: Text(
-                    option,
-                    style: AppStyle.labelPrimaryPoppinsGrey.responsive,
-                  ),
-                  value: option,
-                  groupValue:
-                      controller.surveyModel.value.questionAnswers?[index],
-                  onChanged: (value) {
-                    if (value != null)
-                      controller.updateQuestionAnswer(index, value);
-                  },
+            Html(
+              data: qa.question,
+              style: {
+                "p": Style(
+                  fontSize: FontSize(14),
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.defaultBlack,
                 ),
+              },
+            ),
+            const SizedBox(height: 16),
+            ...qa.allOptions.map((option) {
+              final isSelected = option.optionId == qa.answerId;
+              return RadioListTile<String>(
+                title: Text(
+                  option.choiceText,
+                  style: AppStyle.labelPrimaryPoppinsGrey.responsive,
+                ),
+                value: option.optionId,
+                groupValue: qa.answerId,
+                onChanged: null,
+                selected: isSelected,
               );
-            }).toList(),
+            }),
           ],
         ),
       ),
@@ -396,6 +435,10 @@ class ValidatorStartSurveyDetailView extends StatelessWidget {
   }
 
   Widget _buildInterviewerScreen() {
+    final data = controller.surveyDetailData.value;
+    if (data == null) return Container();
+
+    final people = data.peopleDetails;
     return Padding(
       padding: ResponsiveHelper.paddingSymmetric(horizontal: 16, vertical: 8),
       child: Column(
@@ -407,136 +450,102 @@ class ValidatorStartSurveyDetailView extends StatelessWidget {
           ),
           SizedBox(height: ResponsiveHelper.screenHeight * 0.02),
           Text(
-            'Please Enter Details',
+            'Details',
             style: AppStyle.headingSmallPoppinsBlack.responsive,
           ),
           const SizedBox(height: 24),
-          _buildTextFormField(
+          _buildReadOnlyField(
             label: 'Name',
-            initialValue: 'Sakshi',
-            onChanged: (value) {
-              controller.updateInterviewerDetails(name: value);
-            },
+            value: people.name.isEmpty ? 'N/A' : people.name,
           ),
           const SizedBox(height: 16),
-          _buildDropdownField(
+          _buildReadOnlyField(
             label: 'Age',
-            value:
-                controller.surveyModel.value.interviewerAge?.toString() ??
-                '26-39',
-            items: ['18-39', '40-59', '60+'],
-            onChanged: (value) {
-              if (value != null)
-                controller.updateInterviewerDetails(
-                  age: int.tryParse(value.split('-').first),
-                );
-            },
-            validator: null,
+            value: _getAgeLabel(people.age),
           ),
           const SizedBox(height: 16),
-          _buildDropdownField(
+          _buildReadOnlyField(
             label: 'Gender',
-            value: controller.surveyModel.value.interviewerGender ?? 'Female',
-            items: ['Male', 'Female', 'Other'],
-            onChanged: (value) {
-              if (value != null)
-                controller.updateInterviewerDetails(gender: value);
-            },
-            validator: null,
+            value: _getGenderLabel(people.gender),
           ),
           const SizedBox(height: 16),
-          _buildTextFormField(
+          _buildReadOnlyField(
             label: 'Phone Number',
-            initialValue: '9874561230',
-            onChanged: (value) {
-              controller.updateInterviewerDetails(phone: value);
-            },
+            value: people.mobileNo.isEmpty ? 'N/A' : people.mobileNo,
           ),
           const SizedBox(height: 16),
-          _buildTextFormField(
+          _buildReadOnlyField(
             label: 'Cast',
-            initialValue: 'General',
-            onChanged: (value) {
-              controller.updateInterviewerDetails(cast: value);
-            },
+            value: people.castName ?? 'N/A',
+          ),
+          const SizedBox(height: 16),
+          _buildReadOnlyField(
+            label: 'Submitted At',
+            value: people.submittedAt,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDropdownField({
-    required String label,
-    required String value,
-    required List<String> items,
-    required Function(String?)? onChanged,
-    String? Function(String?)? validator,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: AppStyle.reportCardRowCount.responsive),
-        const SizedBox(height: 8),
-        DropdownSearch<String>(
-          selectedItem: value.isNotEmpty ? value : null,
-          items: items,
-          onChanged: onChanged,
-          validator: validator,
-          enabled: onChanged != null, // Disable if onChanged is null
-          dropdownDecoratorProps: DropDownDecoratorProps(
-            dropdownSearchDecoration: InputDecoration(
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
-              ),
-              filled:
-                  onChanged == null, // Optional: fill background for disabled
-              fillColor: onChanged == null ? Colors.grey[200] : null,
-            ),
-          ),
-          popupProps: const PopupProps.menu(showSearchBox: true),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTextFormField({
-    required String label,
-    required String initialValue,
-    required Function(String) onChanged,
-  }) {
+  Widget _buildReadOnlyField({required String label, required String value}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: AppStyle.reportCardRowCount.responsive),
         const SizedBox(height: 8),
         TextFormField(
-          initialValue: initialValue,
-          onChanged: onChanged,
+          initialValue: value,
+          readOnly: true,
           decoration: InputDecoration(
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
               vertical: 12,
             ),
+            filled: true,
+            fillColor: Colors.grey[200],
           ),
         ),
       ],
     );
   }
 
-  Widget _buildTextField({
-    required String label,
-    String? initialValue,
-    required Function(String) onChanged,
-  }) {
-    return _buildTextFormField(
-      label: label,
-      initialValue: initialValue ?? '',
-      onChanged: onChanged,
+  Widget _buildShimmer() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Padding(
+        padding:
+            ResponsiveHelper.paddingSymmetric(horizontal: 16, vertical: 16),
+        child: Column(
+          children: [
+            Container(height: 80, color: Colors.white),
+            const SizedBox(height: 20),
+            Container(height: 200, color: Colors.white),
+          ],
+        ),
+      ),
     );
+  }
+
+  String _getAgeLabel(String ageId) {
+    if (ageId.isEmpty) return 'N/A';
+    const ageRanges = ['18-25', '26-39', '40-60', '60+'];
+    final index = int.tryParse(ageId) ?? -1;
+    if (index >= 0 && index < ageRanges.length) {
+      return ageRanges[index];
+    }
+    return ageId;
+  }
+
+  String _getGenderLabel(String genderId) {
+    if (genderId.isEmpty) return 'N/A';
+    const genders = ['Male', 'Female', 'Other'];
+    final index = int.tryParse(genderId) ?? -1;
+    if (index >= 0 && index < genders.length) {
+      return genders[index];
+    }
+    return genderId;
   }
 }

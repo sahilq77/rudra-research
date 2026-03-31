@@ -1,4 +1,5 @@
 // lib/app/modules/assigned_survey_target/assigned_survey_target_controller.dart
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 
@@ -11,6 +12,7 @@ import 'package:rudra/app/data/network/networkcall.dart';
 import 'package:rudra/app/data/urls.dart';
 import 'package:rudra/app/utils/app_utility.dart';
 import 'package:rudra/app/widgets/app_snackbar_styles.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../data/models/survey_target/survey_target_model.dart';
 import '../../../utils/app_logger.dart';
@@ -20,15 +22,20 @@ class AssignedSurveyTargetController extends GetxController {
   final RxList<SurveyTargetModel> filteredExecutorList =
       <SurveyTargetModel>[].obs;
   final TextEditingController searchController = TextEditingController();
+  final RxString searchQuery = ''.obs;
+  Timer? _debounce;
   var isLoading = true.obs;
+  var isSearching = false.obs;
   var assignSurveyTargetList = <AssignSurveyData>[].obs;
   var errorMessage = ''.obs;
   RxInt offset = 0.obs;
   final int limit = 10;
   RxBool hasMoreData = true.obs;
   RxBool isLoadingMore = false.obs;
+  RxBool hasPaginated = false.obs;
   final RxInt surveyTarget = 0.obs;
   final RxInt surveyCompleted = 0.obs;
+  final RxInt remaningSurveys = 0.obs;
 
   var isLoadings = false.obs;
   var errorMessages = ''.obs;
@@ -45,6 +52,7 @@ class AssignedSurveyTargetController extends GetxController {
 
   @override
   void onClose() {
+    _debounce?.cancel();
     searchController.dispose();
     super.onClose();
   }
@@ -53,6 +61,7 @@ class AssignedSurveyTargetController extends GetxController {
     required BuildContext context,
     bool reset = false,
     bool isPagination = false,
+    bool isSearch = false,
     bool forceFetch = false,
     required String surveyId,
   }) async {
@@ -63,6 +72,7 @@ class AssignedSurveyTargetController extends GetxController {
         executorList.clear();
         filteredExecutorList.clear();
         hasMoreData.value = true;
+        hasPaginated.value = false;
       }
       if (!hasMoreData.value && !reset) {
         log('No more data to fetch');
@@ -71,6 +81,9 @@ class AssignedSurveyTargetController extends GetxController {
 
       if (isPagination) {
         isLoadingMore.value = true;
+        hasPaginated.value = true;
+      } else if (isSearch) {
+        isSearching.value = true;
       } else {
         isLoading.value = true;
       }
@@ -78,18 +91,19 @@ class AssignedSurveyTargetController extends GetxController {
 
       final jsonBody = {
         "survey_id": surveyId,
+        "user_id": AppUtility.userID ?? "",
         "limit": limit.toString(),
         "offset": offset.value.toString(),
+        "search": searchQuery.value,
       };
 
       List<GetAssignSurveyTargetListResponse>? response =
           (await Networkcall().postMethod(
-                Networkutility.getAssignSurveyTargetListApi,
-                Networkutility.getAssignSurveyTargetList,
-                jsonEncode(jsonBody),
-                context,
-              ))
-              as List<GetAssignSurveyTargetListResponse>?;
+        Networkutility.getAssignSurveyTargetListApi,
+        Networkutility.getAssignSurveyTargetList,
+        jsonEncode(jsonBody),
+        context,
+      )) as List<GetAssignSurveyTargetListResponse>?;
 
       if (response != null && response.isNotEmpty) {
         if (response[0].status == "true") {
@@ -98,21 +112,24 @@ class AssignedSurveyTargetController extends GetxController {
           // Update summary
           surveyTarget.value = int.tryParse(surveys.totalSurveys) ?? 0;
           surveyCompleted.value = int.tryParse(surveys.completedSurveys) ?? 0;
+          remaningSurveys.value = int.tryParse(surveys.remaningSurveys) ?? 0;
 
           // Convert User -> SurveyTargetModel
           final List<SurveyTargetModel> newExecutors = surveys.users.map((
             user,
           ) {
             return SurveyTargetModel(
-              executorImage: '',
+              executorImage: user.file,
               id: user.userId,
               executorName: '${user.firstName} ${user.lastName}'.trim(),
-              totalAssignedTarget: int.tryParse(user.assignSurveyTarget) ?? 0,
+              mobileNumber: user.mobileNo,
+              totalAssignedTarget:
+                  int.tryParse(user.totalAssignSurveyTarget) ?? 0,
               todayCompletedTarget:
                   int.tryParse(user.todayCompletedTarget) ?? 0,
               totalCompletedTarget:
                   int.tryParse(user.totalCompletedTarget) ?? 0,
-              isAssigned: (int.tryParse(user.assignSurveyTarget) ?? 0) > 0,
+              isAssigned: (int.tryParse(user.totalAssignSurveyTarget) ?? 0) > 0,
               currentCount: 0, // New target to assign
             );
           }).toList();
@@ -136,6 +153,7 @@ class AssignedSurveyTargetController extends GetxController {
               surveyTitle: surveys.surveyTitle,
               totalSurveys: surveys.totalSurveys,
               completedSurveys: surveys.completedSurveys,
+              remaningSurveys: surveys.remaningSurveys,
               users: surveys.users,
             ),
           );
@@ -179,6 +197,7 @@ class AssignedSurveyTargetController extends GetxController {
     } finally {
       isLoading.value = false;
       isLoadingMore.value = false;
+      isSearching.value = false;
     }
   }
 
@@ -192,33 +211,41 @@ class AssignedSurveyTargetController extends GetxController {
   }
 
   void searchExecutors(String query) {
-    if (query.isEmpty) {
-      filteredExecutorList.value = executorList;
-    } else {
-      filteredExecutorList.value = executorList
-          .where(
-            (executor) => executor.executorName.toLowerCase().contains(
-              query.toLowerCase(),
-            ),
-          )
-          .toList();
-    }
-    AppLogger.d(
-      'Search query: $query, Results: ${filteredExecutorList.length}',
-      tag: 'AssignedSurveyTargetController',
+    searchQuery.value = query;
+
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      fetchAssignSurveyTarget(
+        context: Get.context!,
+        reset: true,
+        isSearch: true,
+        surveyId: surveyId,
+      );
+    });
+  }
+
+  void clearSearch() {
+    _debounce?.cancel();
+    searchController.clear();
+    searchQuery.value = '';
+    fetchAssignSurveyTarget(
+      context: Get.context!,
+      reset: true,
+      surveyId: surveyId,
     );
   }
 
   // Helper – current sum of all currentCount fields
   int _totalAssigned() {
-    return filteredExecutorList
-        .fold(0, (sum, e) => sum + e.currentCount);
+    return filteredExecutorList.fold(0, (sum, e) => sum + e.currentCount);
   }
 
   // Apply count with clamping to remaining target
   void _applyCount(int index, int newCount) {
     final currentOfThis = filteredExecutorList[index].currentCount;
-    final remaining = surveyTarget.value - (_totalAssigned() - currentOfThis);
+    final remaining =
+        remaningSurveys.value - (_totalAssigned() - currentOfThis);
     final clamped = newCount.clamp(0, remaining);
 
     final executor = filteredExecutorList[index];
@@ -260,7 +287,7 @@ class AssignedSurveyTargetController extends GetxController {
 
   // ==================== NEW: Distribute Target Equally ====================
   void distributeTargetEqually() {
-    final total = surveyTarget.value;
+    final total = remaningSurveys.value;
     final executors = filteredExecutorList;
     if (total == 0 || executors.isEmpty) return;
 
@@ -285,7 +312,8 @@ class AssignedSurveyTargetController extends GetxController {
         final exec = filteredExecutorList[i];
         final shave = excess.clamp(0, exec.currentCount);
         exec.currentCount -= shave;
-        filteredExecutorList[i] = exec.copyWith(currentCount: exec.currentCount);
+        filteredExecutorList[i] =
+            exec.copyWith(currentCount: exec.currentCount);
         excess -= shave;
       }
     }
@@ -335,89 +363,104 @@ class AssignedSurveyTargetController extends GetxController {
         await refreshData();
       }
     } catch (e) {
-        Get.snackbar(
-          'Error',
-          'Failed to assign targets',
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
-      } finally {
-        isLoading.value = false;
-      }
-    }
-
-    void makeCall(String executorId) {
-      AppLogger.d(
-        'Making call to executor: $executorId',
-        tag: 'AssignedSurveyTargetController',
-      );
       Get.snackbar(
-        'Call',
-        'Calling executor...',
+        'Error',
+        'Failed to assign targets',
         snackPosition: SnackPosition.TOP,
-        duration: const Duration(seconds: 2),
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
       );
-    }
-
-    // ==================== FIXED setTarget() ====================
-    Future<String?> setTarget({
-      required List<Map<String, dynamic>> assignUsers,
-    }) async {
-      try {
-        isLoadings.value = true;
-        errorMessages.value = '';
-
-        final jsonBody = {
-          "survey_id": surveyId,
-          "assigned_by": AppUtility.userID,
-          "team_id": AppUtility.teamId,
-          "assign_users": assignUsers,
-        };
-
-        final response = await Networkcall().postMethod(
-              Networkutility.setAssignSurveyTargetApi,
-              Networkutility.setAssignSurveyTarget,
-              jsonEncode(jsonBody),
-              Get.context!,
-            ) as List<SeAssignSurveyTargetResponse>?;
-
-        if (response != null &&
-            response.isNotEmpty &&
-            response[0].status == "true") {
-          AppSnackbarStyles.showSuccess(
-            title: 'Success',
-            message: "Targets assigned successfully",
-          );
-          return response[0].data?.surveyId ?? '';
-        } else {
-          final msg = response?[0].message ?? "Assign target failed";
-          errorMessages.value = msg;
-          AppSnackbarStyles.showError(title: 'Failed', message: msg);
-          return null;
-        }
-      } on NoInternetException catch (e) {
-        errorMessages.value = e.message;
-        AppSnackbarStyles.showError(title: 'Error', message: e.message);
-      } on TimeoutException catch (e) {
-        errorMessages.value = e.message;
-        AppSnackbarStyles.showError(title: 'Error', message: e.message);
-      } on HttpException catch (e) {
-        errorMessages.value = '${e.message} (Code: ${e.statusCode})';
-        AppSnackbarStyles.showError(
-          title: 'Error',
-          message: '${e.message} (Code: ${e.statusCode})',
-        );
-      } on ParseException catch (e) {
-        errorMessages.value = e.message;
-        AppSnackbarStyles.showError(title: 'Error', message: e.message);
-      } catch (e, s) {
-        errorMessages.value = 'Unexpected error: $e';
-        log('setTarget error: $e', stackTrace: s);
-        AppSnackbarStyles.showError(title: 'Error', message: errorMessages.value);
-      } finally {
-        isLoadings.value = false;
-      }
-      return null;
+    } finally {
+      isLoading.value = false;
     }
   }
+
+  Future<void> makeCall(String executorId) async {
+    try {
+      final executor = executorList.firstWhere((e) => e.id == executorId);
+      final phoneNumber = executor.mobileNumber.trim();
+
+      if (phoneNumber.isEmpty) {
+        AppSnackbarStyles.showError(
+          title: 'Error',
+          message: 'Phone number not available',
+        );
+        return;
+      }
+
+      final Uri phoneUri = Uri(scheme: 'tel', path: phoneNumber);
+      await launchUrl(phoneUri, mode: LaunchMode.externalApplication);
+      AppLogger.d('Making call to: $phoneNumber',
+          tag: 'AssignedSurveyTargetController');
+    } catch (e) {
+      AppLogger.e('Error making call: $e',
+          tag: 'AssignedSurveyTargetController');
+      AppSnackbarStyles.showError(
+        title: 'Error',
+        message: 'Failed to make call',
+      );
+    }
+  }
+
+  // ==================== FIXED setTarget() ====================
+  Future<String?> setTarget({
+    required List<Map<String, dynamic>> assignUsers,
+  }) async {
+    try {
+      isLoadings.value = true;
+      errorMessages.value = '';
+
+      final jsonBody = {
+        "survey_id": surveyId,
+        "assigned_by": AppUtility.userID,
+        "team_id": AppUtility.teamId,
+        "assign_users": assignUsers,
+        "user_id": AppUtility.userID,
+      };
+
+      final response = await Networkcall().postMethod(
+        Networkutility.setAssignSurveyTargetApi,
+        Networkutility.setAssignSurveyTarget,
+        jsonEncode(jsonBody),
+        Get.context!,
+      ) as List<SeAssignSurveyTargetResponse>?;
+
+      if (response != null &&
+          response.isNotEmpty &&
+          response[0].status == "true") {
+        AppSnackbarStyles.showSuccess(
+          title: 'Success',
+          message: "Targets assigned successfully",
+        );
+        return response[0].data.surveyId ?? '';
+      } else {
+        final msg = response?[0].message ?? "Assign target failed";
+        errorMessages.value = msg;
+        AppSnackbarStyles.showError(title: 'Failed', message: msg);
+        return null;
+      }
+    } on NoInternetException catch (e) {
+      errorMessages.value = e.message;
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } on TimeoutException catch (e) {
+      errorMessages.value = e.message;
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } on HttpException catch (e) {
+      errorMessages.value = '${e.message} (Code: ${e.statusCode})';
+      AppSnackbarStyles.showError(
+        title: 'Error',
+        message: '${e.message} (Code: ${e.statusCode})',
+      );
+    } on ParseException catch (e) {
+      errorMessages.value = e.message;
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } catch (e, s) {
+      errorMessages.value = 'Unexpected error: $e';
+      log('setTarget error: $e', stackTrace: s);
+      AppSnackbarStyles.showError(title: 'Error', message: errorMessages.value);
+    } finally {
+      isLoadings.value = false;
+    }
+    return null;
+  }
+}

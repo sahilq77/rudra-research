@@ -1,8 +1,11 @@
-// lib/app/modules/profile/profile_controller.dart
-import 'package:flutter/material.dart';
+import 'dart:convert';
+
 import 'package:get/get.dart';
-import 'package:rudra/app/data/models/profile/profile_menu_item_model.dart';
+import 'package:rudra/app/data/models/logout/logout_response.dart';
+import 'package:rudra/app/data/network/networkcall.dart';
+import 'package:rudra/app/data/urls.dart';
 import 'package:rudra/app/utils/app_logger.dart';
+import 'package:rudra/app/widgets/app_snackbar_styles.dart';
 
 import '../../../routes/app_routes.dart';
 import '../../../utils/app_utility.dart';
@@ -12,28 +15,29 @@ class ExecutiveProfileController extends GetxController {
   final RxBool isLoading = false.obs;
 
   List<ExecutiveProfileMenuItemModel> get menuItems => [
-    ExecutiveProfileMenuItemModel(
-      title: 'Profile',
-      icon: 'person',
-      route: AppRoutes.executivProfileDetail,
-    ),
-    ExecutiveProfileMenuItemModel(
-      title: 'Notification',
-      icon: 'notifications',
-      route: AppRoutes.executiveNotification, // Changed from '/notifications'
-    ),
-    ExecutiveProfileMenuItemModel(
-      title: 'My Survey',
-      icon: 'My Survey',
-      route: AppRoutes.executiveMySurvey,
-    ),
-    ExecutiveProfileMenuItemModel(
-      title: 'Logout',
-      icon: 'logout',
-      route: '',
-      isLogout: true,
-    ),
-  ];
+        ExecutiveProfileMenuItemModel(
+          title: 'Profile',
+          icon: 'person',
+          route: AppRoutes.executivProfileDetail,
+        ),
+        ExecutiveProfileMenuItemModel(
+          title: 'Notification',
+          icon: 'notifications',
+          route:
+              AppRoutes.executiveNotification, // Changed from '/notifications'
+        ),
+        ExecutiveProfileMenuItemModel(
+          title: 'My Survey',
+          icon: 'My Survey',
+          route: AppRoutes.executiveMySurvey,
+        ),
+        ExecutiveProfileMenuItemModel(
+          title: 'Logout',
+          icon: 'logout',
+          route: '',
+          isLogout: true,
+        ),
+      ];
 
   String get userName => AppUtility.fullName ?? 'User';
 
@@ -96,9 +100,9 @@ class ExecutiveProfileController extends GetxController {
       LogoutDialog(
         onCancel: () => Get.back(),
         onConfirm: () async {
-          Get.back();
           await _performLogout();
         },
+        isLoading: isLoading,
       ),
       barrierDismissible: false,
     );
@@ -107,18 +111,47 @@ class ExecutiveProfileController extends GetxController {
   Future<void> _performLogout() async {
     try {
       isLoading.value = true;
-      AppLogger.i('Clearing user data...', tag: 'ExecutiveProfileController');
+      AppLogger.i('Logging out...', tag: 'ExecutiveProfileController');
 
-      // Clear all user info and shared preferences
-      await AppUtility.clearUserInfo();
+      final jsonBody = {
+        'user_id': AppUtility.userID ?? '',
+        'device_id': AppUtility.deviceId ?? '',
+      };
 
-      AppLogger.i(
-        'User logged out successfully',
-        tag: 'ExecutiveProfileController',
+      final response = await Networkcall().postMethod(
+        Networkutility.logoutApi,
+        Networkutility.logout,
+        jsonEncode(jsonBody),
+        Get.context!,
       );
 
-      // Navigate to login and clear all previous routes
-      Get.offAllNamed(AppRoutes.login);
+      if (response != null && response.isNotEmpty) {
+        final logoutResponse = response[0] as LogoutResponse;
+
+        if (logoutResponse.status == 'true') {
+          await AppUtility.clearUserInfo();
+          AppLogger.i('User logged out successfully',
+              tag: 'ExecutiveProfileController');
+          Get.back(); // Close dialog
+          Get.offAllNamed(AppRoutes.login);
+          AppSnackbarStyles.showSuccess(
+            title: 'Success',
+            message: logoutResponse.message,
+          );
+        } else {
+          Get.back(); // Close dialog
+          AppSnackbarStyles.showError(
+            title: 'Failed',
+            message: logoutResponse.message,
+          );
+        }
+      } else {
+        Get.back(); // Close dialog
+        AppSnackbarStyles.showError(
+          title: 'Error',
+          message: 'Failed to logout. Please try again.',
+        );
+      }
     } catch (e, stackTrace) {
       AppLogger.e(
         'Logout failed',
@@ -126,12 +159,10 @@ class ExecutiveProfileController extends GetxController {
         stackTrace: stackTrace,
         tag: 'ExecutiveProfileController',
       );
-      Get.snackbar(
-        'Error',
-        'Failed to logout. Please try again.',
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
+      Get.back(); // Close dialog
+      AppSnackbarStyles.showError(
+        title: 'Error',
+        message: 'Failed to logout. Please try again.',
       );
     } finally {
       isLoading.value = false;

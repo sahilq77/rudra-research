@@ -85,4 +85,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'rudra-and-research.firebasestorage.app',
     measurementId: 'G-NDH0T54HLH',
   );
+
 }

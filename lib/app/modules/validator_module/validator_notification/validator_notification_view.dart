@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:rudra/app/modules/executive_module/executive_notification/executive_notification_controller.dart';
 import 'package:rudra/app/modules/validator_module/validator_notification/validator_notification_controller.dart';
 
 import '../../../data/models/notification/notification_model.dart';
@@ -18,6 +17,29 @@ class ValidatorNotificationView extends StatefulWidget {
 
 class _ValidatorNotificationViewState extends State<ValidatorNotificationView> {
   final ValidatorNotificationController controller = Get.find();
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_loadMore);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _loadMore() {
+    if (controller.hasMoreData.value &&
+        !controller.isLoading.value &&
+        !controller.isLoadingMore.value &&
+        _scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent * 0.9) {
+      controller.loadMoreNotifications(context: context);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,15 +61,27 @@ class _ValidatorNotificationViewState extends State<ValidatorNotificationView> {
           }
 
           return ListView.separated(
+            controller: _scrollController,
             physics: const AlwaysScrollableScrollPhysics(),
             padding: ResponsiveHelper.paddingSymmetric(
               horizontal: 16,
               vertical: 16,
             ),
-            itemCount: controller.notifications.length,
+            itemCount: controller.notifications.length +
+                (controller.isLoadingMore.value ? 1 : 0),
             separatorBuilder: (context, index) =>
                 SizedBox(height: ResponsiveHelper.spacing(12)),
             itemBuilder: (context, index) {
+              if (index == controller.notifications.length) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: CircularProgressIndicator(
+                      color: AppColors.primary,
+                    ),
+                  ),
+                );
+              }
               final notification = controller.notifications[index];
               return _buildNotificationItem(notification);
             },
@@ -78,7 +112,7 @@ class _ValidatorNotificationViewState extends State<ValidatorNotificationView> {
       ),
       centerTitle: false,
       bottom: PreferredSize(
-        preferredSize: Size.fromHeight(0),
+        preferredSize: const Size.fromHeight(0),
         child: Divider(
           color: AppColors.grey.withOpacity(0.5),
           // thickness: 2,
@@ -98,9 +132,7 @@ class _ValidatorNotificationViewState extends State<ValidatorNotificationView> {
           vertical: 16,
         ),
         decoration: BoxDecoration(
-          color: notification.isRead
-              ? AppColors.white
-              : AppColors.lightGrey.withOpacity(0.15),
+          color: AppColors.white,
           borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(12)),
           border: Border.all(color: AppColors.grey.withOpacity(0.2), width: 1),
         ),

@@ -1,24 +1,37 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:rudra/app/modules/validator_module/validator_start_survey_detail/validator_start_survey_controller.dart';
 import 'package:rudra/app/routes/app_routes.dart';
 import 'package:rudra/app/utils/responsive_utils.dart'
     show ResponsiveHelper, AppStyleResponsive;
 import 'package:rudra/app/widgets/app_snackbar_styles.dart';
 
+import '../../../../data/network/networkcall.dart';
+import '../../../../data/urls.dart';
 import '../../../../utils/app_colors.dart';
 import '../../../../utils/app_images.dart';
+import '../../../../utils/app_logger.dart';
+import '../../../../utils/app_utility.dart';
+import '../../../../utils/location_helper.dart';
 import '../../../../widgets/app_button_style.dart';
 import '../../../../widgets/app_style.dart';
 
 class ValidatorSubmitSurveyFormController extends GetxController {
   final remark = ''.obs;
   final selectedReport = 'OK'.obs;
-  final reports = ['OK', 'Issue', 'Pending'];
+  final reports = ['OK', 'NOT OK'];
+  final RxBool isSubmitting = false.obs;
+  final RxBool isFetchingLocation = false.obs;
+
+  late final String surveyId;
+  late final String responseId;
   @override
   void onInit() {
-    // TODO: implement onInit
     super.onInit();
+    final args = Get.arguments as Map<String, dynamic>? ?? {};
+    surveyId = args['survey_id']?.toString() ?? '';
+    responseId = args['response_id']?.toString() ?? '';
     ResponsiveHelper.init(Get.context!);
   }
 
@@ -82,11 +95,11 @@ class ValidatorSubmitSurveyFormController extends GetxController {
                         'Dashboard',
                         style: AppStyle.buttonTextSmallPoppinsBlack.responsive
                             .copyWith(
-                              fontSize: ResponsiveHelper.getResponsiveFontSize(
-                                12,
-                              ),
-                              fontWeight: FontWeight.w600,
-                            ),
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            12,
+                          ),
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
@@ -101,11 +114,11 @@ class ValidatorSubmitSurveyFormController extends GetxController {
                         'Next Validate',
                         style: AppStyle.buttonTextSmallPoppinsWhite.responsive
                             .copyWith(
-                              fontSize: ResponsiveHelper.getResponsiveFontSize(
-                                12,
-                              ),
-                              fontWeight: FontWeight.w600,
-                            ),
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(
+                            12,
+                          ),
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
@@ -119,25 +132,71 @@ class ValidatorSubmitSurveyFormController extends GetxController {
     );
   }
 
-  void submitRemark() {
-    if (remark.value.isNotEmpty) {
-      // Handle submission logic here (e.g., API call)
-      print('Remark: ${remark.value}, Report: ${selectedReport.value}');
-      // AppSnackbarStyles.showSuccess(
-      //   title: 'Success',
-      //   message: 'Remark submitted successfully',
-      // );
-      _showConfirmDialog();
-      // Reset form or navigate back
-      remark.value = '';
-      selectedReport.value = 'OK';
-      Get.find<ValidatorStartSurveyController>().currentPage.value =
-          0; // Reset to first step
-    } else {
+  Future<void> submitRemark() async {
+    if (remark.value.isEmpty) {
       AppSnackbarStyles.showError(
         title: 'Error',
         message: 'Please enter a remark.',
       );
+      return;
+    }
+
+    isSubmitting.value = true;
+    isFetchingLocation.value = true;
+
+    try {
+      final locationData = await LocationHelper.getCurrentLocation();
+      isFetchingLocation.value = false;
+
+      if (locationData == null) {
+        AppSnackbarStyles.showError(
+          title: 'Error',
+          message: 'Unable to fetch location. Please enable location services.',
+        );
+        isSubmitting.value = false;
+        return;
+      }
+
+      final validatorStatus = selectedReport.value == 'OK' ? '1' : '0';
+
+      final jsonBody = {
+        "survey_id": surveyId,
+        "validator_id": AppUtility.userID ?? "",
+        "response_id": responseId,
+        "validator_remark": remark.value,
+        "validator_status": validatorStatus,
+        "latitude": locationData['latitude'],
+        "longitude": locationData['longitude'],
+        "address": locationData['address'],
+         "user_id": AppUtility.userID,
+      };
+
+      final response = await Networkcall().postMethod(
+        Networkutility.finalSubmitSurveyByValidatorApi,
+        Networkutility.finalSubmitSurveyByValidator,
+        jsonEncode(jsonBody),
+        Get.context!,
+      );
+
+      if (response != null && response.isNotEmpty) {
+        _showConfirmDialog();
+        remark.value = '';
+        selectedReport.value = 'OK';
+      } else {
+        AppSnackbarStyles.showError(
+          title: 'Error',
+          message: 'Failed to submit validation',
+        );
+      }
+    } catch (e) {
+      AppLogger.e('Error submitting validation: $e', tag: 'ValidatorSubmit');
+      AppSnackbarStyles.showError(
+        title: 'Error',
+        message: 'An error occurred while submitting',
+      );
+    } finally {
+      isSubmitting.value = false;
+      isFetchingLocation.value = false;
     }
   }
 }

@@ -1,3 +1,4 @@
+import "dart:developer" as lg;
 import 'dart:math';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -7,8 +8,6 @@ import 'package:get/get.dart';
 import 'package:rudra/app/routes/app_routes.dart' show AppRoutes;
 import 'package:rudra/bottom_navigation/bottom_navigation_controller.dart'
     show BottomNavigationController;
-
-import "dart:developer" as lg;
 
 class NotificationServices {
   String? callId;
@@ -61,7 +60,7 @@ class NotificationServices {
         initializationSettings,
         onDidReceiveNotificationResponse: (response) {
           // Check the notification response and handle navigation
-          if (response != null && response.payload != null) {
+          if (response.payload != null) {
             handleRemoteMessage(context, message);
           }
         },
@@ -92,25 +91,25 @@ class NotificationServices {
         importance: Importance.high,
       );
 
-      AndroidNotificationDetails
-      androidNotificationDetails = AndroidNotificationDetails(
+      AndroidNotificationDetails androidNotificationDetails =
+          AndroidNotificationDetails(
         channel.id.toString(),
         channel.name.toString(),
         channelDescription: 'Your channel Description',
         importance: Importance.high,
         priority: Priority.high,
         playSound: true,
-        styleInformation: BigTextStyleInformation(''),
+        styleInformation: const BigTextStyleInformation(''),
         //  sound: RawResourceAndroidNotificationSound('res_custom_message'),
         ticker: 'ticker',
       );
 
       DarwinNotificationDetails darwinNotificationDetails =
           const DarwinNotificationDetails(
-            presentAlert: true,
-            presentBadge: true,
-            presentSound: true,
-          );
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
 
       NotificationDetails notificationDetails = NotificationDetails(
         android: androidNotificationDetails,
@@ -153,8 +152,8 @@ class NotificationServices {
   Future<void> setInteractMessage(BuildContext context) async {
     //when app is termitted
     try {
-      RemoteMessage? initialmessage = await FirebaseMessaging.instance
-          .getInitialMessage();
+      RemoteMessage? initialmessage =
+          await FirebaseMessaging.instance.getInitialMessage();
       if (initialmessage != null) {
         handleRemoteMessage(context, initialmessage);
       }
@@ -178,7 +177,7 @@ class NotificationServices {
           message.data['landing_page']?.toString().toLowerCase() ?? 'default';
       String batchId = message.data['batch_id']?.toString() ?? '';
       String body = message.data['body']?.toString() ?? '';
-      lg.log("$landingPage");
+      lg.log(landingPage);
       RegExp regex = RegExp(r"result for '([^']*)'");
       Match? match = regex.firstMatch(body);
       String examName = match?.group(1) ?? '';
@@ -191,10 +190,6 @@ class NotificationServices {
       // Navigate to home if not already there
       if (Get.currentRoute != AppRoutes.home) {
         lg.log("Navigating to HomeContainer1Screen");
-        if (context == null) {
-          lg.log("Context is null, cannot navigate");
-          return;
-        }
         try {
           Get.offAllNamed(AppRoutes.home);
           lg.log("Navigation to HomeContainer1Screen completed");

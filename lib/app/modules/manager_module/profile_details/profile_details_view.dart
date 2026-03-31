@@ -1,11 +1,16 @@
+import 'package:dropdown_search/dropdown_search.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+import 'package:rudra/app/data/models/profile_details/get_my_survey_response.dart';
 import 'package:rudra/app/modules/manager_module/profile_details/profile_details_controller.dart';
-
+import 'package:rudra/app/utils/app_colors.dart';
 import 'package:rudra/app/utils/responsive_utils.dart';
 import 'package:rudra/app/widgets/app_style.dart';
-import 'package:rudra/app/utils/app_colors.dart';
+import 'package:rudra/app/widgets/profile_image_widget.dart';
+
+import '../../../utils/app_images.dart';
 
 class ProfileDetailsView extends StatefulWidget {
   const ProfileDetailsView({super.key});
@@ -29,32 +34,17 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             SliverToBoxAdapter(
-              child: Obx(() {
-                if (controller.isLoading.value) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (controller.errorMessage.isNotEmpty) {
-                  return Center(
-                    child: Text(
-                      controller.errorMessage.value,
-                      style: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
-                        fontSize: ResponsiveHelper.getResponsiveFontSize(14),
-                      ),
-                    ),
-                  );
-                }
-                return Column(
-                  children: [
-                    SizedBox(height: ResponsiveHelper.spacing(24)),
-                    _buildProfileHeader(),
-                    SizedBox(height: ResponsiveHelper.spacing(24)),
-                    _buildProfileInfoCard(),
-                    SizedBox(height: ResponsiveHelper.spacing(24)),
-                    _buildPerformanceCard(),
-                    SizedBox(height: ResponsiveHelper.spacing(24)),
-                  ],
-                );
-              }),
+              child: Column(
+                children: [
+                  SizedBox(height: ResponsiveHelper.spacing(24)),
+                  _buildProfileHeader(),
+                  SizedBox(height: ResponsiveHelper.spacing(24)),
+                  _buildProfileInfoCard(),
+                  SizedBox(height: ResponsiveHelper.spacing(24)),
+                  _buildPerformanceCard(),
+                  SizedBox(height: ResponsiveHelper.spacing(24)),
+                ],
+              ),
             ),
           ],
         ),
@@ -65,84 +55,45 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
   Widget _buildProfileHeader() {
     return Column(
       children: [
-        Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.bottomCenter,
-          children: [
-            Container(
-              width: double.infinity,
-              height: ResponsiveHelper.spacing(140),
-              margin: ResponsiveHelper.paddingSymmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: AppColors.faded,
-                borderRadius: BorderRadius.circular(
-                  ResponsiveHelper.spacing(16),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: -ResponsiveHelper.spacing(50),
-              child: Column(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.white, width: 4),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+        SizedBox(
+          height: ResponsiveHelper.spacing(140) +
+              ResponsiveHelper.spacing(50), // Add extra height for overflow
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.bottomCenter,
+            children: [
+              Positioned(
+                top: 0,
+                left: ResponsiveHelper.spacing(16),
+                right: ResponsiveHelper.spacing(16),
+                child: Container(
+                  width: double.infinity,
+                  height: ResponsiveHelper.spacing(140),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(
+                      ResponsiveHelper.spacing(16),
                     ),
-                    child: Stack(
-                      children: [
-                        CircleAvatar(
-                          radius: ResponsiveHelper.spacing(50),
-                          backgroundColor: AppColors.lightGrey,
-                          child: Icon(
-                            Icons.person,
-                            size: ResponsiveHelper.spacing(55),
-                            color: AppColors.grey,
-                          ),
-                        ),
-                        Positioned(
-                          bottom: ResponsiveHelper.spacing(4),
-                          right: ResponsiveHelper.spacing(4),
-                          child: InkWell(
-                            onTap: controller.onEditProfile,
-                            child: Container(
-                              width: ResponsiveHelper.spacing(32),
-                              height: ResponsiveHelper.spacing(32),
-                              decoration: BoxDecoration(
-                                color: AppColors.white,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Icon(
-                                Icons.edit,
-                                size: ResponsiveHelper.spacing(16),
-                                color: AppColors.defaultBlack,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                    image: const DecorationImage(
+                      image: AssetImage(AppImages.profileBg),
+                      fit: BoxFit.cover,
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-          ],
+              Positioned(
+                bottom: 0, // Changed from negative to 0
+                child: ProfileImageWidget(
+                  radius: ResponsiveHelper.spacing(50),
+                  showEditIcon: true,
+                  onEditTap: controller.onEditProfile,
+                ),
+              ),
+            ],
+          ),
         ),
-        SizedBox(height: ResponsiveHelper.spacing(60)),
+        SizedBox(
+            height: ResponsiveHelper.spacing(
+                10)), // Reduced spacing since we added height above
         Obx(() {
           return Text(
             'Hi, ${controller.userName}',
@@ -165,23 +116,12 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
 
   Widget _buildProfileInfoCard() {
     return Obx(() {
+      if (controller.isLoading.value) {
+        return const SizedBox.shrink();
+      }
       final profile = controller.profileDetails.value;
       if (profile == null) {
-        return Container(
-          margin: ResponsiveHelper.paddingSymmetric(horizontal: 16),
-          padding: ResponsiveHelper.paddingSymmetric(
-            horizontal: 16,
-            vertical: 16,
-          ),
-          decoration: BoxDecoration(
-            color: AppColors.lightGrey.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(16)),
-          ),
-          child: const Text(
-            'No profile data available.',
-            style: TextStyle(fontSize: 14, color: AppColors.grey),
-          ),
-        );
+        return const SizedBox.shrink();
       }
 
       return Container(
@@ -214,7 +154,7 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
             _buildDivider(),
             _buildInfoItem(
               'DOB',
-              controller.formatDateTime(profile.joiningDate),
+              controller.formatDateTime(profile.dob),
             ),
           ],
         ),
@@ -307,13 +247,110 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
                       items: controller.periodOptions.map((String value) {
                         return DropdownMenuItem<String>(
                           value: value,
-                          child: Text(value),
+                          child: Text(value.capitalize!),
                         );
                       }).toList(),
                       onChanged: controller.onPeriodChanged,
                     ),
                   ),
                 ),
+              ),
+            ],
+          ),
+          SizedBox(height: ResponsiveHelper.spacing(16)),
+          Obx(() => DropdownSearch<SurveyData>(
+                items: controller.surveyList,
+                selectedItem: controller.selectedSurvey.value,
+                itemAsString: (SurveyData survey) => survey.surveyTitle,
+                onChanged: (SurveyData? value) {
+                  if (value != null) {
+                    controller.selectedSurvey.value = value;
+                    controller.fetchPerformanceData();
+                  }
+                },
+                dropdownDecoratorProps: DropDownDecoratorProps(
+                  dropdownSearchDecoration: InputDecoration(
+                    labelText: 'Select Survey',
+                    labelStyle: AppStyle.bodySmallPoppinsGrey.responsive,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+                popupProps: PopupProps.menu(
+                  showSearchBox: true,
+                  searchFieldProps: TextFieldProps(
+                    decoration: InputDecoration(
+                      hintText: 'Search survey...',
+                      hintStyle: AppStyle.bodySmallPoppinsGrey.responsive,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                ),
+              )),
+          SizedBox(height: ResponsiveHelper.spacing(16)),
+          Row(
+            children: [
+              Expanded(
+                child: Obx(() => InkWell(
+                      onTap: () => controller.selectFromDate(context),
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: 'From Date',
+                          labelStyle: AppStyle.bodySmallPoppinsGrey.responsive,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                        ),
+                        child: Text(
+                          controller.fromDate.value != null
+                              ? DateFormat('dd MMM yyyy')
+                                  .format(controller.fromDate.value!)
+                              : 'Select',
+                          style: AppStyle.bodySmallPoppinsBlack.responsive,
+                        ),
+                      ),
+                    )),
+              ),
+              SizedBox(width: ResponsiveHelper.spacing(12)),
+              Expanded(
+                child: Obx(() => InkWell(
+                      onTap: () => controller.selectToDate(context),
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: 'To Date',
+                          labelStyle: AppStyle.bodySmallPoppinsGrey.responsive,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                        ),
+                        child: Text(
+                          controller.toDate.value != null
+                              ? DateFormat('dd MMM yyyy')
+                                  .format(controller.toDate.value!)
+                              : 'Select',
+                          style: AppStyle.bodySmallPoppinsBlack.responsive,
+                        ),
+                      ),
+                    )),
               ),
             ],
           ),
@@ -349,7 +386,17 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
             ],
           ),
           SizedBox(height: ResponsiveHelper.spacing(16)),
-          Obx(() => _buildPerformanceChart()),
+          Obx(() {
+            if (controller.isPerformanceLoading.value) {
+              return SizedBox(
+                height: ResponsiveHelper.spacing(200),
+                child: const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
+              );
+            }
+            return _buildPerformanceChart();
+          }),
           SizedBox(height: ResponsiveHelper.spacing(16)),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -365,6 +412,17 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
   }
 
   Widget _buildPerformanceChart() {
+    if (controller.performanceData.isEmpty) {
+      return SizedBox(
+        height: ResponsiveHelper.spacing(200),
+        child: Center(
+          child: Text(
+            'No performance data available',
+            style: AppStyle.bodySmallPoppinsGrey.responsive,
+          ),
+        ),
+      );
+    }
     return SizedBox(
       height: ResponsiveHelper.spacing(200),
       child: LineChart(
@@ -428,8 +486,20 @@ class _ProfileDetailsViewState extends State<ProfileDetailsView> {
           borderData: FlBorderData(show: false),
           minX: 0,
           maxX: (controller.performanceData.length - 1).toDouble(),
-          minY: 75,
-          maxY: 95,
+          minY: 0,
+          maxY: () {
+            double maxTarget = 0;
+            double maxCompleted = 0;
+            for (var data in controller.performanceData) {
+              if (data.target > maxTarget) maxTarget = data.target;
+              if (data.targetCompleted > maxCompleted) {
+                maxCompleted = data.targetCompleted;
+              }
+            }
+            double maxValue =
+                maxTarget > maxCompleted ? maxTarget : maxCompleted;
+            return maxValue + (maxValue * 0.2);
+          }(),
           lineBarsData: [
             LineChartBarData(
               spots: controller.performanceData

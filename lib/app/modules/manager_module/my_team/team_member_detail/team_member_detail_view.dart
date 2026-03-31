@@ -1,12 +1,17 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dropdown_search/dropdown_search.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
+import 'package:rudra/app/data/models/profile_details/get_my_survey_response.dart';
 import 'package:rudra/app/modules/manager_module/my_team/team_member_detail/team_member_detail_controller.dart';
 import 'package:rudra/app/utils/responsive_utils.dart'
     show ResponsiveHelper, AppStyleResponsive;
 import 'package:rudra/app/widgets/app_style.dart';
 
 import '../../../../utils/app_colors.dart';
+import '../../../../utils/app_images.dart';
 
 class TeamMemberDetailView extends StatefulWidget {
   const TeamMemberDetailView({super.key});
@@ -37,6 +42,8 @@ class _TeamMemberDetailViewState extends State<TeamMemberDetailView> {
                   SizedBox(height: ResponsiveHelper.spacing(24)),
                   _buildProfileInfoCard(),
                   SizedBox(height: ResponsiveHelper.spacing(24)),
+                  _buildPerformanceCard(),
+                  SizedBox(height: ResponsiveHelper.spacing(24)),
                 ],
               ),
             ),
@@ -58,9 +65,12 @@ class _TeamMemberDetailViewState extends State<TeamMemberDetailView> {
               height: ResponsiveHelper.spacing(140),
               margin: ResponsiveHelper.paddingSymmetric(horizontal: 16),
               decoration: BoxDecoration(
-                color: AppColors.faded,
                 borderRadius: BorderRadius.circular(
                   ResponsiveHelper.spacing(16),
+                ),
+                image: const DecorationImage(
+                  image: AssetImage(AppImages.profileBg),
+                  fit: BoxFit.cover,
                 ),
               ),
             ),
@@ -82,42 +92,73 @@ class _TeamMemberDetailViewState extends State<TeamMemberDetailView> {
                     ),
                     child: Stack(
                       children: [
-                        CircleAvatar(
-                          radius: ResponsiveHelper.spacing(50),
-                          backgroundColor: AppColors.lightGrey,
-                          child: Icon(
-                            Icons.person,
-                            size: ResponsiveHelper.spacing(55),
-                            color: AppColors.grey,
-                          ),
-                        ),
-                        Positioned(
-                          bottom: ResponsiveHelper.spacing(4),
-                          right: ResponsiveHelper.spacing(4),
-                          child: InkWell(
-                            onTap: () {},
-                            child: Container(
-                              width: ResponsiveHelper.spacing(32),
-                              height: ResponsiveHelper.spacing(32),
-                              decoration: BoxDecoration(
-                                color: AppColors.white,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
+                        Obx(() {
+                          final imageUrl =
+                              controller.teamDetail.value.isNotEmpty
+                                  ? controller.teamDetail.value.first.file
+                                  : null;
+
+                          if (imageUrl != null && imageUrl.isNotEmpty) {
+                            return CircleAvatar(
+                              radius: ResponsiveHelper.spacing(50),
+                              backgroundColor: AppColors.lightGrey,
+                              child: ClipOval(
+                                child: CachedNetworkImage(
+                                  imageUrl: imageUrl,
+                                  width: ResponsiveHelper.spacing(100),
+                                  height: ResponsiveHelper.spacing(100),
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) =>
+                                      const CircularProgressIndicator(
+                                    color: AppColors.primary,
                                   ),
-                                ],
+                                  errorWidget: (context, url, error) => Icon(
+                                    Icons.person,
+                                    size: ResponsiveHelper.spacing(55),
+                                    color: AppColors.grey,
+                                  ),
+                                ),
                               ),
-                              child: Icon(
-                                Icons.edit,
-                                size: ResponsiveHelper.spacing(16),
-                                color: AppColors.defaultBlack,
-                              ),
+                            );
+                          }
+
+                          return CircleAvatar(
+                            radius: ResponsiveHelper.spacing(50),
+                            backgroundColor: AppColors.lightGrey,
+                            child: Icon(
+                              Icons.person,
+                              size: ResponsiveHelper.spacing(55),
+                              color: AppColors.grey,
                             ),
-                          ),
-                        ),
+                          );
+                        }),
+                        // Positioned(
+                        //   bottom: ResponsiveHelper.spacing(4),
+                        //   right: ResponsiveHelper.spacing(4),
+                        //   child: InkWell(
+                        //     onTap: () {},
+                        //     child: Container(
+                        //       width: ResponsiveHelper.spacing(32),
+                        //       height: ResponsiveHelper.spacing(32),
+                        //       decoration: BoxDecoration(
+                        //         color: AppColors.white,
+                        //         shape: BoxShape.circle,
+                        //         boxShadow: [
+                        //           BoxShadow(
+                        //             color: Colors.black.withOpacity(0.1),
+                        //             blurRadius: 4,
+                        //             offset: const Offset(0, 2),
+                        //           ),
+                        //         ],
+                        //       ),
+                        //       child: Icon(
+                        //         Icons.edit,
+                        //         size: ResponsiveHelper.spacing(16),
+                        //         color: AppColors.defaultBlack,
+                        //       ),
+                        //     ),
+                        //   ),
+                        // ),
                       ],
                     ),
                   ),
@@ -139,7 +180,7 @@ class _TeamMemberDetailViewState extends State<TeamMemberDetailView> {
           }
           final profile = controller.teamDetail.value.first;
           return Text(
-            'Hi, ${profile.firstName + profile.lastName ?? "User"}',
+            'Hi, ${profile.firstName ?? ""} ${profile.lastName ?? "User"}',
             style: AppStyle.heading1PoppinsBlack.responsive.copyWith(
               fontSize: ResponsiveHelper.getResponsiveFontSize(18),
               fontWeight: FontWeight.w600,
@@ -252,7 +293,355 @@ class _TeamMemberDetailViewState extends State<TeamMemberDetailView> {
     );
   }
 
-  // Widget _buildPerformanceCard() {
+  Widget _buildPerformanceCard() {
+    return Container(
+      margin: ResponsiveHelper.paddingSymmetric(horizontal: 16),
+      padding: ResponsiveHelper.paddingSymmetric(horizontal: 16, vertical: 20),
+      decoration: BoxDecoration(
+        color: AppColors.lightGrey.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(16)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Performance',
+                style: AppStyle.heading1PoppinsBlack.responsive.copyWith(
+                  fontSize: ResponsiveHelper.getResponsiveFontSize(16),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Obx(
+                () => Container(
+                  padding: ResponsiveHelper.paddingSymmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(
+                      ResponsiveHelper.spacing(8),
+                    ),
+                    border: Border.all(
+                      color: AppColors.grey.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: controller.selectedPeriod.value,
+                      isDense: true,
+                      icon: Icon(
+                        Icons.keyboard_arrow_down,
+                        size: ResponsiveHelper.spacing(20),
+                        color: AppColors.defaultBlack,
+                      ),
+                      style: AppStyle.bodySmallPoppinsBlack.responsive.copyWith(
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(12),
+                      ),
+                      items: controller.periodOptions.map((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value.capitalize!),
+                        );
+                      }).toList(),
+                      onChanged: controller.onPeriodChanged,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: ResponsiveHelper.spacing(16)),
+          Obx(() => DropdownSearch<SurveyData>(
+                items: controller.surveyList,
+                selectedItem: controller.selectedSurvey.value,
+                itemAsString: (SurveyData survey) => survey.surveyTitle,
+                onChanged: (SurveyData? value) {
+                  if (value != null) {
+                    controller.selectedSurvey.value = value;
+                    controller.fetchPerformanceData();
+                  }
+                },
+                dropdownDecoratorProps: DropDownDecoratorProps(
+                  dropdownSearchDecoration: InputDecoration(
+                    labelText: 'Select Survey',
+                    labelStyle: AppStyle.bodySmallPoppinsGrey.responsive,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+                popupProps: PopupProps.menu(
+                  showSearchBox: true,
+                  searchFieldProps: TextFieldProps(
+                    decoration: InputDecoration(
+                      hintText: 'Search survey...',
+                      hintStyle: AppStyle.bodySmallPoppinsGrey.responsive,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                ),
+              )),
+          SizedBox(height: ResponsiveHelper.spacing(16)),
+          Row(
+            children: [
+              Expanded(
+                child: Obx(() => InkWell(
+                      onTap: () => controller.selectFromDate(context),
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: 'From Date',
+                          labelStyle: AppStyle.bodySmallPoppinsGrey.responsive,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                        ),
+                        child: Text(
+                          controller.fromDate.value != null
+                              ? DateFormat('dd MMM yyyy')
+                                  .format(controller.fromDate.value!)
+                              : 'Select',
+                          style: AppStyle.bodySmallPoppinsBlack.responsive,
+                        ),
+                      ),
+                    )),
+              ),
+              SizedBox(width: ResponsiveHelper.spacing(12)),
+              Expanded(
+                child: Obx(() => InkWell(
+                      onTap: () => controller.selectToDate(context),
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: 'To Date',
+                          labelStyle: AppStyle.bodySmallPoppinsGrey.responsive,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                        ),
+                        child: Text(
+                          controller.toDate.value != null
+                              ? DateFormat('dd MMM yyyy')
+                                  .format(controller.toDate.value!)
+                              : 'Select',
+                          style: AppStyle.bodySmallPoppinsBlack.responsive,
+                        ),
+                      ),
+                    )),
+              ),
+            ],
+          ),
+          SizedBox(height: ResponsiveHelper.spacing(20)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                icon: Icon(
+                  Icons.chevron_left,
+                  color: AppColors.defaultBlack,
+                  size: ResponsiveHelper.spacing(24),
+                ),
+                onPressed: controller.onPreviousMonth,
+              ),
+              Obx(
+                () => Text(
+                  controller.currentMonth.value,
+                  style: AppStyle.bodyRegularPoppinsBlack.responsive.copyWith(
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(14),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.chevron_right,
+                  color: AppColors.defaultBlack,
+                  size: ResponsiveHelper.spacing(24),
+                ),
+                onPressed: controller.onNextMonth,
+              ),
+            ],
+          ),
+          SizedBox(height: ResponsiveHelper.spacing(16)),
+          Obx(() => _buildPerformanceChart()),
+          SizedBox(height: ResponsiveHelper.spacing(16)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildLegendItem('Target', AppColors.accentOrange),
+              SizedBox(width: ResponsiveHelper.spacing(24)),
+              _buildLegendItem('Target Completed', const Color(0xFF5DADE2)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPerformanceChart() {
+    if (controller.performanceData.isEmpty) {
+      return SizedBox(
+        height: ResponsiveHelper.spacing(200),
+        child: Center(
+          child: Text(
+            'No performance data available',
+            style: AppStyle.bodySmallPoppinsGrey.responsive,
+          ),
+        ),
+      );
+    }
+    return SizedBox(
+      height: ResponsiveHelper.spacing(200),
+      child: LineChart(
+        LineChartData(
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            horizontalInterval: 5,
+            getDrawingHorizontalLine: (value) {
+              return FlLine(
+                color: AppColors.grey.withOpacity(0.2),
+                strokeWidth: 1,
+              );
+            },
+          ),
+          titlesData: FlTitlesData(
+            show: true,
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                interval: 5,
+                getTitlesWidget: (value, meta) {
+                  return Text(
+                    value.toInt().toString(),
+                    style: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(10),
+                    ),
+                  );
+                },
+                reservedSize: 30,
+              ),
+            ),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (value, meta) {
+                  if (value.toInt() < 0 ||
+                      value.toInt() >= controller.performanceData.length) {
+                    return const SizedBox.shrink();
+                  }
+                  return Padding(
+                    padding: ResponsiveHelper.paddingSymmetric(vertical: 4),
+                    child: Text(
+                      controller.performanceData[value.toInt()].day,
+                      style: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
+                        fontSize: ResponsiveHelper.getResponsiveFontSize(10),
+                      ),
+                    ),
+                  );
+                },
+                reservedSize: 30,
+              ),
+            ),
+          ),
+          borderData: FlBorderData(show: false),
+          minX: 0,
+          maxX: (controller.performanceData.length - 1).toDouble(),
+          minY: 0,
+          maxY: () {
+            double maxTarget = 0;
+            double maxCompleted = 0;
+            for (var data in controller.performanceData) {
+              if (data.target > maxTarget) maxTarget = data.target;
+              if (data.targetCompleted > maxCompleted) {
+                maxCompleted = data.targetCompleted;
+              }
+            }
+            double maxValue =
+                maxTarget > maxCompleted ? maxTarget : maxCompleted;
+            return maxValue + (maxValue * 0.2);
+          }(),
+          lineBarsData: [
+            LineChartBarData(
+              spots: controller.performanceData
+                  .asMap()
+                  .entries
+                  .map((e) => FlSpot(e.key.toDouble(), e.value.target))
+                  .toList(),
+              isCurved: true,
+              color: AppColors.accentOrange,
+              barWidth: 3,
+              isStrokeCapRound: true,
+              dotData: FlDotData(
+                show: true,
+                getDotPainter: (spot, percent, barData, index) {
+                  return FlDotCirclePainter(
+                    radius: 4,
+                    color: AppColors.accentOrange,
+                    strokeWidth: 2,
+                    strokeColor: AppColors.white,
+                  );
+                },
+              ),
+              belowBarData: BarAreaData(show: false),
+            ),
+            LineChartBarData(
+              spots: controller.performanceData
+                  .asMap()
+                  .entries
+                  .map((e) => FlSpot(e.key.toDouble(), e.value.targetCompleted))
+                  .toList(),
+              isCurved: true,
+              color: const Color(0xFF5DADE2),
+              barWidth: 3,
+              isStrokeCapRound: true,
+              dotData: FlDotData(
+                show: true,
+                getDotPainter: (spot, percent, barData, index) {
+                  return FlDotCirclePainter(
+                    radius: 4,
+                    color: const Color(0xFF5DADE2),
+                    strokeWidth: 2,
+                    strokeColor: AppColors.white,
+                  );
+                },
+              ),
+              belowBarData: BarAreaData(show: false),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Widget _buildPerformanceCard_OLD() {
   //   return Container(
   //     margin: ResponsiveHelper.paddingSymmetric(horizontal: 16),
   //     padding: ResponsiveHelper.paddingSymmetric(horizontal: 16, vertical: 20),

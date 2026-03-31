@@ -1,29 +1,58 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:rudra/app/data/models/my_survey/my_surevy_model.dart';
 import 'package:rudra/app/modules/manager_module/my_survey/my_survey_controller.dart';
-
 import 'package:rudra/app/routes/app_routes.dart';
 import 'package:rudra/bottom_navigation/bottom_navigation_controller.dart';
 import 'package:rudra/bottom_navigation/bottom_navigation_view.dart';
-import 'package:shimmer/shimmer.dart';
 
 import '../../../utils/app_colors.dart';
 import '../../../utils/responsive_utils.dart';
-import '../../../widgets/app_button_style.dart';
 import '../../../widgets/app_style.dart';
+import '../../../widgets/custom_shimmer_card.dart';
 
-class MySurveyView extends StatelessWidget {
+class MySurveyView extends StatefulWidget {
   const MySurveyView({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final MySurveyController controller = Get.put(MySurveyController());
-    final BottomNavigationController bottomController = Get.put(
-      BottomNavigationController(),
-    );
+  State<MySurveyView> createState() => _MySurveyViewState();
+}
 
+class _MySurveyViewState extends State<MySurveyView> {
+  final MySurveyController controller = Get.put(MySurveyController());
+  final BottomNavigationController bottomController = Get.put(
+    BottomNavigationController(),
+  );
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_loadMore);
+  }
+
+  void _loadMore() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent * 0.9) {
+      if (controller.hasMoreData.value &&
+          !controller.isLoading.value &&
+          !controller.isLoadingMore.value) {
+        controller.fetchMySurveys(
+          context: context,
+          isPagination: true,
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     ResponsiveHelper.init(context);
 
     return WillPopScope(
@@ -45,7 +74,21 @@ class MySurveyView extends StatelessWidget {
                 child: Obx(() {
                   if (controller.isLoading.value &&
                       controller.mySurveyList.isEmpty) {
-                    return _buildShimmerEffect();
+                    return ListView.builder(
+                      padding:
+                          ResponsiveHelper.paddingSymmetric(horizontal: 16),
+                      itemCount: 5,
+                      itemBuilder: (_, __) => const CustomShimmerCard(),
+                    );
+                  }
+
+                  if (controller.isSearching.value) {
+                    return ListView.builder(
+                      padding:
+                          ResponsiveHelper.paddingSymmetric(horizontal: 16),
+                      itemCount: 3,
+                      itemBuilder: (_, __) => const CustomShimmerCard(),
+                    );
                   }
 
                   if (controller.filteredSurveyList.isEmpty) {
@@ -53,20 +96,44 @@ class MySurveyView extends StatelessWidget {
                   }
 
                   return ListView.builder(
+                    controller: _scrollController,
                     padding: ResponsiveHelper.paddingSymmetric(horizontal: 16),
-                    itemCount:
-                        controller.filteredSurveyList.length +
-                        (controller.hasMoreData.value ? 1 : 0),
+                    itemCount: controller.filteredSurveyList.length +
+                        (controller.isLoadingMore.value
+                            ? 1
+                            : (!controller.hasMoreData.value &&
+                                    controller.hasPaginated.value
+                                ? 1
+                                : 0)),
                     itemBuilder: (ctx, i) {
-                      // ---- Load-more trigger -----------------------------------------
                       if (i == controller.filteredSurveyList.length) {
-                        controller.loadMoreIfNeeded(i);
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(8.0),
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
+                        if (controller.isLoadingMore.value) {
+                          return Padding(
+                            padding:
+                                EdgeInsets.all(ResponsiveHelper.spacing(16)),
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          );
+                        }
+                        if (!controller.hasMoreData.value &&
+                            controller.hasPaginated.value) {
+                          return Padding(
+                            padding:
+                                EdgeInsets.all(ResponsiveHelper.spacing(16)),
+                            child: Text(
+                              'No more surveys to load',
+                              style: AppStyle.bodySmallPoppinsGrey.responsive
+                                  .copyWith(
+                                fontSize:
+                                    ResponsiveHelper.getResponsiveFontSize(12),
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          );
+                        }
                       }
 
                       final survey = controller.filteredSurveyList[i];
@@ -87,15 +154,24 @@ class MySurveyView extends StatelessWidget {
   // UI helpers
   // -----------------------------------------------------------------------
   Widget _buildSearchField(MySurveyController controller) {
-    return TextFormField(
-      controller: controller.searchController,
-      decoration: InputDecoration(
-        hintText: 'Search....',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        suffixIcon: const Icon(Icons.search),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
+    return Obx(
+      () => TextFormField(
+        controller: controller.searchController,
+        onChanged: controller.searchSurveys,
+        decoration: InputDecoration(
+          hintText: 'Search....',
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: controller.searchQuery.value.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.cancel, color: AppColors.grey),
+                  onPressed: controller.clearSearch,
+                )
+              : null,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
         ),
       ),
     );
@@ -180,81 +256,6 @@ class MySurveyView extends StatelessWidget {
                           fontSize: ResponsiveHelper.getResponsiveFontSize(13),
                         ),
                       ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // -----------------------------------------------------------------------
-  // Shimmer
-  // -----------------------------------------------------------------------
-  Widget _buildShimmerEffect() {
-    return ListView.builder(
-      padding: ResponsiveHelper.paddingSymmetric(horizontal: 16),
-      itemCount: 5,
-      itemBuilder: (_, __) => _buildShimmerCard(),
-    );
-  }
-
-  Widget _buildShimmerCard() {
-    return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
-      child: Card(
-        margin: const EdgeInsets.only(bottom: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: double.infinity,
-                    height: 20,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    width: double.infinity,
-                    height: 16,
-                    color: Colors.white,
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.grey.withOpacity(0.1),
-                borderRadius: const BorderRadius.only(
-                  bottomRight: Radius.circular(10),
-                  bottomLeft: Radius.circular(10),
-                ),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(width: 100, height: 16, color: Colors.white),
-                      Container(width: 50, height: 16, color: Colors.white),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(width: 100, height: 16, color: Colors.white),
-                      Container(width: 50, height: 16, color: Colors.white),
                     ],
                   ),
                 ],

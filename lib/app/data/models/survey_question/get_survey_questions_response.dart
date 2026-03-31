@@ -6,13 +6,15 @@ import 'dart:convert';
 
 List<GetSurveyQuestionsResponse> getSurveyQuestionsResponseFromJson(
   String str,
-) => List<GetSurveyQuestionsResponse>.from(
-  json.decode(str).map((x) => GetSurveyQuestionsResponse.fromJson(x)),
-);
+) =>
+    List<GetSurveyQuestionsResponse>.from(
+      json.decode(str).map((x) => GetSurveyQuestionsResponse.fromJson(x)),
+    );
 
 String getSurveyQuestionsResponseToJson(
   List<GetSurveyQuestionsResponse> data,
-) => json.encode(List<dynamic>.from(data.map((x) => x.toJson())));
+) =>
+    json.encode(List<dynamic>.from(data.map((x) => x.toJson())));
 
 class GetSurveyQuestionsResponse {
   String status;
@@ -33,10 +35,10 @@ class GetSurveyQuestionsResponse {
       );
 
   Map<String, dynamic> toJson() => {
-    "status": status,
-    "message": message,
-    "data": data.toJson(),
-  };
+        "status": status,
+        "message": message,
+        "data": data.toJson(),
+      };
 }
 
 class QuestionData {
@@ -51,18 +53,18 @@ class QuestionData {
   });
 
   factory QuestionData.fromJson(Map<String, dynamic> json) => QuestionData(
-    surveyId: json["survey_id"],
-    languageId: json["language_id"],
-    questions: List<Question>.from(
-      json["questions"].map((x) => Question.fromJson(x)),
-    ),
-  );
+        surveyId: json["survey_id"] ?? "",
+        languageId: json["language_id"] ?? "",
+        questions: List<Question>.from(
+          json["questions"].map((x) => Question.fromJson(x)),
+        ),
+      );
 
   Map<String, dynamic> toJson() => {
-    "survey_id": surveyId,
-    "language_id": languageId,
-    "questions": List<dynamic>.from(questions.map((x) => x.toJson())),
-  };
+        "survey_id": surveyId,
+        "language_id": languageId,
+        "questions": List<dynamic>.from(questions.map((x) => x.toJson())),
+      };
 }
 
 class Question {
@@ -71,6 +73,9 @@ class Question {
   String sequenceNumber;
   String question;
   String questionType;
+  String? parentQuestionId;
+  String? parentOptionId;
+  String? isConteginious;
   List<Option> options;
 
   Question({
@@ -79,39 +84,62 @@ class Question {
     required this.sequenceNumber,
     required this.question,
     required this.questionType,
+    this.parentQuestionId,
+    this.parentOptionId,
+    this.isConteginious,
     required this.options,
   });
 
   factory Question.fromJson(Map<String, dynamic> json) => Question(
-    surveyQuestionId: json["survey_question_id"],
-    questionId: json["question_id"],
-    sequenceNumber: json["sequence_number"],
-    question: json["question"],
-    questionType: json["question_type"],
-    options: List<Option>.from(json["options"].map((x) => Option.fromJson(x))),
-  );
+        surveyQuestionId: json["survey_question_id"] ?? "",
+        questionId: json["question_id"] ?? "",
+        sequenceNumber: json["sequence_number"] ?? "",
+        question: json["question"] ?? "",
+        questionType: json["question_type"] ?? "",
+        parentQuestionId: json["parent_question_id"] ?? "",
+        parentOptionId: json["parent_option_id"] ?? "",
+        isConteginious: json["is_conteginious"] ?? "",
+        options:
+            List<Option>.from(json["options"].map((x) => Option.fromJson(x))),
+      );
 
   Map<String, dynamic> toJson() => {
-    "survey_question_id": surveyQuestionId,
-    "question_id": questionId,
-    "sequence_number": sequenceNumber,
-    "question": question,
-    "question_type": questionType,
-    "options": List<dynamic>.from(options.map((x) => x.toJson())),
-  };
+        "survey_question_id": surveyQuestionId,
+        "question_id": questionId,
+        "sequence_number": sequenceNumber,
+        "question": question,
+        "question_type": questionType,
+        "parent_question_id": parentQuestionId,
+        "parent_option_id": parentOptionId,
+        "is_conteginious": isConteginious,
+        "options": List<dynamic>.from(options.map((x) => x.toJson())),
+      };
 }
 
 class Option {
   String optionId;
-  String choiceText;
+  String? choiceText;
+  String? textFieldType;
+  String? answerType;
 
-  Option({required this.optionId, required this.choiceText});
+  Option({
+    required this.optionId,
+    this.choiceText,
+    this.textFieldType,
+    this.answerType,
+  });
 
-  factory Option.fromJson(Map<String, dynamic> json) =>
-      Option(optionId: json["option_id"], choiceText: json["choice_text"]);
+  factory Option.fromJson(Map<String, dynamic> json) => Option(
+        optionId: json["option_id"] ?? "",
+        choiceText: json["choice_text"],
+        textFieldType: json["text_field_type"],
+        answerType: json["answer_type"],
+      );
 
   Map<String, dynamic> toJson() => {
-    "option_id": optionId,
-    "choice_text": choiceText,
-  };
+        "option_id": optionId,
+        "choice_text": choiceText,
+        "text_field_type": textFieldType,
+        "answer_type": answerType,
+      };
 }

@@ -24,4 +24,5 @@ class AppImages {
   static const String reportIcon = 'assets/icons/report-i.svg';
   static const String myTeambIcon = 'assets/icons/my-team-i.svg';
   static const String profileIcon = 'assets/icons/profile-i.svg';
+  static const String profileBg = 'assets/images/profilebg.jpg';
 }

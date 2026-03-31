@@ -6,9 +6,14 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:rudra/app/data/models/my_team/get_my_team_member_detail.dart';
 import 'package:rudra/app/data/models/my_team/get_my_team_member_response.dart' show TeamMembersDetails;
+import 'package:rudra/app/data/models/profile_details/get_my_survey_response.dart';
+import 'package:rudra/app/data/models/profile_details/get_user_performance_response.dart';
+import 'package:rudra/app/data/models/profile_details/performance_data_model.dart';
 import 'package:rudra/app/data/network/exceptions.dart';
 import 'package:rudra/app/data/network/networkcall.dart';
 import 'package:rudra/app/data/urls.dart';
+import 'package:rudra/app/utils/app_logger.dart';
+import 'package:rudra/app/utils/app_utility.dart';
 import 'package:rudra/app/widgets/app_snackbar_styles.dart';
 
 class TeamMemberDetailController extends GetxController {
@@ -24,13 +29,33 @@ class TeamMemberDetailController extends GetxController {
   // Variable to store the passed team member argument
   var selectedMember = Rxn<TeamMembersDetails>();
 
+  // Performance data variables
+  final RxList<PerformanceDataModel> performanceData = <PerformanceDataModel>[].obs;
+  final RxString selectedPeriod = 'weekly'.obs;
+  final RxString currentMonth = ''.obs;
+  final List<String> periodOptions = ['daily', 'weekly', 'monthly'];
+  final Rx<DateTime?> fromDate = Rx<DateTime?>(null);
+  final Rx<DateTime?> toDate = Rx<DateTime?>(null);
+  final RxString assignedTarget = '0'.obs;
+  final RxString completedTarget = '0'.obs;
+  final RxList<SurveyData> surveyList = <SurveyData>[].obs;
+  final Rx<SurveyData?> selectedSurvey = Rx<SurveyData?>(null);
+
   @override
   void onInit() {
     super.onInit();
-    // Retrieve the passed argument
     selectedMember.value = Get.arguments as TeamMembersDetails?;
-    // Fetch initial data
+    currentMonth.value = DateFormat('MMMM yyyy').format(DateTime.now());
+    _setInitialDates();
     fetchTeamMemberDetail(context: Get.context!, reset: true);
+    fetchSurveyList();
+    fetchPerformanceData();
+  }
+
+  void _setInitialDates() {
+    final now = DateTime.now();
+    toDate.value = now;
+    fromDate.value = now.subtract(const Duration(days: 7));
   }
 
   String get greeting {
@@ -172,8 +197,142 @@ String formatDateTime(String dateTimeString) {
     }
   }
 
-  // Refresh data for pull-to-refresh
+  Future<void> fetchSurveyList() async {
+    try {
+      final jsonBody = {"team_id": AppUtility.teamId ?? ""};
+      final response = await Networkcall().postMethod(
+        Networkutility.getMySurveyApi,
+        Networkutility.getMySurvey,
+        jsonEncode(jsonBody),
+        Get.context!,
+      ) as List<GetMySurveyResponse>?;
+
+      if (response != null && response.isNotEmpty && response[0].status == "true") {
+        surveyList.value = response[0].data;
+      }
+    } catch (e) {
+      AppLogger.e('Error fetching survey list: $e');
+    }
+  }
+
+  Future<void> fetchPerformanceData() async {
+    if (fromDate.value == null || toDate.value == null) return;
+
+    try {
+      isLoading.value = true;
+      final jsonBody = {
+        "user_id": selectedMember.value?.memberId ?? "",
+        "from_date": DateFormat('yyyy-MM-dd').format(fromDate.value!),
+        "to_date": DateFormat('yyyy-MM-dd').format(toDate.value!),
+        "period": selectedPeriod.value,
+      };
+      if (selectedSurvey.value != null) {
+        jsonBody["survey_id"] = selectedSurvey.value!.surveyId;
+      }
+
+      final response = await Networkcall().postMethod(
+        Networkutility.getUserPerformanceApi,
+        Networkutility.getUserPerformance,
+        jsonEncode(jsonBody),
+        Get.context!,
+      ) as List<GetUserPerformanceResponse>?;
+
+      if (response != null && response.isNotEmpty && response[0].status == "true") {
+        final data = response[0].data;
+        assignedTarget.value = data.assignedSurveyTarget;
+        completedTarget.value = data.completedSurveyTarget;
+        _generateChartData(data.periodData);
+      }
+    } on NoInternetException catch (e) {
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } on TimeoutException catch (e) {
+      AppSnackbarStyles.showError(title: 'Error', message: e.message);
+    } on HttpException catch (e) {
+      AppSnackbarStyles.showError(title: 'Error', message: '${e.message} (Code: ${e.statusCode})');
+    } catch (e) {
+      AppLogger.e('Error fetching performance data: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  void _generateChartData(List<PeriodData> periodData) {
+    if (periodData.isEmpty) {
+      performanceData.value = [];
+      return;
+    }
+
+    performanceData.value = periodData.map((item) {
+      return PerformanceDataModel(
+        day: item.label,
+        target: double.tryParse(item.assigned) ?? 0,
+        targetCompleted: double.tryParse(item.completed) ?? 0,
+      );
+    }).toList();
+  }
+
+  void onPeriodChanged(String? value) {
+    if (value != null) {
+      selectedPeriod.value = value;
+      fetchPerformanceData();
+    }
+  }
+
+  Future<void> selectFromDate(BuildContext context) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: fromDate.value ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) {
+      fromDate.value = picked;
+      fetchPerformanceData();
+    }
+  }
+
+  Future<void> selectToDate(BuildContext context) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: toDate.value ?? DateTime.now(),
+      firstDate: fromDate.value ?? DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) {
+      toDate.value = picked;
+      fetchPerformanceData();
+    }
+  }
+
+  void onPreviousMonth() {
+    final current = DateFormat('MMMM yyyy').parse(currentMonth.value);
+    final now = DateTime.now();
+    final previous = DateTime(current.year, current.month - 1);
+    if (previous.isAfter(DateTime(now.year, now.month))) return;
+    currentMonth.value = DateFormat('MMMM yyyy').format(previous);
+    final firstDay = DateTime(previous.year, previous.month, 1);
+    final lastDay = DateTime(previous.year, previous.month + 1, 0);
+    fromDate.value = firstDay;
+    toDate.value = lastDay.isAfter(now) ? now : lastDay;
+    fetchPerformanceData();
+  }
+
+  void onNextMonth() {
+    final current = DateFormat('MMMM yyyy').parse(currentMonth.value);
+    final now = DateTime.now();
+    final next = DateTime(current.year, current.month + 1);
+    if (next.isAfter(DateTime(now.year, now.month))) return;
+    currentMonth.value = DateFormat('MMMM yyyy').format(next);
+    final firstDay = DateTime(next.year, next.month, 1);
+    final lastDay = DateTime(next.year, next.month + 1, 0);
+    fromDate.value = firstDay;
+    toDate.value = lastDay.isAfter(now) ? now : lastDay;
+    fetchPerformanceData();
+  }
+
   Future<void> refreshData() async {
+    await Future.delayed(const Duration(seconds: 1));
     await fetchTeamMemberDetail(context: Get.context!, reset: true);
+    await fetchPerformanceData();
   }
 }

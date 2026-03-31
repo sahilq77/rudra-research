@@ -1,42 +1,50 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 import 'package:rudra/app/data/models/my_survey/get_my_survey_submitted_response.dart';
 import 'package:rudra/app/data/network/exceptions.dart';
 import 'package:rudra/app/data/network/networkcall.dart';
 import 'package:rudra/app/data/urls.dart';
 import 'package:rudra/app/utils/app_logger.dart';
-import 'package:rudra/app/utils/app_utility.dart';
 import 'package:rudra/app/widgets/app_snackbar_styles.dart';
 
+import '../../../../../utils/app_utility.dart';
+
 class MySurveyResponseController extends GetxController {
-  // ---- API data (raw) ----------------------------------------------------
   final RxList<ResponseData> liveSurveysList = <ResponseData>[].obs;
   final RxString errorMessage = ''.obs;
-  // Pagination
   final RxInt offset = 0.obs;
   final int limit = 10;
   final RxBool hasMoreData = true.obs;
   final RxBool isLoadingMore = false.obs;
-  // ---- UI data -----------------------------------------------------------
+  final RxBool isSearching = false.obs;
+  final RxBool hasPaginated = false.obs;
   final RxList<MySurveyResponseModel> mySurveyList =
       <MySurveyResponseModel>[].obs;
   final RxList<MySurveyResponseModel> filteredSurveyList =
       <MySurveyResponseModel>[].obs;
   final TextEditingController searchController = TextEditingController();
+  final RxString searchQuery = ''.obs;
+  Timer? _debounce;
   final RxBool isLoading = false.obs;
+  late final String surveyId;
+  late final String userId;
 
   @override
   void onInit() {
     super.onInit();
-    searchController.addListener(() => searchSurveys(searchController.text));
+    final args = Get.arguments as Map<String, dynamic>? ?? {};
+    surveyId = args['surveyId']?.toString() ?? '';
+    userId = args['userId']?.toString() ?? '';
     fetchMySurveyResponse(context: Get.context!, reset: true);
   }
 
   @override
   void onClose() {
+    _debounce?.cancel();
     searchController.dispose();
     super.onClose();
   }
@@ -49,6 +57,7 @@ class MySurveyResponseController extends GetxController {
     bool reset = false,
     bool isPagination = false,
     bool forceFetch = false,
+    bool isSearch = false,
   }) async {
     if (reset) {
       offset.value = 0;
@@ -59,26 +68,27 @@ class MySurveyResponseController extends GetxController {
     if (!hasMoreData.value && !reset && !forceFetch) return;
     if (isPagination) {
       isLoadingMore.value = true;
+      hasPaginated.value = true;
     } else {
       isLoading.value = true;
     }
     errorMessage.value = '';
     try {
       final jsonBody = {
-        "survey_id": "1",
-        "user_id": "3",
+        "survey_id": surveyId,
+        "user_id": userId,
         "offset": offset.value.toString(),
-        "limit": limit.toString(),
+        "limit": (limit + offset.value ~/ limit).toString(),
+        "search": searchQuery.value,
+        "logged_in_user_id": AppUtility.userID,
       };
       // API returns List<GetMySurveySubmittedResponse>
-      final response =
-          await Networkcall().postMethod(
-                Networkutility.getMySurveySubmittedResponseListApi,
-                Networkutility.getMySurveySubmittedResponseList,
-                jsonEncode(jsonBody),
-                context,
-              )
-              as List<GetMySurveySubmittedResponse>?;
+      final response = await Networkcall().postMethod(
+        Networkutility.getMySurveySubmittedResponseListApi,
+        Networkutility.getMySurveySubmittedResponseList,
+        jsonEncode(jsonBody),
+        context,
+      ) as List<GetMySurveySubmittedResponse>?;
       if (response == null || response.isEmpty) {
         _handleError('No response from server');
         return;
@@ -88,24 +98,33 @@ class MySurveyResponseController extends GetxController {
       for (var apiResponse in response) {
         if (apiResponse.status != "true") {
           log('API returned status false: ${apiResponse.message}');
-          continue; // Skip invalid entries
+          continue;
         }
         final data = apiResponse.data;
         if (data.surveyInfo.surveyId.isEmpty) continue;
-        final uiModel = MySurveyResponseModel(
-          id: data.surveyInfo.surveyId,
-          surveyId: data.surveyInfo.surveyId,
-          title: _getTitleFromResponseLists(data.responseLists),
-          subtitle: data.surveySubmittedBy.name,
-          submittedAt: _getLatestSubmittedAt(
-            data.responseLists,
-          ), // Fixed: Now shows actual date
-        );
-        newUiModels.add(uiModel);
+
+        // Flatten all response lists to show each person as a separate card
+        for (var person in data.responseLists) {
+          final uiModel = MySurveyResponseModel(
+            id: person.peopleDetailsId,
+            surveyId: data.surveyInfo.surveyId,
+            peopleDetailsId: person.peopleDetailsId,
+            title: person.name.isEmpty ? 'No Name' : person.name,
+            subtitle: data.surveySubmittedBy.name,
+            submittedAt: person.submittedAt,
+          );
+          newUiModels.add(uiModel);
+        }
         newApiData.add(data);
       }
       if (newUiModels.isEmpty) {
-        _handleError('No valid survey data found');
+        if (!isPagination) {
+          mySurveyList.clear();
+          filteredSurveyList.clear();
+          _handleError('No valid survey data found');
+        } else {
+          hasMoreData.value = false;
+        }
         return;
       }
       // Update lists
@@ -117,19 +136,39 @@ class MySurveyResponseController extends GetxController {
         liveSurveysList.addAll(newApiData);
       }
       // Pagination logic
-      hasMoreData.value = response.length >= limit;
+      hasMoreData.value = newUiModels.length >= limit;
       offset.value += limit;
-      // Sync search
-      searchSurveys(searchController.text);
+      // Sync filtered list
+      filteredSurveyList.assignAll(mySurveyList);
     } on NoInternetException catch (e) {
+      if (!isPagination) {
+        mySurveyList.clear();
+        filteredSurveyList.clear();
+      }
       _handleError(e.message);
     } on TimeoutException catch (e) {
+      if (!isPagination) {
+        mySurveyList.clear();
+        filteredSurveyList.clear();
+      }
       _handleError(e.message);
     } on HttpException catch (e) {
+      if (!isPagination) {
+        mySurveyList.clear();
+        filteredSurveyList.clear();
+      }
       _handleError('${e.message} (Code: ${e.statusCode})');
     } on ParseException catch (e) {
+      if (!isPagination) {
+        mySurveyList.clear();
+        filteredSurveyList.clear();
+      }
       _handleError(e.message);
     } catch (e, stack) {
+      if (!isPagination) {
+        mySurveyList.clear();
+        filteredSurveyList.clear();
+      }
       _handleError('Unexpected error: $e');
       AppLogger.e('Stack trace: $stack', tag: 'MySurveyResponseController');
     } finally {
@@ -137,53 +176,6 @@ class MySurveyResponseController extends GetxController {
       isLoadingMore.value = false;
     }
   }
-
-  // Helper to extract title from responseLists
-  String _getTitleFromResponseLists(List<List<ResponseList>> responseLists) {
-    if (responseLists.isEmpty || responseLists.every((list) => list.isEmpty)) {
-      return 'No Responses';
-    }
-    for (var list in responseLists) {
-      if (list.isNotEmpty && list.first.name.isNotEmpty) {
-        return list.first.name;
-      }
-    }
-    return 'No Name';
-  }
-
-  // New Helper: Get the latest submitted_at from all responseLists
-  String _getLatestSubmittedAt(List<List<ResponseList>> responseLists) {
-    String latest = '';
-    DateTime? latestDate;
-
-    for (var list in responseLists) {
-      for (var response in list) {
-        if (response.submittedAt.isEmpty) continue;
-
-        try {
-          // Parse "2025-04-05 10:30:00" → make it ISO-like for DateTime.parse
-          final cleaned = response.submittedAt.replaceAll(' ', 'T');
-          final date = DateTime.parse(cleaned);
-          if (latestDate == null || date.isAfter(latestDate)) {
-            latestDate = date;
-            latest = response.submittedAt;
-          }
-        } catch (e) {
-          continue; // Skip invalid dates
-        }
-      }
-    }
-
-    if (latest.isEmpty) {
-      final now = DateTime.now();
-      return "${now.year}-${_twoDigits(now.month)}-${_twoDigits(now.day)} ${_twoDigits(now.hour)}:${_twoDigits(now.minute)}:00";
-    }
-
-    return latest;
-  }
-
-  // Helper for two-digit formatting
-  String _twoDigits(int n) => n.toString().padLeft(2, '0');
 
   void _handleError(String msg) {
     hasMoreData.value = false;
@@ -202,26 +194,24 @@ class MySurveyResponseController extends GetxController {
   // 3. SEARCH
   // -----------------------------------------------------------------------
   void searchSurveys(String query) {
-    final trimmed = query.trim();
-    if (trimmed.isEmpty) {
-      filteredSurveyList.assignAll(mySurveyList);
-    } else {
-      final lower = trimmed.toLowerCase();
-      filteredSurveyList.assignAll(
-        mySurveyList
-            .where(
-              (s) =>
-                  s.title.toLowerCase().contains(lower) ||
-                  s.subtitle.toLowerCase().contains(lower) ||
-                  s.submittedAt.contains(lower),
-            )
-            .toList(),
-      );
-    }
-    AppLogger.d(
-      'Search query: "$query", Results: ${filteredSurveyList.length}',
-      tag: 'MySurveyResponseController',
-    );
+    searchQuery.value = query;
+
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      isSearching.value = true;
+      fetchMySurveyResponse(context: Get.context!, reset: true, isSearch: true)
+          .then((_) {
+        isSearching.value = false;
+      });
+    });
+  }
+
+  void clearSearch() {
+    _debounce?.cancel();
+    searchController.clear();
+    searchQuery.value = '';
+    fetchMySurveyResponse(context: Get.context!, reset: true);
   }
 
   // -----------------------------------------------------------------------
@@ -235,18 +225,7 @@ class MySurveyResponseController extends GetxController {
   }
 
   String formatDateTime(String dateTimeString) {
-    try {
-      // Parse the input string to DateTime
-      DateTime dateTime = DateTime.parse(dateTimeString);
-
-      // Define the desired format (e.g., "Sep 16, 2025 – 11:25 AM")
-      final DateFormat formatter = DateFormat('MMM d, yyyy hh:mm');
-
-      // Format the DateTime object
-      return formatter.format(dateTime);
-    } catch (e) {
-      return 'Invalid date format';
-    }
+    return dateTimeString;
   }
 }
 
@@ -259,6 +238,7 @@ class MySurveyResponseModel {
   final String subtitle;
   final String surveyId;
   final String submittedAt;
+  final String peopleDetailsId;
 
   MySurveyResponseModel({
     required this.id,
@@ -266,6 +246,7 @@ class MySurveyResponseModel {
     required this.subtitle,
     required this.surveyId,
     required this.submittedAt,
+    required this.peopleDetailsId,
   });
 
   MySurveyResponseModel copyWith({
@@ -274,13 +255,15 @@ class MySurveyResponseModel {
     String? subtitle,
     String? surveyId,
     String? responseCount,
+    String? peopleDetailsId,
   }) {
     return MySurveyResponseModel(
       id: id ?? this.id,
       title: title ?? this.title,
       subtitle: subtitle ?? this.subtitle,
       surveyId: surveyId ?? this.surveyId,
-      submittedAt: responseCount ?? this.submittedAt,
+      submittedAt: responseCount ?? submittedAt,
+      peopleDetailsId: peopleDetailsId ?? this.peopleDetailsId,
     );
   }
 

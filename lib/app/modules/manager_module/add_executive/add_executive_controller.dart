@@ -1,10 +1,8 @@
 // lib/app/modules/add_executive/add_executive_controller.dart
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:rudra/app/data/models/add_executive/get_add_executive_response.dart'
@@ -15,9 +13,7 @@ import 'package:rudra/app/data/network/networkcall.dart';
 import 'package:rudra/app/data/urls.dart';
 import 'package:rudra/app/utils/app_utility.dart' show AppUtility;
 
-import '../../../data/models/add_executive/add_executive_model.dart';
 import '../../../routes/app_routes.dart';
-import '../../../utils/app_colors.dart';
 import '../../../utils/app_logger.dart';
 import '../../../widgets/app_snackbar_styles.dart';
 
@@ -31,15 +27,17 @@ class AddExecutiveController extends GetxController {
   final TextEditingController dobController = TextEditingController();
   final TextEditingController joiningDateController = TextEditingController();
   final RxInt selectedRole = 4.obs; // Default to Executive (4)
-  
+
   final Rx<File?> selectedImage = Rx<File?>(null);
   final RxBool isLoading = false.obs;
   var errorMessage = ''.obs;
   final List<String> roles = ['Executive', 'Validator'];
   final List<int> roleValues = [4, 5]; // Corresponding role IDs
 
-  DateTime selectedDob = DateTime(2025, 9, 16);
-  DateTime selectedJoiningDate = DateTime(2025, 9, 16);
+  DateTime selectedDob = DateTime.now().subtract(
+    const Duration(days: 365 * 20),
+  );
+  DateTime selectedJoiningDate = DateTime.now();
 
   final ImagePicker _picker = ImagePicker();
 
@@ -71,7 +69,10 @@ class AddExecutiveController extends GetxController {
         return;
       }
 
-      final jsonBody = {
+      isLoading.value = true;
+      errorMessage.value = '';
+
+      final formData = {
         "first_name": firstNameController.text.trim(),
         "last_name": lastNameController.text.trim(),
         "email": emailController.text.trim(),
@@ -79,22 +80,23 @@ class AddExecutiveController extends GetxController {
         "dob": DateFormat('yyyy-MM-dd').format(selectedDob),
         "joining_date": DateFormat('yyyy-MM-dd').format(selectedJoiningDate),
         "address": addressController.text.trim(),
-        "role_id": selectedRole.value.toString(), // Use selectedRole directly
+        "role_id": selectedRole.value.toString(),
         "is_active": "1",
-        "assigned_by": AppUtility.userID,
-        "updated_by": AppUtility.userID,
-        "file": selectedImage.value != null
-            ? base64Encode(await selectedImage.value!.readAsBytes())
-            : "",
+        "assigned_by": AppUtility.userID ?? "",
+        "updated_by": AppUtility.userID ?? "",
+        "user_id": AppUtility.userID ?? "",
       };
 
-      isLoading.value = true;
-      errorMessage.value = '';
+      final fileMap = <String, File>{};
+      if (selectedImage.value != null) {
+        fileMap['user_image'] = selectedImage.value!;
+      }
 
-      List<Object?>? list = await Networkcall().postMethod(
-        Networkutility.addExecutiveApi,
-        Networkutility.addExecutive,
-        jsonEncode(jsonBody),
+      List<Object?>? list = await Networkcall().postFormDataMethod(
+        Networkutility.addExecutiveFormDataApi,
+        Networkutility.addExecutiveFormData,
+        formData,
+        fileMap,
         Get.context!,
       );
 
@@ -128,8 +130,8 @@ class AddExecutiveController extends GetxController {
       errorMessage.value = e.message;
       AppSnackbarStyles.showError(title: 'Timeout Error', message: e.message);
     } on HttpException catch (e) {
-      errorMessage.value = '${e.message}';
-      AppSnackbarStyles.showError(title: 'HTTP Error', message: '${e.message}');
+      errorMessage.value = e.message;
+      AppSnackbarStyles.showError(title: 'HTTP Error', message: e.message);
     } on ParseException catch (e) {
       errorMessage.value = e.message;
       AppSnackbarStyles.showError(title: 'Parse Error', message: e.message);

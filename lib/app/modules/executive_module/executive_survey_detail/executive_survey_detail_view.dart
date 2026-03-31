@@ -3,6 +3,7 @@ import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:rudra/app/modules/executive_module/executive_survey_detail/executive_survey_detail_controller.dart';
+import 'package:rudra/bottom_navigation/bottom_navigation_controller.dart';
 
 import '../../../common/customvalidators/text_validator.dart';
 import '../../../utils/app_colors.dart';
@@ -10,12 +11,12 @@ import '../../../utils/responsive_utils.dart';
 import '../../../widgets/app_button_style.dart';
 import '../../../widgets/app_style.dart';
 
-
 class ExecutiveSurveyDetailView extends StatefulWidget {
   const ExecutiveSurveyDetailView({super.key});
 
   @override
-  State<ExecutiveSurveyDetailView> createState() => _ExecutiveSurveyDetailViewState();
+  State<ExecutiveSurveyDetailView> createState() =>
+      _ExecutiveSurveyDetailViewState();
 }
 
 class _ExecutiveSurveyDetailViewState extends State<ExecutiveSurveyDetailView> {
@@ -28,7 +29,9 @@ class _ExecutiveSurveyDetailViewState extends State<ExecutiveSurveyDetailView> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Get.back(),
+          onPressed: () {
+            Get.find<BottomNavigationController>().goToHome();
+          },
         ),
         title: Text(
           'Select Section',
@@ -36,7 +39,7 @@ class _ExecutiveSurveyDetailViewState extends State<ExecutiveSurveyDetailView> {
         ),
         backgroundColor: AppColors.white,
         bottom: PreferredSize(
-          preferredSize: Size.fromHeight(0),
+          preferredSize: const Size.fromHeight(0),
           child: Divider(
             color: AppColors.grey.withOpacity(0.5),
             // thickness: 2,
@@ -67,59 +70,81 @@ class _ExecutiveSurveyDetailViewState extends State<ExecutiveSurveyDetailView> {
                   _buildDropdownField(
                     label: 'Select Language',
                     value: controller.selectedLanguage.value,
-                    items: controller.languages,
+                    items: controller.availableLanguages,
                     onChanged: (value) =>
                         controller.selectedLanguage.value = value ?? 'Marathi',
                     validator: TextValidator.isEmpty,
                   ),
                   const SizedBox(height: 16),
-                  _buildReadOnlyField(
-                    label: 'Select State',
-                    value: controller.state,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildReadOnlyField(
-                    label: 'Region',
-                    value: controller.region,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildReadOnlyField(
-                    label: 'Select District',
-                    value: controller.district,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildReadOnlyField(
-                    label: 'Select Loksabha',
-                    value: controller.loksabha,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildReadOnlyField(
-                    label: 'Select Assembly',
-                    value: controller.assembly,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildReadOnlyField(
-                    label: 'Select Ward/Zp',
-                    value: controller.wardZp,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildDropdownField(
-                    label: 'Select Area/Village',
-                    value: controller.selectedArea.value,
-                    items: controller.areas,
-                    onChanged: (value) =>
-                        controller.selectedArea.value = value ?? 'Mallewadi',
-                    validator: TextValidator.isEmpty,
-                  ),
-                  const SizedBox(height: 32),
-                  ElevatedButton(
-                    onPressed: controller.nextPage,
-                    style: AppButtonStyles.elevatedLargeBlack(),
-                    child: Text(
-                      'Start Survey',
-                      style: AppStyle.buttonTextPoppinsWhite.responsive,
+                  if (controller.surveyDetailList.isNotEmpty) ...[
+                    _buildReadOnlyField(
+                      label: 'Select State',
+                      value: controller.surveyDetailList.first.stateName,
                     ),
-                  ),
+                    const SizedBox(height: 16),
+                    _buildReadOnlyField(
+                      label: 'Region',
+                      value: controller.surveyDetailList.first.region,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildReadOnlyField(
+                      label: 'Select District',
+                      value: controller.surveyDetailList.first.districtName,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildReadOnlyField(
+                      label: 'Select Loksabha',
+                      value: controller.surveyDetailList.first.loksabhaName,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildReadOnlyField(
+                      label: 'Select Assembly',
+                      value: controller.surveyDetailList.first.assemblyName,
+                    ),
+                    const SizedBox(height: 16),
+                  ] else
+                    ...[],
+                  // WARD DROPDOWN
+                  Obx(() => _buildDropdownField(
+                        label: 'Select Ward/ZP',
+                        value: controller.selectedWardName.value,
+                        items: controller.getWardNames(),
+                        onChanged: (value) {
+                          controller.setSelectedWard(value);
+                          debugPrint(
+                            'Selected Ward: $value  →  ID: ${controller.selectedWardId.value}',
+                          );
+                        },
+                        validator: TextValidator.isEmpty,
+                      )),
+                  const SizedBox(height: 16),
+                  // AREA DROPDOWN (Filtered by Ward)
+                  Obx(() => _buildAreaDropdown()),
+                  const SizedBox(height: 32),
+                  // SUBMIT BUTTON WITH LOADING
+                  Obx(() {
+                    final isLoading = controller.isLoadings.value;
+
+                    return ElevatedButton(
+                      onPressed: isLoading
+                          ? null
+                          : () => controller.nextPage(controller.formKey),
+                      style: AppButtonStyles.elevatedLargeBlack(),
+                      child: isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(
+                              'Start Survey',
+                              style: AppStyle.buttonTextPoppinsWhite.responsive,
+                            ),
+                    );
+                  }),
                 ],
               ),
             ),
@@ -133,7 +158,7 @@ class _ExecutiveSurveyDetailViewState extends State<ExecutiveSurveyDetailView> {
     required String label,
     required String value,
     required List<String> items,
-    required Function(String?) onChanged,
+    required ValueChanged<String?> onChanged,
     String? Function(String?)? validator,
   }) {
     return Column(
@@ -146,6 +171,40 @@ class _ExecutiveSurveyDetailViewState extends State<ExecutiveSurveyDetailView> {
           items: items,
           onChanged: onChanged,
           validator: validator,
+          dropdownDecoratorProps: DropDownDecoratorProps(
+            dropdownSearchDecoration: InputDecoration(
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+            ),
+          ),
+          popupProps: const PopupProps.menu(showSearchBox: true),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAreaDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Select Area/Village',
+            style: AppStyle.labelPrimaryPoppinsGrey.responsive),
+        const SizedBox(height: 8),
+        DropdownSearch<String>(
+          selectedItem: controller.selectedAreaVal?.value ?? '',
+          items: controller.getAreaNames(),
+          onChanged: (value) {
+            controller.setSelectedArea(value);
+            debugPrint(
+              'Selected Area/Village: $value  →  ID: ${controller.selectedAreaId.value}',
+            );
+          },
+          validator: TextValidator.isEmpty,
           dropdownDecoratorProps: DropDownDecoratorProps(
             dropdownSearchDecoration: InputDecoration(
               border: OutlineInputBorder(

@@ -1,95 +1,203 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-
-import '../../../data/models/my_report/my_report_model.dart';
-import '../../../utils/app_logger.dart';
+import 'package:rudra/app/data/models/my_survey/get_my_survey_list_response.dart';
+import 'package:rudra/app/data/models/my_survey/my_surevy_model.dart';
+import 'package:rudra/app/data/network/exceptions.dart';
+import 'package:rudra/app/data/network/networkcall.dart' show Networkcall;
+import 'package:rudra/app/data/urls.dart';
+import 'package:rudra/app/utils/app_utility.dart';
+import 'package:rudra/app/widgets/app_snackbar_styles.dart';
 
 class MyReportListController extends GetxController {
-  final RxList<MyReportModel> reportList = <MyReportModel>[].obs;
-  final RxList<MyReportModel> filteredReportList = <MyReportModel>[].obs;
+  // ---- API data (raw) ----------------------------------------------------
+  final RxList<MySurveyData> liveSurveysList = <MySurveyData>[].obs;
+  final RxString errorMessage = ''.obs;
+  final RxInt offset = 0.obs;
+  final int limit = 10;
+  final RxBool hasMoreData = true.obs;
+  final RxBool isLoadingMore = false.obs;
+
+  // ---- UI data -----------------------------------------------------------
+  final RxList<MySurveyModel> mySurveyList = <MySurveyModel>[].obs;
+  final RxList<MySurveyModel> filteredSurveyList = <MySurveyModel>[].obs;
   final TextEditingController searchController = TextEditingController();
+  final RxString searchQuery = ''.obs;
+  Timer? _debounce;
   final RxBool isLoading = false.obs;
+  final RxBool isSearching = false.obs;
+  final RxBool hasPaginated = false.obs;
 
   @override
   void onInit() {
     super.onInit();
-    loadReports();
-    searchController.addListener(() {
-      searchReports(searchController.text);
-    });
+    fetchMySurveys(context: Get.context!, reset: true); // initial load
   }
 
   @override
   void onClose() {
+    _debounce?.cancel();
     searchController.dispose();
     super.onClose();
   }
 
-  Future<void> loadReports() async {
-    try {
-      isLoading.value = true;
-      await Future.delayed(const Duration(seconds: 1));
-
-      // Mock data - Replace with actual API call
-      reportList.value = [
-        MyReportModel(
-          id: '1',
-          title: 'OBC Question 13-09 Nanded',
-          subtitle: 'OBC Question 13-09 Nanded',
-          surveyId: '100',
-          responseCount: '00',
-        ),
-        MyReportModel(
-          id: '2',
-          title: 'OBC Question 14-09 Pune',
-          subtitle: 'OBC Question 14-09 Pune',
-          surveyId: '101',
-          responseCount: '05',
-        ),
-        MyReportModel(
-          id: '3',
-          title: 'OBC Question 15-09 Mumbai',
-          subtitle: 'OBC Question 15-09 Mumbai',
-          surveyId: '102',
-          responseCount: '03',
-        ),
-      ];
-
-      filteredReportList.value = reportList;
-      isLoading.value = false;
-      AppLogger.i('Reports loaded successfully', tag: 'MyReportController');
-    } catch (e) {
-      isLoading.value = false;
-      AppLogger.e('Error loading reports', error: e, tag: 'MyReportController');
-      Get.snackbar(
-        'Error',
-        'Failed to load reports',
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+  // -----------------------------------------------------------------------
+  // 1. FETCH + PAGINATION
+  // -----------------------------------------------------------------------
+  Future<void> fetchMySurveys({
+    required BuildContext context,
+    bool reset = false,
+    bool isPagination = false,
+    bool isSearch = false,
+    bool forceFetch = false,
+  }) async {
+    if (reset) {
+      offset.value = 0;
+      liveSurveysList.clear();
+      mySurveyList.clear();
+      hasMoreData.value = true;
+      hasPaginated.value = false;
     }
-  }
 
-  void searchReports(String query) {
-    if (query.isEmpty) {
-      filteredReportList.value = reportList;
+    if (!hasMoreData.value && !reset) return;
+
+    if (isPagination) {
+      isLoadingMore.value = true;
+      hasPaginated.value = true;
+    } else if (isSearch) {
+      isSearching.value = true;
     } else {
-      filteredReportList.value = reportList
-          .where(
-            (report) =>
-                report.title.toLowerCase().contains(query.toLowerCase()) ||
-                report.subtitle.toLowerCase().contains(query.toLowerCase()),
+      isLoading.value = true;
+    }
+    errorMessage.value = '';
+
+    try {
+      final jsonBody = {
+        "team_id": AppUtility.teamId,
+        "limit": limit.toString(),
+        "offset": offset.value.toString(),
+        "search": searchQuery.value,
+        "user_id": AppUtility.userID,
+      };
+
+      final response = await Networkcall().postMethod(
+        Networkutility.getMySurveyListApi,
+        Networkutility.getMySurveyList,
+        jsonEncode(jsonBody),
+        context,
+      ) as List<GetMySurveyListResponse>?;
+
+      if (response == null || response.isEmpty) {
+        _handleError('No response from server');
+        return;
+      }
+
+      final first = response.first;
+      if (first.status != "true") {
+        hasMoreData.value = false;
+        errorMessage.value = first.message ?? 'No surveys found';
+        // Only clear lists if it's not pagination (i.e., initial load or search)
+        if (!isPagination) {
+          mySurveyList.clear();
+          filteredSurveyList.clear();
+        }
+        return;
+      }
+
+      final List<MySurveyData> surveys = first.data;
+
+      // ----- Convert API → UI model ---------------------------------------
+      final List<MySurveyModel> uiModels = surveys
+          .map(
+            (e) => MySurveyModel(
+              id: e.surveyId,
+              surveyId: e.surveyId ?? '',
+              title: e.surveyTitle ?? '',
+              subtitle: e.districtName ?? '',
+              responseCount: e.response.toString() ?? '0',
+              // add any extra fields you need here
+            ),
           )
           .toList();
+
+      if (reset) {
+        mySurveyList.assignAll(uiModels);
+      } else {
+        mySurveyList.addAll(uiModels);
+      }
+
+      // ----- Pagination logic ---------------------------------------------
+      if (surveys.length < limit) hasMoreData.value = false;
+      offset.value += limit;
+
+      // ----- Sync filtered list --------------------
+      filteredSurveyList.assignAll(mySurveyList);
+    } on NoInternetException catch (e) {
+      _handleError(e.message, isPagination: isPagination);
+    } on TimeoutException catch (e) {
+      _handleError(e.message, isPagination: isPagination);
+    } on HttpException catch (e) {
+      _handleError('${e.message} (Code: ${e.statusCode})',
+          isPagination: isPagination);
+    } on ParseException catch (e) {
+      _handleError(e.message, isPagination: isPagination);
+    } catch (e) {
+      _handleError('Unexpected error: $e', isPagination: isPagination);
+    } finally {
+      isLoading.value = false;
+      isLoadingMore.value = false;
+      isSearching.value = false;
     }
-    AppLogger.d(
-      'Search query: $query, Results: ${filteredReportList.length}',
-      tag: 'MyReportController',
-    );
   }
 
-  Future<void> refreshData() async {
-    await loadReports();
+  void _handleError(String msg, {bool isPagination = false}) {
+    hasMoreData.value = false;
+    errorMessage.value = msg;
+    // Only clear lists if it's not pagination
+    if (!isPagination) {
+      mySurveyList.clear();
+      filteredSurveyList.clear();
+    }
+    AppSnackbarStyles.showError(title: 'Error', message: msg);
+    log(msg);
+  }
+
+  // -----------------------------------------------------------------------
+  // 2. PULL-TO-REFRESH
+  // -----------------------------------------------------------------------
+  Future<void> refreshData() async =>
+      fetchMySurveys(context: Get.context!, reset: true);
+
+  // -----------------------------------------------------------------------
+  // 3. SEARCH
+  // -----------------------------------------------------------------------
+  void searchSurveys(String query) {
+    searchQuery.value = query;
+
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      fetchMySurveys(context: Get.context!, reset: true, isSearch: true);
+    });
+  }
+
+  void clearSearch() {
+    _debounce?.cancel();
+    searchController.clear();
+    searchQuery.value = '';
+    fetchMySurveys(context: Get.context!, reset: true);
+  }
+
+  // -----------------------------------------------------------------------
+  // 4. LOAD MORE (infinite scroll)
+  // -----------------------------------------------------------------------
+  void loadMoreIfNeeded(int index) {
+    if (isLoadingMore.value || !hasMoreData.value) return;
+    if (index >= mySurveyList.length - 3) {
+      fetchMySurveys(context: Get.context!, isPagination: true);
+    }
   }
 }

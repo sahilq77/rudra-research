@@ -9,6 +9,7 @@ import '../../../../bottom_navigation/bottom_navigation_controller.dart';
 import '../../../utils/app_colors.dart';
 import '../../../utils/responsive_utils.dart';
 import '../../../widgets/app_style.dart';
+import '../../../widgets/profile_image_widget.dart';
 import 'profile_controller.dart';
 
 class ProfileView extends StatefulWidget {
@@ -27,33 +28,36 @@ class _ProfileViewState extends State<ProfileView> {
   @override
   Widget build(BuildContext context) {
     ResponsiveHelper.init(context);
-    return WillPopScope(
-      onWillPop: () => bottomController.onWillPop(),
-
-      child: Scaffold(
-        backgroundColor: AppColors.white,
-        appBar: _buildAppbar(),
-        body: RefreshIndicator(
-          onRefresh: controller.onRefresh,
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(
-                child: Column(
-                  children: [
-                    SizedBox(height: ResponsiveHelper.spacing(24)),
-                    _buildProfileHeader(),
-                    SizedBox(height: ResponsiveHelper.spacing(24)),
-                    _buildMenuList(),
-                    SizedBox(height: ResponsiveHelper.spacing(24)),
-                  ],
-                ),
+    return Stack(
+      children: [
+        WillPopScope(
+          onWillPop: () => bottomController.onWillPop(),
+          child: Scaffold(
+            backgroundColor: AppColors.white,
+            appBar: _buildAppbar(),
+            body: RefreshIndicator(
+              onRefresh: controller.onRefresh,
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        SizedBox(height: ResponsiveHelper.spacing(24)),
+                        _buildProfileHeader(),
+                        SizedBox(height: ResponsiveHelper.spacing(24)),
+                        _buildMenuList(),
+                        SizedBox(height: ResponsiveHelper.spacing(24)),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
+            bottomNavigationBar: const CustomBottomBar(),
           ),
         ),
-        bottomNavigationBar: CustomBottomBar(),
-      ),
+      ],
     );
   }
 
@@ -81,83 +85,44 @@ class _ProfileViewState extends State<ProfileView> {
     return Column(
       children: [
         // Dark background container with proper positioning
-        Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.bottomCenter,
-          children: [
-            // Dark background - starts from top
-            Container(
-              width: double.infinity,
-              height: ResponsiveHelper.spacing(140),
-              margin: ResponsiveHelper.paddingSymmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: AppColors.faded,
-                borderRadius: BorderRadius.circular(
-                  ResponsiveHelper.spacing(16),
-                ),
-              ),
-            ),
-            // Profile picture overlapping the dark background
-            Positioned(
-              bottom: -ResponsiveHelper.spacing(50),
-              child: Column(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.white, width: 4),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+        SizedBox(
+          height: ResponsiveHelper.spacing(140) +
+              ResponsiveHelper.spacing(50), // Add extra height for overflow
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.bottomCenter,
+            children: [
+              Positioned(
+                top: 0,
+                left: ResponsiveHelper.spacing(16),
+                right: ResponsiveHelper.spacing(16),
+                child: Container(
+                  width: double.infinity,
+                  height: ResponsiveHelper.spacing(140),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(
+                      ResponsiveHelper.spacing(16),
                     ),
-                    child: Stack(
-                      children: [
-                        CircleAvatar(
-                          radius: ResponsiveHelper.spacing(50),
-                          backgroundColor: AppColors.lightGrey,
-                          child: Icon(
-                            Icons.person,
-                            size: ResponsiveHelper.spacing(55),
-                            color: AppColors.grey,
-                          ),
-                        ),
-                        Positioned(
-                          bottom: ResponsiveHelper.spacing(4),
-                          right: ResponsiveHelper.spacing(4),
-                          child: Container(
-                            width: ResponsiveHelper.spacing(32),
-                            height: ResponsiveHelper.spacing(32),
-                            decoration: BoxDecoration(
-                              color: AppColors.white,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              Icons.edit,
-                              size: ResponsiveHelper.spacing(16),
-                              color: AppColors.defaultBlack,
-                            ),
-                          ),
-                        ),
-                      ],
+                    image: const DecorationImage(
+                      image: AssetImage(AppImages.profileBg),
+                      fit: BoxFit.cover,
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-          ],
+              // Profile picture overlapping the dark background
+              Positioned(
+                bottom: 0, // Changed from negative to 0
+                child: ProfileImageWidget(
+                  radius: ResponsiveHelper.spacing(50),
+                  showEditIcon: false,
+                  enableImageViewer: true,
+                ),
+              ),
+            ],
+          ),
         ),
-        SizedBox(height: ResponsiveHelper.spacing(60)),
+        SizedBox(height: ResponsiveHelper.spacing(10)), // Reduced spacing
         Text(
           'Hi , ${controller.userName}',
           style: AppStyle.heading1PoppinsBlack.responsive.copyWith(
@@ -245,15 +210,14 @@ class _ProfileViewState extends State<ProfileView> {
             Expanded(
               child: Text(
                 item.title,
-                style:
-                    (item.isLogout
-                            ? AppStyle.bodyRegularPoppinsPrimary
-                            : AppStyle.bodyRegularPoppinsBlack)
-                        .responsive
-                        .copyWith(
-                          fontSize: ResponsiveHelper.getResponsiveFontSize(15),
-                          fontWeight: FontWeight.w500,
-                        ),
+                style: (item.isLogout
+                        ? AppStyle.bodyRegularPoppinsPrimary
+                        : AppStyle.bodyRegularPoppinsBlack)
+                    .responsive
+                    .copyWith(
+                      fontSize: ResponsiveHelper.getResponsiveFontSize(15),
+                      fontWeight: FontWeight.w500,
+                    ),
               ),
             ),
             Icon(

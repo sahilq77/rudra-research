@@ -2,12 +2,13 @@
 import 'dart:io' show Platform;
 
 import 'package:device_info_plus/device_info_plus.dart';
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../routes/app_routes.dart';
+import '../../../services/device_info_service.dart';
 import '../../../utils/app_utility.dart';
+import '../../../widgets/permissions_dialog.dart';
 
 class SplashController extends GetxController {
   @override
@@ -16,67 +17,145 @@ class SplashController extends GetxController {
 
     // 1. Load saved flags first
     AppUtility.initialize().then((_) async {
-      // 2. Request permissions *before* any navigation
-      final granted = await _requestAllPermissions();
-      if (!granted) {
-        // If any permission is permanently denied, show dialog and stop
-        _showPermissionDeniedDialog();
-        return;
+      // Send device info if user is logged in
+      if (AppUtility.isLoggedIn && AppUtility.userID != null) {
+        DeviceInfoService.sendDeviceInfo(
+          userId: AppUtility.userID!,
+          userType: AppUtility.userRole.toString(),
+          username: AppUtility.fullName?.split(' ').first ?? '',
+          name: AppUtility.fullName ?? '',
+          mobileNo: AppUtility.mobileNumber ?? '',
+          email: AppUtility.email ?? '',
+          password: '123',
+          context: Get.context!,
+        );
       }
-
-      // 3. Splash animation (3 seconds) → then navigate
-      Future.delayed(const Duration(seconds: 3), _navigateBasedOnFlags);
+      // 2. Check if permissions are needed after 2 seconds
+      Future.delayed(const Duration(seconds: 2), _checkAndRequestPermissions);
     });
   }
 
-  // ──────────────────────────────────────────────────────────────
-  // 1. Request every permission you declared in the manifest
-  // ──────────────────────────────────────────────────────────────
-  Future<bool> _requestAllPermissions() async {
-    // Map of permission → whether it needs to be requested
-    Map<Permission, bool> permissions = {};
+  Future<void> _checkAndRequestPermissions() async {
+    final needsPermissions = await _checkIfPermissionsNeeded();
 
-    // ---------- CAMERA ----------
-    permissions[Permission.camera] = true;
-
-    // ---------- STORAGE ----------
-    if (Platform.isAndroid) {
-      // Android 13+ (API 33) → granular media permissions
-      if (await _isAndroid13OrHigher()) {
-        permissions[Permission.photos] = true;      // READ_MEDIA_IMAGES
-        permissions[Permission.videos] = true;      // READ_MEDIA_VIDEO
-        permissions[Permission.audio] = true;       // READ_MEDIA_AUDIO
-      } else {
-        // Android < 13 → legacy storage
-        permissions[Permission.storage] = true;
-      }
+    if (needsPermissions) {
+      _showPermissionsDialog();
+    } else {
+      _navigateBasedOnFlags();
     }
+  }
 
-    // ---------- MICROPHONE ----------
-    permissions[Permission.microphone] = true;
-
-    // ---------- NOTIFICATIONS ----------
-    permissions[Permission.notification] = true;
-
-    // Request all at once
-    final statuses = await Future.wait(
-      permissions.keys.map((p) => p.request()),
+  void _showPermissionsDialog() {
+    Get.dialog(
+      PermissionsDialog(
+        onAccept: () {
+          _requestAllPermissions().then((_) {
+            Future.delayed(
+                const Duration(milliseconds: 500), _navigateBasedOnFlags);
+          });
+        },
+        onLater: () {
+          _navigateBasedOnFlags();
+        },
+      ),
+      barrierDismissible: false,
     );
+  }
 
-    // Check if *any* is denied permanently
-    for (var i = 0; i < permissions.keys.length; i++) {
-      final perm = permissions.keys.elementAt(i);
-      final status = statuses[i];
+  Future<bool> _checkIfPermissionsNeeded() async {
+    try {
+      List<Permission> permissionsToCheck = [];
 
-      if (status.isDenied || status.isPermanentlyDenied) {
-        // If permanently denied → open app settings
-        if (status.isPermanentlyDenied) {
-          await openAppSettings();
+      // Camera
+      permissionsToCheck.add(Permission.camera);
+
+      // Storage/Media
+      if (Platform.isAndroid) {
+        if (await _isAndroid13OrHigher()) {
+          permissionsToCheck.addAll([
+            Permission.photos,
+            Permission.videos,
+            Permission.audio,
+          ]);
+        } else {
+          permissionsToCheck.add(Permission.storage);
         }
-        return false;
       }
+
+      // Microphone
+      permissionsToCheck.add(Permission.microphone);
+
+      // Notifications
+      permissionsToCheck.add(Permission.notification);
+
+      // Location
+      permissionsToCheck.add(Permission.location);
+
+      // Check if any permission is not granted
+      for (var permission in permissionsToCheck) {
+        final status = await permission.status;
+        if (!status.isGranted) {
+          return true; // At least one permission is needed
+        }
+      }
+
+      return false; // All permissions are granted
+    } catch (e) {
+      return true; // Show dialog on error to be safe
     }
-    return true;
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  // Request permissions after user accepts
+  // ──────────────────────────────────────────────────────────────
+  Future<void> _requestAllPermissions() async {
+    try {
+      // List of permissions to request
+      List<Permission> permissionsToRequest = [];
+
+      // ---------- CAMERA ----------
+      permissionsToRequest.add(Permission.camera);
+
+      // ---------- STORAGE ----------
+      if (Platform.isAndroid) {
+        // Android 13+ (API 33) → granular media permissions
+        if (await _isAndroid13OrHigher()) {
+          permissionsToRequest.add(Permission.photos);
+          permissionsToRequest.add(Permission.videos);
+          permissionsToRequest.add(Permission.audio);
+        } else {
+          permissionsToRequest.add(Permission.storage);
+        }
+      }
+
+      // ---------- MICROPHONE ----------
+      permissionsToRequest.add(Permission.microphone);
+
+      // ---------- NOTIFICATIONS ----------
+      permissionsToRequest.add(Permission.notification);
+
+      // Location
+      permissionsToRequest.add(Permission.location);
+
+      // Request permissions ONE BY ONE
+      for (var permission in permissionsToRequest) {
+        final status = await permission.status;
+        if (!status.isGranted) {
+          await permission.request();
+        }
+      }
+
+      // Request battery optimization exemption (doesn't block)
+      if (Platform.isAndroid) {
+        final batteryStatus =
+            await Permission.ignoreBatteryOptimizations.status;
+        if (!batteryStatus.isGranted) {
+          await Permission.ignoreBatteryOptimizations.request();
+        }
+      }
+    } catch (e) {
+      // Silently fail - don't block navigation
+    }
   }
 
   // Helper: detect Android 13+
@@ -88,40 +167,11 @@ class SplashController extends GetxController {
 
   Future<int> _getAndroidVersion() async {
     try {
-      final androidInfo = await  DeviceInfoPlugin().androidInfo;
+      final androidInfo = await DeviceInfoPlugin().androidInfo;
       return androidInfo.version.sdkInt;
     } catch (_) {
       return 0;
     }
-  }
-
-  // ──────────────────────────────────────────────────────────────
-  // 2. Show a dialog when permission is permanently denied
-  // ──────────────────────────────────────────────────────────────
-  void _showPermissionDeniedDialog() {
-    Get.dialog(
-      AlertDialog(
-        title: const Text('Permissions Required'),
-        content: const Text(
-          'This app needs camera, storage, microphone and notification '
-          'permissions to work correctly. Please grant them in Settings.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Get.back();
-              await openAppSettings();
-            },
-            child: const Text('Open Settings'),
-          ),
-        ],
-      ),
-      barrierDismissible: false,
-    );
   }
 
   // ──────────────────────────────────────────────────────────────
@@ -136,6 +186,10 @@ class SplashController extends GetxController {
           Get.offNamed(AppRoutes.executiveHome);
         } else if (AppUtility.userRole == 2) {
           Get.offNamed(AppRoutes.validatorHome);
+        } else if (AppUtility.userRole == 3) {
+          Get.offNamed(AppRoutes.superAdminHome);
+        } else {
+          Get.offNamed(AppRoutes.login);
         }
       } else {
         Get.offNamed(AppRoutes.login);

@@ -23,19 +23,41 @@ class TextValidator {
   }
 
   // Validates mobile number (basic international format, e.g., +1234567890 or 1234567890)
+
   static String? isMobileNumber(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'Please enter a mobile number';
+      return 'Please enter mobile number';
     }
-    final RegExp mobilePattern = RegExp(
-      r'^\+?[1-9]\d{7,14}$',
-      caseSensitive: false,
-    );
-    if (!mobilePattern.hasMatch(value.trim())) {
-      return 'Please enter a valid mobile number';
+
+    // Remove all non-digit characters
+    final digitsOnly = value.replaceAll(RegExp(r'\D'), '');
+
+    // Must be exactly 10 digits
+    if (digitsOnly.length != 10) {
+      return 'Mobile number must be exactly 10 digits';
     }
+
+    // Must start with 6, 7, 8, or 9 (valid Indian mobile)
+    if (!RegExp(r'^[6-9]\d{9}$').hasMatch(digitsOnly)) {
+      return 'Please enter a valid Indian mobile number';
+    }
+
     return null;
   }
+
+  // static String? isMobileNumber(String? value) {
+  //   if (value == null || value.trim().isEmpty) {
+  //     return 'Please enter a mobile number';
+  //   }
+  //   final RegExp mobilePattern = RegExp(
+  //     r'^\+?[1-9]\d{7,14}$',
+  //     caseSensitive: false,
+  //   );
+  //   if (!mobilePattern.hasMatch(value.trim())) {
+  //     return 'Please enter a valid mobile number';
+  //   }
+  //   return null;
+  // }
 
   // Validates if the input contains only alphabetic characters
   static String? isAlphabetic(String? value) {
@@ -65,6 +87,40 @@ class TextValidator {
       return 'Only alphanumeric characters are allowed';
     }
     return null;
+  }
+
+  static String? isValidAddress(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Please enter address';
+    }
+
+    final trimmed = value.trim();
+
+    // Minimum 5 characters (very lenient – allows "Shop 12", "Room 5", "H.No 45")
+    if (trimmed.length < 5) {
+      return 'Address must be at least 5 characters';
+    }
+
+    // Must contain at least ONE letter (a-z or A-Z)
+    // This blocks pure numbers like "123456", "999999", or symbols only
+    if (!RegExp(r'[a-zA-Z]').hasMatch(trimmed)) {
+      return 'Address must contain at least one letter';
+    }
+
+    // Optional: Block obvious garbage (all same symbols repeated)
+    if (RegExp(r'^[0-9\s\-.,/\\#&()]+$').hasMatch(trimmed)) {
+      return 'Please enter a proper address with street/building name';
+    }
+
+    return null;
+  }
+
+// Reusable combined validator (recommended)
+  static String? validateAddress(String? value) {
+    return combineValidators(value, [
+      isEmpty,
+      isValidAddress,
+    ]);
   }
 
   // Validates if the input meets a minimum length requirement

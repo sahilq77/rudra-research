@@ -107,7 +107,7 @@ class _LoginViewState extends State<LoginView> {
                   alignment: Alignment.centerLeft,
                   child: ResponsiveHelper.safeText(
                     'Select User*',
-                    style: AppStyle.bodyRegularPoppinsGrey.responsive,
+                    style: AppStyle.bodyRegularPoppinsBlack.responsive,
                   ),
                 ),
                 SizedBox(height: ResponsiveHelper.spacing(12)),
@@ -163,27 +163,41 @@ class _LoginViewState extends State<LoginView> {
                 SizedBox(
                   height: ResponsiveHelper.spacing(50),
                   width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      controller.login(
-                        mobile: "",
-                        password: "",
-                        deviceToken: "",
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                          ResponsiveHelper.spacing(12),
+                  child: Obx(
+                    () => ElevatedButton(
+                      onPressed: controller.isLoading.value
+                          ? null
+                          : () {
+                              controller.login(
+                                mobile: controller.phoneController.text,
+                                password: "",
+                                deviceToken: "",
+                              );
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: AppColors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            ResponsiveHelper.spacing(12),
+                          ),
                         ),
+                        padding:
+                            ResponsiveHelper.paddingSymmetric(vertical: 16),
                       ),
-                      padding: ResponsiveHelper.paddingSymmetric(vertical: 16),
-                    ),
-                    child: ResponsiveHelper.safeText(
-                      'Login',
-                      style: AppStyle.buttonTextPoppinsWhite.responsive,
+                      child: controller.isLoading.value
+                          ? SizedBox(
+                              height: ResponsiveHelper.spacing(20),
+                              width: ResponsiveHelper.spacing(20),
+                              child: const CircularProgressIndicator(
+                                color: AppColors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : ResponsiveHelper.safeText(
+                              'Login',
+                              style: AppStyle.buttonTextPoppinsWhite.responsive,
+                            ),
                     ),
                   ),
                 ),
@@ -194,5 +208,11 @@ class _LoginViewState extends State<LoginView> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    controller.phoneFocusNode.dispose();
+    super.dispose();
   }
 }

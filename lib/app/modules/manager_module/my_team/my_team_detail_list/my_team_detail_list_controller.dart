@@ -1,18 +1,22 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:rudra/app/data/network/exceptions.dart'
     show NoInternetException, HttpException, ParseException;
 import 'package:rudra/app/data/network/networkcall.dart';
 import 'package:rudra/app/data/urls.dart';
-import 'package:rudra/app/utils/app_utility.dart' show AppUtility;
 import 'package:rudra/app/widgets/app_snackbar_styles.dart';
-import 'dart:async';
+import 'package:url_launcher/url_launcher.dart';
+
 import '../../../../data/models/my_team/get_my_team_member_response.dart';
+import '../../../../utils/app_utility.dart';
 
 class MyTeamDetailListController extends GetxController {
   var isLoading = true.obs;
+  var isSearching = false.obs;
   var teamMemberList = <TeamMembersDetails>[].obs;
   var filteredTeamMemberList = <TeamMembersDetails>[].obs;
   var errorMessage = ''.obs;
@@ -20,74 +24,47 @@ class MyTeamDetailListController extends GetxController {
   final int limit = 10;
   RxBool hasMoreData = true.obs;
   RxBool isLoadingMore = false.obs;
+  RxBool hasPaginated = false.obs;
 
   var searchQuery = ''.obs;
   final searchController = TextEditingController();
   Timer? _debounce;
-  final ScrollController scrollController = ScrollController();
 
   @override
   void onInit() {
     super.onInit();
-    // Retrieve team_id from navigation arguments
     final team = Get.arguments?['team'];
-    final String teamId = team?.teamId?.toString() ?? '0'; // Fallback to '0' if not found
-    // Initial data fetch with dynamic team_id
+    final String teamId = team?.teamId?.toString() ?? '0';
     fetchMyTeamMember(context: Get.context!, teamId: teamId, reset: true);
-    // Setup pagination listener
-    scrollController.addListener(_scrollListener);
-    // Setup search listener
-    searchController.addListener(_onSearchChanged);
   }
 
   @override
   void onClose() {
-    searchController.dispose();
-    scrollController.dispose();
     _debounce?.cancel();
+    searchController.dispose();
     super.onClose();
   }
 
-  // Handle scroll for pagination
-  void _scrollListener() {
-    if (scrollController.position.pixels >=
-            scrollController.position.maxScrollExtent - 200 &&
-        !isLoadingMore.value &&
-        hasMoreData.value) {
-      final team = Get.arguments?['team'];
-      final String teamId = team?.teamId?.toString() ?? '0';
-      fetchMyTeamMember(context: Get.context!, teamId: teamId, isPagination: true);
-    }
-  }
+  void searchMembers(String query) {
+    searchQuery.value = query;
 
-  // Debounced search
-  void _onSearchChanged() {
-    if (_debounce?.isActive ?? false) _debounce?.cancel();
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+
     _debounce = Timer(const Duration(milliseconds: 500), () {
-      searchQuery.value = searchController.text.trim();
-      filterTeamMembers();
-      // Optionally fetch new data with search query
       final team = Get.arguments?['team'];
       final String teamId = team?.teamId?.toString() ?? '0';
-      fetchMyTeamMember(context: Get.context!, teamId: teamId, reset: true);
+      fetchMyTeamMember(
+          context: Get.context!, teamId: teamId, reset: true, isSearch: true);
     });
   }
 
-  // Filter team members based on search query
-  void filterTeamMembers() {
-    if (searchQuery.value.isEmpty) {
-      filteredTeamMemberList.assignAll(teamMemberList);
-    } else {
-      filteredTeamMemberList.assignAll(teamMemberList.where((member) {
-        final fullName =
-            '${member.memberFirstName} ${member.memberLastName}'.toLowerCase();
-        return fullName.contains(searchQuery.value.toLowerCase()) ||
-            member.memberMobileNo
-                .toLowerCase()
-                .contains(searchQuery.value.toLowerCase()) ||
-            member.role.toLowerCase().contains(searchQuery.value.toLowerCase());
-      }).toList());
-    }
+  void clearSearch() {
+    _debounce?.cancel();
+    searchController.clear();
+    searchQuery.value = '';
+    final team = Get.arguments?['team'];
+    final String teamId = team?.teamId?.toString() ?? '0';
+    fetchMyTeamMember(context: Get.context!, teamId: teamId, reset: true);
   }
 
   // Fetch team members
@@ -96,6 +73,7 @@ class MyTeamDetailListController extends GetxController {
     required String teamId,
     bool reset = false,
     bool isPagination = false,
+    bool isSearch = false,
     bool forceFetch = false,
   }) async {
     try {
@@ -103,6 +81,7 @@ class MyTeamDetailListController extends GetxController {
         offset.value = 0;
         teamMemberList.clear();
         hasMoreData.value = true;
+        hasPaginated.value = false;
       }
       if (!hasMoreData.value && !reset) {
         log('No more data to fetch');
@@ -111,6 +90,9 @@ class MyTeamDetailListController extends GetxController {
 
       if (isPagination) {
         isLoadingMore.value = true;
+        hasPaginated.value = true;
+      } else if (isSearch) {
+        isSearching.value = true;
       } else {
         isLoading.value = true;
       }
@@ -121,10 +103,10 @@ class MyTeamDetailListController extends GetxController {
         "search_member": searchQuery.value,
         "offset": offset.value,
         "limit": limit,
+        "user_id": AppUtility.userID,
       };
 
-      List<GetMyTeamMemberResponse>? response =
-          (await Networkcall().postMethod(
+      List<GetMyTeamMemberResponse>? response = (await Networkcall().postMethod(
         Networkutility.getTeamMemberListApi,
         Networkutility.getTeamMemberList,
         jsonEncode(jsonBody),
@@ -147,24 +129,25 @@ class MyTeamDetailListController extends GetxController {
                 memberLastName: team.memberLastName,
                 memberMobileNo: team.memberMobileNo,
                 role: team.role,
+                file: team.file,
               ),
             );
           }
           offset.value += limit;
-          filterTeamMembers(); // Update filtered list after fetching
+          filteredTeamMemberList.assignAll(teamMemberList);
           log('Offset updated to: ${offset.value}');
         } else {
           hasMoreData.value = false;
           errorMessage.value = 'No team members found';
+          teamMemberList.clear();
+          filteredTeamMemberList.clear();
           log('API returned status false: No team members found');
-          AppSnackbarStyles.showError(
-            title: 'Error',
-            message: 'No team members found',
-          );
         }
       } else {
         hasMoreData.value = false;
         errorMessage.value = 'No response from server';
+        teamMemberList.clear();
+        filteredTeamMemberList.clear();
         log('No response from server');
         AppSnackbarStyles.showError(
           title: 'Error',
@@ -173,10 +156,14 @@ class MyTeamDetailListController extends GetxController {
       }
     } on NoInternetException catch (e) {
       errorMessage.value = e.message;
+      teamMemberList.clear();
+      filteredTeamMemberList.clear();
       log('NoInternetException: ${e.message}');
       AppSnackbarStyles.showError(title: 'Error', message: e.message);
     } on TimeoutException catch (e) {
       errorMessage.value = e.message.toString();
+      teamMemberList.clear();
+      filteredTeamMemberList.clear();
       log('TimeoutException: ${e.message}');
       AppSnackbarStyles.showError(
         title: 'Error',
@@ -184,6 +171,8 @@ class MyTeamDetailListController extends GetxController {
       );
     } on HttpException catch (e) {
       errorMessage.value = '${e.message} (Code: ${e.statusCode})';
+      teamMemberList.clear();
+      filteredTeamMemberList.clear();
       log('HttpException: ${e.message} (Code: ${e.statusCode})');
       AppSnackbarStyles.showError(
         title: 'Error',
@@ -191,10 +180,14 @@ class MyTeamDetailListController extends GetxController {
       );
     } on ParseException catch (e) {
       errorMessage.value = e.message;
+      teamMemberList.clear();
+      filteredTeamMemberList.clear();
       log('ParseException: ${e.message}');
       AppSnackbarStyles.showError(title: 'Error', message: e.message);
     } catch (e) {
       errorMessage.value = 'Unexpected error: $e';
+      teamMemberList.clear();
+      filteredTeamMemberList.clear();
       log('Unexpected error: $e');
       AppSnackbarStyles.showError(
         title: 'Error',
@@ -203,6 +196,7 @@ class MyTeamDetailListController extends GetxController {
     } finally {
       isLoading.value = false;
       isLoadingMore.value = false;
+      isSearching.value = false;
     }
   }
 
@@ -211,5 +205,28 @@ class MyTeamDetailListController extends GetxController {
     final team = Get.arguments?['team'];
     final String teamId = team?.teamId?.toString() ?? '0';
     await fetchMyTeamMember(context: Get.context!, teamId: teamId, reset: true);
+  }
+
+  Future<void> makePhoneCall(String phoneNumber) async {
+    try {
+      final phone = phoneNumber.trim();
+      if (phone.isEmpty) {
+        AppSnackbarStyles.showError(
+          title: 'Error',
+          message: 'Phone number not available',
+        );
+        return;
+      }
+
+      final Uri phoneUri = Uri(scheme: 'tel', path: phone);
+      await launchUrl(phoneUri, mode: LaunchMode.externalApplication);
+      log('Making call to: $phone');
+    } catch (e) {
+      log('Error making call: $e');
+      AppSnackbarStyles.showError(
+        title: 'Error',
+        message: 'Failed to make call',
+      );
+    }
   }
 }

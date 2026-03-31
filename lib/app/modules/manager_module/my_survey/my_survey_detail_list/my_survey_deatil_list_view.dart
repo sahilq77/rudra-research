@@ -1,17 +1,15 @@
 // lib/app/modules/manager_module/my_survey/my_survey_detail_list/my_survey_detail_list_view.dart
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:rudra/app/modules/manager_module/my_survey/my_survey_detail_list/my_survey_detail_list_controller.dart';
 
-import '../../../../common/custominputformatters/number_input_formatter.dart';
 import '../../../../common/custominputformatters/securetext_input_formatter.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../../utils/app_colors.dart';
-import '../../../../utils/app_images.dart';
 import '../../../../utils/responsive_utils.dart';
-import '../../../../widgets/app_button_style.dart';
 import '../../../../widgets/app_style.dart';
+import '../../../../widgets/custom_shimmer_card.dart';
 
 class MySurveyDetailListView extends StatefulWidget {
   const MySurveyDetailListView({super.key});
@@ -24,6 +22,34 @@ class _MySurveyDetailListViewState extends State<MySurveyDetailListView> {
   final MySurveyDetailListController controller = Get.put(
     MySurveyDetailListController(),
   );
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_loadMore);
+  }
+
+  void _loadMore() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent * 0.9) {
+      if (controller.hasMoreData.value &&
+          !controller.isLoading.value &&
+          !controller.isLoadingMore.value) {
+        controller.fetchAssignSurveyTarget(
+          context: context,
+          isPagination: true,
+          surveyId: controller.surveyId,
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,9 +63,25 @@ class _MySurveyDetailListViewState extends State<MySurveyDetailListView> {
           controller.refreshData();
         },
         child: Obx(() {
-          if (controller.isLoading.value) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
+          if (controller.isLoading.value && controller.executorList.isEmpty) {
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: ResponsiveHelper.paddingSymmetric(
+                  horizontal: 16, vertical: 16),
+              child: Column(
+                children: [
+                  _buildSearchField(),
+                  SizedBox(height: ResponsiveHelper.spacing(16)),
+                  _buildSummaryCards(),
+                  SizedBox(height: ResponsiveHelper.spacing(20)),
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: 5,
+                    itemBuilder: (context, index) => const CustomShimmerCard(),
+                  ),
+                ],
+              ),
             );
           }
           return _buildBody();
@@ -54,7 +96,13 @@ class _MySurveyDetailListViewState extends State<MySurveyDetailListView> {
       elevation: 0,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: AppColors.defaultBlack),
-        onPressed: () => Get.back(),
+        onPressed: () {
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          } else {
+            Get.offAllNamed(AppRoutes.home);
+          }
+        },
       ),
       title: Text(
         'Survey Users Detail',
@@ -64,7 +112,7 @@ class _MySurveyDetailListViewState extends State<MySurveyDetailListView> {
         ),
       ),
       bottom: PreferredSize(
-        preferredSize: Size.fromHeight(0),
+        preferredSize: const Size.fromHeight(0),
         child: Divider(color: AppColors.grey.withOpacity(0.5), height: 0),
       ),
     );
@@ -72,6 +120,7 @@ class _MySurveyDetailListViewState extends State<MySurveyDetailListView> {
 
   Widget _buildBody() {
     return SingleChildScrollView(
+      controller: _scrollController,
       physics: const AlwaysScrollableScrollPhysics(),
       padding: ResponsiveHelper.paddingSymmetric(horizontal: 16, vertical: 16),
       child: Column(
@@ -97,28 +146,40 @@ class _MySurveyDetailListViewState extends State<MySurveyDetailListView> {
           width: 1,
         ),
       ),
-      child: TextFormField(
-        controller: controller.searchController,
-        onChanged: controller.searchExecutors,
-        inputFormatters: [SecureTextInputFormatter.deny()],
-        decoration: InputDecoration(
-          hintText: 'Search.....',
-          hintStyle: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
+      child: Obx(
+        () => TextFormField(
+          controller: controller.searchController,
+          onChanged: controller.searchExecutors,
+          inputFormatters: [SecureTextInputFormatter.deny()],
+          decoration: InputDecoration(
+            hintText: 'Search.....',
+            hintStyle: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
+              fontSize: ResponsiveHelper.getResponsiveFontSize(14),
+            ),
+            prefixIcon: Icon(
+              Icons.search,
+              color: AppColors.grey,
+              size: ResponsiveHelper.spacing(20),
+            ),
+            suffixIcon: controller.searchQuery.value.isNotEmpty
+                ? IconButton(
+                    icon: Icon(
+                      Icons.cancel,
+                      color: AppColors.grey,
+                      size: ResponsiveHelper.spacing(20),
+                    ),
+                    onPressed: controller.clearSearch,
+                  )
+                : null,
+            border: InputBorder.none,
+            contentPadding: ResponsiveHelper.paddingSymmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+          ),
+          style: AppStyle.bodyRegularPoppinsBlack.responsive.copyWith(
             fontSize: ResponsiveHelper.getResponsiveFontSize(14),
           ),
-          suffixIcon: Icon(
-            Icons.search,
-            color: AppColors.grey,
-            size: ResponsiveHelper.spacing(20),
-          ),
-          border: InputBorder.none,
-          contentPadding: ResponsiveHelper.paddingSymmetric(
-            horizontal: 16,
-            vertical: 12,
-          ),
-        ),
-        style: AppStyle.bodyRegularPoppinsBlack.responsive.copyWith(
-          fontSize: ResponsiveHelper.getResponsiveFontSize(14),
         ),
       ),
     );
@@ -204,6 +265,15 @@ class _MySurveyDetailListViewState extends State<MySurveyDetailListView> {
 
   Widget _buildExecutorList() {
     return Obx(() {
+      if (controller.isSearching.value) {
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: 3,
+          itemBuilder: (context, index) => const CustomShimmerCard(),
+        );
+      }
+
       if (controller.filteredExecutorList.isEmpty) {
         return Center(
           child: Padding(
@@ -221,21 +291,36 @@ class _MySurveyDetailListViewState extends State<MySurveyDetailListView> {
       return ListView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        controller: controller.scrollController,
-        itemCount:
-            controller.filteredExecutorList.length +
-            (controller.hasMoreData.value ? 1 : 0),
+        itemCount: controller.filteredExecutorList.length +
+            (controller.isLoadingMore.value
+                ? 1
+                : (!controller.hasMoreData.value &&
+                        controller.hasPaginated.value
+                    ? 1
+                    : 0)),
         itemBuilder: (context, index) {
-          if (index >= controller.filteredExecutorList.length) {
-            if (!controller.isLoadingMore.value) {
-              controller.loadMore(controller.surveyId);
+          if (index == controller.filteredExecutorList.length) {
+            if (controller.isLoadingMore.value) {
+              return Padding(
+                padding: EdgeInsets.all(ResponsiveHelper.spacing(16)),
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    color: AppColors.primary,
+                  ),
+                ),
+              );
+            } else if (!controller.hasMoreData.value &&
+                controller.hasPaginated.value) {
+              return Padding(
+                padding: EdgeInsets.all(ResponsiveHelper.spacing(16)),
+                child: Center(
+                  child: Text(
+                    'No more items to load',
+                    style: AppStyle.bodySmallPoppinsGrey.responsive,
+                  ),
+                ),
+              );
             }
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: CircularProgressIndicator(color: AppColors.primary),
-              ),
-            );
           }
           return _buildExecutorCard(index);
         },
@@ -252,10 +337,7 @@ class _MySurveyDetailListViewState extends State<MySurveyDetailListView> {
         // Navigate to survey response list for this executor
         Get.toNamed(
           AppRoutes.mySurveyResponse,
-          arguments: {
-            'surveyId': controller.surveyId,
-            'executorId': executor.id,
-          },
+          arguments: {'surveyId': controller.surveyId, 'userId': executor.id},
         );
       },
       child: Container(
@@ -277,18 +359,52 @@ class _MySurveyDetailListViewState extends State<MySurveyDetailListView> {
               ),
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: ResponsiveHelper.spacing(20),
-                    backgroundColor: AppColors.lightGrey.withOpacity(0.3),
-                    child: Text(
-                      executor.executorName.isNotEmpty
-                          ? executor.executorName[0].toUpperCase()
-                          : 'E',
-                      style: AppStyle.bodyBoldPoppinsBlack.responsive.copyWith(
-                        fontSize: ResponsiveHelper.getResponsiveFontSize(16),
-                      ),
-                    ),
-                  ),
+                  executor.executorImage.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: executor.executorImage,
+                          imageBuilder: (context, imageProvider) =>
+                              CircleAvatar(
+                            radius: ResponsiveHelper.spacing(20),
+                            backgroundColor: AppColors.lightGrey.withOpacity(0.3),
+                            backgroundImage: imageProvider,
+                          ),
+                          placeholder: (context, url) => CircleAvatar(
+                            radius: ResponsiveHelper.spacing(20),
+                            backgroundColor: AppColors.lightGrey.withOpacity(0.3),
+                            child: const CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          errorWidget: (context, url, error) => CircleAvatar(
+                            radius: ResponsiveHelper.spacing(20),
+                            backgroundColor: AppColors.lightGrey.withOpacity(0.3),
+                            child: Text(
+                              executor.executorName.isNotEmpty
+                                  ? executor.executorName[0].toUpperCase()
+                                  : 'E',
+                              style: AppStyle.bodyBoldPoppinsBlack.responsive
+                                  .copyWith(
+                                fontSize:
+                                    ResponsiveHelper.getResponsiveFontSize(16),
+                              ),
+                            ),
+                          ),
+                        )
+                      : CircleAvatar(
+                          radius: ResponsiveHelper.spacing(20),
+                          backgroundColor: AppColors.lightGrey.withOpacity(0.3),
+                          child: Text(
+                            executor.executorName.isNotEmpty
+                                ? executor.executorName[0].toUpperCase()
+                                : 'E',
+                            style:
+                                AppStyle.bodyBoldPoppinsBlack.responsive.copyWith(
+                              fontSize:
+                                  ResponsiveHelper.getResponsiveFontSize(16),
+                            ),
+                          ),
+                        ),
                   SizedBox(width: ResponsiveHelper.spacing(12)),
                   Expanded(
                     child: Column(
@@ -296,12 +412,12 @@ class _MySurveyDetailListViewState extends State<MySurveyDetailListView> {
                       children: [
                         Text(
                           executor.executorName,
-                          style: AppStyle.bodyBoldPoppinsBlack.responsive
-                              .copyWith(
-                                fontSize:
-                                    ResponsiveHelper.getResponsiveFontSize(15),
-                                fontWeight: FontWeight.w600,
-                              ),
+                          style:
+                              AppStyle.bodyBoldPoppinsBlack.responsive.copyWith(
+                            fontSize:
+                                ResponsiveHelper.getResponsiveFontSize(15),
+                            fontWeight: FontWeight.w600,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),

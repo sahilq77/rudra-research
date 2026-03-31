@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -7,10 +8,11 @@ import 'package:rudra/app/data/network/networkcall.dart';
 import 'package:rudra/app/data/urls.dart';
 import 'package:rudra/app/widgets/app_snackbar_styles.dart'
     show AppSnackbarStyles;
+
 import '../../../data/models/notification/get_notification_response.dart';
 import '../../../data/models/notification/notification_model.dart';
 import '../../../utils/app_logger.dart';
-
+import '../../../utils/app_utility.dart';
 import 'notification_detail_bottom_sheet.dart';
 
 class NotificationController extends GetxController {
@@ -61,19 +63,17 @@ class NotificationController extends GetxController {
       errorMessage.value = '';
 
       final jsonBody = {
-        "user_id": "2",
+        "user_id": AppUtility.userID ?? "",
         "limit": limit.toString(),
         "offset": offset.value.toString(),
       };
 
-      List<GetNotificationResponse>? response =
-          (await Networkcall().postMethod(
-                Networkutility.notificationsApi,
-                Networkutility.notifications,
-                jsonEncode(jsonBody),
-                context,
-              ))
-              as List<GetNotificationResponse>?;
+      List<GetNotificationResponse>? response = (await Networkcall().postMethod(
+        Networkutility.notificationsApi,
+        Networkutility.notifications,
+        jsonEncode(jsonBody),
+        context,
+      )) as List<GetNotificationResponse>?;
 
       if (response != null && response.isNotEmpty) {
         if (response[0].status == "true") {
@@ -101,8 +101,7 @@ class NotificationController extends GetxController {
                   message: notification.body,
                   timeAgo: _calculateTimeAgo(notification.createdOn),
                   dateTime: notification.createdOn,
-                  isRead:
-                      notification.responseStatus ==
+                  isRead: notification.responseStatus ==
                       'read', // Adjust based on your API's read status logic
                   details: _mapToNotificationDetails(
                     notification,
@@ -245,14 +244,7 @@ class NotificationController extends GetxController {
     }
 
     // Show bottom sheet with details
-    if (notification.title != null) {
-      showNotificationDetails(notification);
-    } else {
-      AppSnackbarStyles.showInfo(
-        title: 'Notification',
-        message: notification.message,
-      );
-    }
+    showNotificationDetails(notification);
   }
 
   void showNotificationDetails(NotificationModel notification) {
@@ -278,20 +270,22 @@ class NotificationController extends GetxController {
       // _updateNotificationStatusOnServer(notificationId, 'read');
     }
   }
-String formatDateTime(String dateTimeString) {
-  try {
-    // Parse the input string to DateTime
-    DateTime dateTime = DateTime.parse(dateTimeString);
-    
-    // Define the desired format (e.g., "Sep 16, 2025 – 11:25 AM")
-    final DateFormat formatter = DateFormat('MMM d, yyyy – h:mm a');
-    
-    // Format the DateTime object
-    return formatter.format(dateTime);
-  } catch (e) {
-    return 'Invalid date format';
+
+  String formatDateTime(String dateTimeString) {
+    try {
+      // Parse the input string to DateTime
+      DateTime dateTime = DateTime.parse(dateTimeString);
+
+      // Define the desired format (e.g., "Sep 16, 2025 – 11:25 AM")
+      final DateFormat formatter = DateFormat('MMM d, yyyy – h:mm a');
+
+      // Format the DateTime object
+      return formatter.format(dateTime);
+    } catch (e) {
+      return 'Invalid date format';
+    }
   }
-}
+
   void markAllAsRead() {
     for (int i = 0; i < notifications.length; i++) {
       if (!notifications[i].isRead) {
@@ -343,8 +337,8 @@ String formatDateTime(String dateTimeString) {
     // Adjust this mapping based on your API response and NotificationDetails structure
     // Example: Parse notification.response if it contains structured data
     try {
-      if (notification.response.isNotEmpty) {
-        final responseJson = jsonDecode(notification.response);
+      if (notification.response!.isNotEmpty) {
+        final responseJson = jsonDecode(notification.response!);
         return NotificationDetails(
           surveyName: responseJson['survey_name'] ?? notification.title,
           executiveName: responseJson['executive_name'] ?? '',

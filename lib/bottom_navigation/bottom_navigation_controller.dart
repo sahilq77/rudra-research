@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:rudra/app/utils/app_utility.dart';
+
 import '../app/routes/app_routes.dart';
 
 class BottomNavigationController extends GetxController {
@@ -11,18 +12,8 @@ class BottomNavigationController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // Initialize routes based on userType
-
     routes = _getRoutesForUserType(AppUtility.userRole);
-    update();
-    // Sync initial index with current route
     syncIndexWithRoute(Get.currentRoute);
-    // Listen for route changes
-    ever(Rx<String?>(Get.routing.current), (route) {
-      if (route != null) {
-        syncIndexWithRoute(route);
-      }
-    });
   }
 
   // Determine routes based on userType
@@ -47,6 +38,13 @@ class BottomNavigationController extends GetxController {
           AppRoutes.validatorHome,
           AppRoutes.validatorMySurvey,
           AppRoutes.validatorProfile,
+        ];
+      case 3:
+        return [
+          AppRoutes.superAdminHome,
+          AppRoutes.superAdminAllSurveys,
+          AppRoutes.superAdminReport,
+          AppRoutes.superAdminProfile,
         ];
       default:
         // Fallback routes in case userType is invalid
@@ -77,17 +75,11 @@ class BottomNavigationController extends GetxController {
   }
 
   void changeTab(int index) {
-    if (index < 0 || index >= routes.length) {
-      print('Invalid index: $index');
+    if (index < 0 || index >= routes.length || selectedIndex.value == index) {
       return;
     }
-    if (index == 0) {
-      selectedIndex.value = 0;
-      Get.offAllNamed(routes[0]);
-    } else if (selectedIndex.value != index) {
-      selectedIndex.value = index;
-      Get.offAllNamed(routes[index]);
-    }
+    selectedIndex.value = index;
+    Get.offAllNamed(routes[index]);
   }
 
   void goToHome() {
@@ -98,6 +90,8 @@ class BottomNavigationController extends GetxController {
       Get.offAllNamed(AppRoutes.executiveHome);
     } else if (AppUtility.userRole == 2) {
       Get.offAllNamed(AppRoutes.validatorHome);
+    } else if (AppUtility.userRole == 3) {
+      Get.offAllNamed(AppRoutes.superAdminHome);
     } else {
       Get.offAllNamed(AppRoutes.home);
     }

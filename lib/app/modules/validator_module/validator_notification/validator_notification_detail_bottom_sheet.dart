@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 import '../../../data/models/notification/notification_model.dart';
+import '../../../utils/app_colors.dart';
+import '../../../utils/responsive_utils.dart';
+import '../../../widgets/app_style.dart';
 
 class ValidatorNotificationDetailBottomSheet extends StatelessWidget {
   final NotificationModel notification;
@@ -12,97 +16,86 @@ class ValidatorNotificationDetailBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    ResponsiveHelper.init(context);
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: AppColors.white,
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
+          topLeft: Radius.circular(ResponsiveHelper.spacing(24)),
+          topRight: Radius.circular(ResponsiveHelper.spacing(24)),
         ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Drag Handle
+          SizedBox(height: ResponsiveHelper.spacing(12)),
           Container(
-            margin: const EdgeInsets.only(top: 12, bottom: 8),
-            width: 40,
-            height: 4,
+            width: ResponsiveHelper.spacing(40),
+            height: ResponsiveHelper.spacing(4),
             decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(2),
+              color: AppColors.grey.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(ResponsiveHelper.spacing(2)),
             ),
           ),
-          // Content
+          SizedBox(height: ResponsiveHelper.spacing(20)),
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: ResponsiveHelper.paddingSymmetric(horizontal: 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Date & Time
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        notification.title ?? 'Notification',
+                        style:
+                            AppStyle.heading1PoppinsBlack.responsive.copyWith(
+                          fontSize: ResponsiveHelper.getResponsiveFontSize(16),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Get.back(),
+                      icon: Icon(
+                        Icons.close,
+                        color: AppColors.defaultBlack,
+                        size: ResponsiveHelper.spacing(24),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: ResponsiveHelper.spacing(16)),
                 Text(
-                  notification.details?.dateTime ?? '',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.w400,
+                  notification.message,
+                  style: AppStyle.bodyRegularPoppinsBlack.responsive.copyWith(
+                    fontSize: ResponsiveHelper.getResponsiveFontSize(14),
+                    height: 1.5,
                   ),
                 ),
-                const SizedBox(height: 12),
-                // Title
-                Text(
-                  notification.title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF373C3B),
+                if (notification.details != null) ...[
+                  SizedBox(height: ResponsiveHelper.spacing(24)),
+                  _buildDetailItem(
+                    'Survey Name',
+                    notification.details!.surveyName,
                   ),
-                ),
-                const SizedBox(height: 16),
-                // Details Container
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF5F5F5),
-                    borderRadius: BorderRadius.circular(12),
+                  SizedBox(height: ResponsiveHelper.spacing(16)),
+                  _buildDetailItem(
+                    'Executive Name',
+                    notification.details!.executiveName,
                   ),
-                  child: Column(
-                    children: [
-                      _buildDetailRow(
-                        'Survey Name',
-                        notification.details?.surveyName ?? '',
-                      ),
-                      const Divider(
-                        height: 24,
-                        thickness: 1,
-                        color: Color(0xFFE0E0E0),
-                      ),
-                      _buildDetailRow(
-                        'Executive Name',
-                        notification.details?.executiveName ?? '',
-                      ),
-                      const Divider(
-                        height: 24,
-                        thickness: 1,
-                        color: Color(0xFFE0E0E0),
-                      ),
-                      _buildDetailRow(
-                        'Date & Time',
-                        notification.details?.dateTime ?? '',
-                      ),
-                      const Divider(
-                        height: 24,
-                        thickness: 1,
-                        color: Color(0xFFE0E0E0),
-                      ),
-                      _buildDetailRow(
-                        'Target',
-                        notification.details?.target ?? '',
-                      ),
-                    ],
+                  SizedBox(height: ResponsiveHelper.spacing(16)),
+                  _buildDetailItem(
+                    'Date & Time',
+                    notification.details!.dateTime,
                   ),
-                ),
-                const SizedBox(height: 20),
+                  SizedBox(height: ResponsiveHelper.spacing(16)),
+                  _buildDetailItem(
+                    'Target',
+                    notification.details!.target,
+                  ),
+                ],
+                SizedBox(height: ResponsiveHelper.spacing(24)),
               ],
             ),
           ),
@@ -111,29 +104,22 @@ class ValidatorNotificationDetailBottomSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildDetailItem(String label, String value) {
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Color(0xFF8C8C8C),
-            fontWeight: FontWeight.w400,
+          style: AppStyle.bodySmallPoppinsGrey.responsive.copyWith(
+            fontSize: ResponsiveHelper.getResponsiveFontSize(12),
           ),
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Text(
-            value,
-            textAlign: TextAlign.right,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Color(0xFF373C3B),
-              fontWeight: FontWeight.w500,
-            ),
+        SizedBox(height: ResponsiveHelper.spacing(4)),
+        Text(
+          value,
+          style: AppStyle.bodyRegularPoppinsBlack.responsive.copyWith(
+            fontSize: ResponsiveHelper.getResponsiveFontSize(14),
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],

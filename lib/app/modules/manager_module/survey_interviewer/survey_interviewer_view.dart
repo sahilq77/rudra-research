@@ -6,9 +6,7 @@ import 'package:get/get.dart';
 import '../../../common/custominputformatters/number_input_formatter.dart';
 import '../../../common/custominputformatters/securetext_input_formatter.dart';
 import '../../../common/customvalidators/text_validator.dart';
-import '../../../routes/app_routes.dart';
 import '../../../utils/app_colors.dart';
-import '../../../utils/app_images.dart';
 import '../../../utils/responsive_utils.dart';
 import '../../../widgets/app_button_style.dart';
 import '../../../widgets/app_style.dart';
@@ -23,11 +21,17 @@ class SurveyInterviewerView extends StatefulWidget {
 
 class _SurveyInterviewerViewState extends State<SurveyInterviewerView> {
   final SurveyInterviewerController controller = Get.find();
-final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  late final GlobalKey<FormState> formKey;
+  @override
+  void initState() {
+    super.initState();
+    formKey = GlobalKey<FormState>();
+  }
+
   @override
   Widget build(BuildContext context) {
     ResponsiveHelper.init(context);
-     return PopScope(
+    return PopScope(
       canPop: false, // This disables back navigation
       onPopInvoked: (didPop) {
         if (didPop) return;
@@ -48,7 +52,7 @@ final GlobalKey<FormState> formKey = GlobalKey<FormState>();
           elevation: 0,
           surfaceTintColor: AppColors.white,
           bottom: PreferredSize(
-            preferredSize: Size.fromHeight(0),
+            preferredSize: const Size.fromHeight(0),
             child: Divider(color: AppColors.grey.withOpacity(0.5), height: 0),
           ),
         ),
@@ -66,6 +70,7 @@ final GlobalKey<FormState> formKey = GlobalKey<FormState>();
                       vertical: 20,
                     ),
                     child: Form(
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                       key: formKey,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,7 +83,12 @@ final GlobalKey<FormState> formKey = GlobalKey<FormState>();
                           _buildTextField(
                             label: 'Name',
                             controller: controller.nameController,
-                            validator: TextValidator.isEmpty,
+                            validator: (value) {
+                              if (controller.isNameRequired.value) {
+                                return TextValidator.isEmpty(value);
+                              }
+                              return null;
+                            },
                           ),
                           const SizedBox(height: 20),
                           _buildDropdownField(
@@ -86,7 +96,12 @@ final GlobalKey<FormState> formKey = GlobalKey<FormState>();
                             selectedValueObs: controller.selectedAgeLabel,
                             items: controller.ageRanges,
                             onChanged: controller.setSelectedAge,
-                            validator: TextValidator.isEmpty,
+                            validator: (value) {
+                              if (controller.isAgeRequired.value) {
+                                return TextValidator.isEmpty(value);
+                              }
+                              return null;
+                            },
                           ),
                           const SizedBox(height: 20),
                           _buildDropdownField(
@@ -94,7 +109,12 @@ final GlobalKey<FormState> formKey = GlobalKey<FormState>();
                             selectedValueObs: controller.selectedGenderLabel,
                             items: controller.genders,
                             onChanged: controller.setSelectedGender,
-                            validator: TextValidator.isEmpty,
+                            validator: (value) {
+                              if (controller.isGenderRequired.value) {
+                                return TextValidator.isEmpty(value);
+                              }
+                              return null;
+                            },
                           ),
                           const SizedBox(height: 20),
                           _buildTextField(
@@ -106,10 +126,14 @@ final GlobalKey<FormState> formKey = GlobalKey<FormState>();
                               SecureTextInputFormatter.deny(),
                               LengthLimitingTextInputFormatter(10),
                             ],
-                            validator: TextValidator.isMobileNumber,
+                            validator: (value) {
+                              if (controller.isPhoneRequired.value) {
+                                return TextValidator.isMobileNumber(value);
+                              }
+                              return null;
+                            },
                           ),
                           const SizedBox(height: 20),
-                          // --- CAST DROPDOWN (NOW BINDS NAME + ID) ---
                           _buildDropdownField(
                             label: 'Cast',
                             selectedValueObs: controller.selectedCast,
@@ -120,7 +144,12 @@ final GlobalKey<FormState> formKey = GlobalKey<FormState>();
                                 'Selected Cast: $value  →  ID: ${controller.selectedCastId.value}',
                               );
                             },
-                            validator: TextValidator.isEmpty,
+                            validator: (value) {
+                              if (controller.isCasteRequired.value) {
+                                return TextValidator.isEmpty(value);
+                              }
+                              return null;
+                            },
                           ),
                         ],
                       ),
@@ -167,35 +196,32 @@ final GlobalKey<FormState> formKey = GlobalKey<FormState>();
                           // REPLACE ONLY THE ElevatedButton's onPressed (inside bottom buttons)
                           // ──────────────────────────────────────────────────────────────
                           ElevatedButton(
-                            onPressed: () async {
-                              // Validate form
-                              if (!(formKey.currentState?.validate() ??
-                                  false))
-                                return;
-      
-                              // Call API
-                              final result = await controller.setSurvey(
-                                context: context,
-                                formKey: formKey
-                              );
-      
-                              // If success, show dialog
-                              // if (result != null) {
-                              //   _showSuccessDialog(context);
-                              // }
-                            },
-                            style: AppButtonStyles.elevatedLargeBlack(),
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                'Submit Survey',
-                                style: AppStyle
-                                    .buttonTextSmallPoppinsWhite
-                                    .responsive,
-                                maxLines: 1,
-                              ),
-                            ),
+                        onPressed: () async {
+                          // Validate form
+                          if (!(formKey.currentState?.validate() ?? false)) {
+                            return;
+                          }
+
+                          // Call API
+                          final result = await controller.setSurvey(
+                              context: context, formKey: formKey);
+
+                          // If success, show dialog
+                          // if (result != null) {
+                          //   _showSuccessDialog(context);
+                          // }
+                        },
+                        style: AppButtonStyles.elevatedLargeBlack(),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Submit Survey',
+                            style:
+                                AppStyle.buttonTextSmallPoppinsWhite.responsive,
+                            maxLines: 1,
                           ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -206,8 +232,6 @@ final GlobalKey<FormState> formKey = GlobalKey<FormState>();
       ),
     );
   }
-
-  
 
   // Updated to use RxString
   Widget _buildDropdownField({
@@ -224,9 +248,8 @@ final GlobalKey<FormState> formKey = GlobalKey<FormState>();
         const SizedBox(height: 10),
         Obx(
           () => DropdownSearch<String>(
-            selectedItem: selectedValueObs.value.isEmpty
-                ? null
-                : selectedValueObs.value,
+            selectedItem:
+                selectedValueObs.value.isEmpty ? null : selectedValueObs.value,
             items: items,
             onChanged: onChanged,
             validator: validator,
