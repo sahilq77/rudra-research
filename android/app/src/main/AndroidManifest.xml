@@ -27,7 +27,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
    
     <application
-        android:label="rudra"
+        android:label="Rudra and Research"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -47,7 +47,6 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
-                 <meta-data android:name="com.google.android.geo.API_KEY" android:value="AIzaSyCyjKElRlcYeCAQQ2TVb4sRxFGcYDFVvYk"/>
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
@@ -65,8 +64,18 @@
             tools:node="merge">
             <meta-data
                 android:name="androidx.work.WorkManagerInitializer"
-                android:value="androidx.startup" />
+                android:value="androidx.startup"
+                tools:node="remove" />
         </provider>
+
+        <!-- Google Maps API Key -->
+        <meta-data android:name="com.google.android.geo.API_KEY" android:value="AIzaSyCyjKElRlcYeCAQQ2TVb4sRxFGcYDFVvYk"/>
+
+        <!-- Receiver for boot completed to restart WorkManager -->
+        <receiver android:name="androidx.work.impl.background.systemalarm.ConstraintProxy$BatteryNotLowProxy" android:enabled="false" android:exported="false" tools:replace="android:enabled" />
+        <receiver android:name="androidx.work.impl.background.systemalarm.ConstraintProxy$BatteryChargingProxy" android:enabled="false" android:exported="false" tools:replace="android:enabled" />
+        <receiver android:name="androidx.work.impl.background.systemalarm.ConstraintProxy$StorageNotLowProxy" android:enabled="true" android:exported="false" tools:replace="android:enabled" />
+        <receiver android:name="androidx.work.impl.background.systemalarm.ConstraintProxy$NetworkStateProxy" android:enabled="true" android:exported="false" tools:replace="android:enabled" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
