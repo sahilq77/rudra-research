@@ -132,10 +132,19 @@ class _SurveyDetailsViewState extends State<SurveyDetailsView> {
                     value: detail.loksabhaName,
                   ),
                   const SizedBox(height: 16),
-                  _buildReadOnlyField(
-                    label: 'Select Assembly',
-                    value: detail.assemblyName,
-                  ),
+
+                  // ASSEMBLY DROPDOWN
+                  Obx(() => _buildDropdownField(
+                        label: 'Select Assembly',
+                        selectedValueObs: controller.selectedAssemblyName,
+                        items: controller.getAssemblyNames(),
+                        onChanged: (value) {
+                          controller.setSelectedAssembly(value);
+                        },
+                        validator: controller.assembliesList.isNotEmpty
+                            ? TextValidator.isEmpty
+                            : null,
+                      )),
                   const SizedBox(height: 16),
 
                   // WARD DROPDOWN

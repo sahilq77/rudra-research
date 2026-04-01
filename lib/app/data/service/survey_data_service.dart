@@ -121,6 +121,14 @@ class SurveyDataService extends GetxService {
           .map((w) => {
                 'zp_ward_id': w.zpWardId,
                 'ward_name': w.wardName,
+                'assembly_id': w.assemblyId,
+              })
+          .toList();
+
+      final assemblies = surveyDetails.assemblies
+          .map((a) => {
+                'assembly_id': a.assemblyId,
+                'assembly_name': a.assemblyName,
               })
           .toList();
 
@@ -174,6 +182,7 @@ class SurveyDataService extends GetxService {
         surveyId,
         detailsMap,
         languages,
+        assemblies,
         zpWards,
         areas,
         casts,

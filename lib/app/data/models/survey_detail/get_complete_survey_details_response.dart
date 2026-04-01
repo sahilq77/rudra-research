@@ -71,6 +71,7 @@ class SurveyDetails {
   String teamName;
   String teamId;
   List<LanguageOption> language;
+  List<AssemblyOption> assemblies;
   List<ZpWard> zpWards;
   List<VillageArea> villageArea;
   List<SurveyQuestion> questions;
@@ -93,6 +94,7 @@ class SurveyDetails {
     required this.teamName,
     required this.teamId,
     required this.language,
+    required this.assemblies,
     required this.zpWards,
     required this.villageArea,
     required this.questions,
@@ -118,6 +120,11 @@ class SurveyDetails {
         language: List<LanguageOption>.from(
           json["language"].map((x) => LanguageOption.fromJson(x)),
         ),
+        assemblies: json["assemblies"] != null
+            ? List<AssemblyOption>.from(
+                json["assemblies"].map((x) => AssemblyOption.fromJson(x)),
+              )
+            : [],
         zpWards: json["zp_wards"] != null
             ? List<ZpWard>.from(
                 json["zp_wards"].map((x) => ZpWard.fromJson(x)),
@@ -153,6 +160,7 @@ class SurveyDetails {
         "team_name": teamName,
         "team_id": teamId,
         "language": List<dynamic>.from(language.map((x) => x.toJson())),
+        "assemblies": List<dynamic>.from(assemblies.map((x) => x.toJson())),
         "zp_wards": List<dynamic>.from(zpWards.map((x) => x.toJson())),
         "village_area": List<dynamic>.from(villageArea.map((x) => x.toJson())),
         "questions": List<dynamic>.from(questions.map((x) => x.toJson())),
@@ -184,20 +192,44 @@ class LanguageOption {
 class ZpWard {
   String zpWardId;
   String wardName;
+  String? assemblyId;
 
   ZpWard({
     required this.zpWardId,
     required this.wardName,
+    this.assemblyId,
   });
 
   factory ZpWard.fromJson(Map<String, dynamic> json) => ZpWard(
         zpWardId: json["zp_ward_id"] ?? "",
         wardName: json["ward_name"] ?? "",
+        assemblyId: json["assembly_id"],
       );
 
   Map<String, dynamic> toJson() => {
         "zp_ward_id": zpWardId,
         "ward_name": wardName,
+        "assembly_id": assemblyId,
+      };
+}
+
+class AssemblyOption {
+  String assemblyId;
+  String assemblyName;
+
+  AssemblyOption({
+    required this.assemblyId,
+    required this.assemblyName,
+  });
+
+  factory AssemblyOption.fromJson(Map<String, dynamic> json) => AssemblyOption(
+        assemblyId: json["assembly_id"] ?? "",
+        assemblyName: json["assembly_name"] ?? "",
+      );
+
+  Map<String, dynamic> toJson() => {
+        "assembly_id": assemblyId,
+        "assembly_name": assemblyName,
       };
 }
 

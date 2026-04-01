@@ -68,19 +68,43 @@ class AreaData {
 class ZpWardData {
   String zpWardId;
   String wardName;
+  String? assemblyId;
 
   ZpWardData({
     required this.zpWardId,
     required this.wardName,
+    this.assemblyId,
   });
 
   factory ZpWardData.fromJson(Map<String, dynamic> json) => ZpWardData(
         zpWardId: json["zp_ward_id"] ?? "",
         wardName: json["ward_name"] ?? "",
+        assemblyId: json["assembly_id"],
       );
 
   Map<String, dynamic> toJson() => {
         "zp_ward_id": zpWardId,
         "ward_name": wardName,
+        "assembly_id": assemblyId,
+      };
+}
+
+class AssemblyData {
+  String assemblyId;
+  String assemblyName;
+
+  AssemblyData({
+    required this.assemblyId,
+    required this.assemblyName,
+  });
+
+  factory AssemblyData.fromJson(Map<String, dynamic> json) => AssemblyData(
+        assemblyId: json["assembly_id"] ?? "",
+        assemblyName: json["assembly_name"] ?? "",
+      );
+
+  Map<String, dynamic> toJson() => {
+        "assembly_id": assemblyId,
+        "assembly_name": assemblyName,
       };
 }

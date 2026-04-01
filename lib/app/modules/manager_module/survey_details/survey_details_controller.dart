@@ -20,6 +20,8 @@ class SurveyDetailsController extends GetxController {
   RxList<AreaData> areaList = <AreaData>[].obs;
   RxList<AreaData> allAreasList = <AreaData>[].obs;
   RxList<ZpWardData> zpWardsList = <ZpWardData>[].obs;
+  RxList<ZpWardData> allZpWardsList = <ZpWardData>[].obs;
+  RxList<AssemblyData> assembliesList = <AssemblyData>[].obs;
   RxList<SurveyDetailData> surveyDetailList = <SurveyDetailData>[].obs;
   var isLoadingArea = false.obs;
   var errorMessageArea = ''.obs;
@@ -30,6 +32,8 @@ class SurveyDetailsController extends GetxController {
   RxString? selectedAreaVal = RxString("");
   RxString selectedWardName = RxString("");
   RxString selectedWardId = RxString("");
+  RxString selectedAssemblyName = RxString("");
+  RxString selectedAssemblyId = RxString("");
 
   final AudioRecorderController audioRecorder = Get.put(
     AudioRecorderController(),
@@ -90,11 +94,17 @@ class SurveyDetailsController extends GetxController {
     // Load data
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _loadLanguagesFromCache();
+      await _loadAssembliesFromCache();
       await _loadZpWardsFromCache();
       await _loadAreasFromCache();
       await _loadSurveyDetailFromCache();
       await audioRecorder.autoStartRecording();
       isLoading.value = false;
+    });
+
+    // Listen to assembly selection changes and filter wards
+    ever(selectedAssemblyId, (assemblyId) {
+      _filterWardsByAssembly(assemblyId);
     });
 
     // Listen to ward selection changes and filter villages
@@ -160,25 +170,21 @@ class SurveyDetailsController extends GetxController {
 
   Future<void> _loadZpWardsFromCache() async {
     try {
+      allZpWardsList.clear();
       zpWardsList.clear();
       final wards = await _localRepo.getZpWards(surveyId);
       if (wards.isNotEmpty) {
-        zpWardsList.value = wards
+        allZpWardsList.value = wards
             .map((w) => ZpWardData(
                   zpWardId: w['zp_ward_id'],
                   wardName: w['ward_name'],
+                  assemblyId: w['assembly_id'],
                 ))
             .toList();
+        // Show all wards initially if no assembly selected
+        zpWardsList.value = List.from(allZpWardsList);
         AppLogger.i('✅ Loaded ${wards.length} zp_wards from cache',
             tag: 'SurveyDetails');
-        
-        // Debug: Log all wards
-        for (var ward in zpWardsList) {
-          AppLogger.d(
-            '🏛️ Ward: "${ward.wardName}" → ID: "${ward.zpWardId}"',
-            tag: 'SurveyDetails',
-          );
-        }
       } else {
         AppLogger.w('⚠️ No cached zp_wards found', tag: 'SurveyDetails');
       }
@@ -190,6 +196,44 @@ class SurveyDetailsController extends GetxController {
         tag: 'SurveyDetails',
       );
     }
+  }
+
+  Future<void> _loadAssembliesFromCache() async {
+    try {
+      assembliesList.clear();
+      final assemblies = await _localRepo.getAssemblies(surveyId);
+      if (assemblies.isNotEmpty) {
+        assembliesList.value = assemblies
+            .map((a) => AssemblyData(
+                  assemblyId: a['assembly_id'],
+                  assemblyName: a['assembly_name'],
+                ))
+            .toList();
+        AppLogger.i('✅ Loaded ${assemblies.length} assemblies from cache',
+            tag: 'SurveyDetails');
+      } else {
+        AppLogger.w('⚠️ No cached assemblies found', tag: 'SurveyDetails');
+      }
+    } catch (e) {
+      AppLogger.e('Error loading assemblies from cache: $e',
+          tag: 'SurveyDetails');
+    }
+  }
+
+  void _filterWardsByAssembly(String assemblyId) {
+    if (assemblyId.isEmpty) {
+      zpWardsList.value = List.from(allZpWardsList);
+    } else {
+      zpWardsList.value = allZpWardsList
+          .where((w) => w.assemblyId == assemblyId)
+          .toList();
+    }
+    // Reset ward and area when assembly changes
+    selectedWardName.value = '';
+    selectedWardId.value = '';
+    selectedAreaVal?.value = '';
+    selectedAreaId.value = '';
+    areaList.value = [];
   }
 
   Future<void> _loadAreasFromCache() async {
@@ -340,6 +384,22 @@ class SurveyDetailsController extends GetxController {
     }
   }
 
+  List<String> getAssemblyNames() {
+    return assembliesList.map((a) => a.assemblyName).toSet().toList();
+  }
+
+  String? getAssemblyId(String assemblyName) {
+    return assembliesList
+            .firstWhereOrNull((a) => a.assemblyName == assemblyName)
+            ?.assemblyId ??
+        '';
+  }
+
+  void setSelectedAssembly(String? assemblyName) {
+    selectedAssemblyName.value = assemblyName ?? '';
+    selectedAssemblyId.value = getAssemblyId(assemblyName ?? '') ?? '';
+  }
+
   List<String> getWardNames() {
     return zpWardsList.map((w) => w.wardName).toSet().toList();
   }
@@ -396,6 +456,7 @@ class SurveyDetailsController extends GetxController {
 
   Future<void> refreshPage() async {
     await _loadLanguagesFromCache();
+    await _loadAssembliesFromCache();
     await _loadZpWardsFromCache();
     await _loadAreasFromCache();
     await _loadSurveyDetailFromCache();
@@ -510,11 +571,14 @@ class SurveyDetailsController extends GetxController {
   }
 
   void _resetForm() {
+    selectedAssemblyName.value = '';
+    selectedAssemblyId.value = '';
     selectedWardName.value = "";
     selectedWardId.value = "";
     selectedAreaVal?.value = "";
     selectedAreaId.value = "";
-    areaList.value = allAreasList;
+    areaList.value = [];
+    zpWardsList.value = List.from(allZpWardsList);
     // DON'T reset language - preserve user's selection
   }
 

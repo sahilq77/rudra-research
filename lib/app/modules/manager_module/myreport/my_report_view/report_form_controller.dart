@@ -8,7 +8,7 @@ import '../../../../data/models/my_report/get_assembly_response.dart';
 import '../../../../data/models/my_report/get_executive_response.dart';
 import '../../../../data/models/my_report/get_survey_report_response.dart';
 import '../../../../data/models/my_report/get_ward_response.dart';
-import '../../../../data/models/survey_detail/get_area_response.dart';
+import '../../../../data/models/survey_detail/get_area_response.dart' hide AssemblyData;
 import '../../../../data/network/exceptions.dart';
 import '../../../../data/network/networkcall.dart';
 import '../../../../data/urls.dart';

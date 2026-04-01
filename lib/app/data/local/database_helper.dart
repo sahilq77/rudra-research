@@ -21,7 +21,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 13,
+      version: 14,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -138,6 +138,19 @@ class DatabaseHelper {
         survey_id TEXT NOT NULL,
         zp_ward_id TEXT NOT NULL,
         ward_name TEXT NOT NULL,
+        assembly_id TEXT,
+        synced INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL
+      )
+    ''');
+
+    // Assemblies Table
+    await db.execute('''
+      CREATE TABLE assemblies (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        survey_id TEXT NOT NULL,
+        assembly_id TEXT NOT NULL,
+        assembly_name TEXT NOT NULL,
         synced INTEGER DEFAULT 0,
         created_at TEXT NOT NULL
       )
@@ -386,6 +399,27 @@ class DatabaseHelper {
       }
     }
 
+    if (oldVersion < 14) {
+      try {
+        await db.execute(
+          'ALTER TABLE zp_wards ADD COLUMN assembly_id TEXT',
+        );
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS assemblies (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            survey_id TEXT NOT NULL,
+            assembly_id TEXT NOT NULL,
+            assembly_name TEXT NOT NULL,
+            synced INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL
+          )
+        ''');
+        log('✅ Database upgraded to version 14: Added assemblies table and assembly_id to zp_wards');
+      } catch (e) {
+        log('⚠️ Error upgrading to version 14: \$e');
+      }
+    }
+
     if (oldVersion < 13) {
       try {
         await db.execute(
@@ -439,6 +473,17 @@ class DatabaseHelper {
         survey_id TEXT NOT NULL,
         cast_id TEXT NOT NULL,
         cast_name TEXT NOT NULL,
+        synced INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS assemblies (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        survey_id TEXT NOT NULL,
+        assembly_id TEXT NOT NULL,
+        assembly_name TEXT NOT NULL,
         synced INTEGER DEFAULT 0,
         created_at TEXT NOT NULL
       )

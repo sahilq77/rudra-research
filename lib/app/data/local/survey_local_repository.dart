@@ -189,6 +189,7 @@ class SurveyLocalRepository {
           'survey_id': surveyId,
           'zp_ward_id': ward['zp_ward_id'],
           'ward_name': ward['ward_name'],
+          'assembly_id': ward['assembly_id'],
           'synced': 1,
           'created_at': DateTime.now().toIso8601String(),
         },
@@ -204,6 +205,39 @@ class SurveyLocalRepository {
     final db = await _dbHelper.database;
     return await db.query(
       'zp_wards',
+      where: 'survey_id = ?',
+      whereArgs: [surveyId],
+    );
+  }
+
+  // ==================== ASSEMBLIES ====================
+  Future<void> saveAssemblies(
+      String surveyId, List<Map<String, dynamic>> assemblies) async {
+    final db = await _dbHelper.database;
+    final batch = db.batch();
+
+    for (var assembly in assemblies) {
+      batch.insert(
+        'assemblies',
+        {
+          'survey_id': surveyId,
+          'assembly_id': assembly['assembly_id'],
+          'assembly_name': assembly['assembly_name'],
+          'synced': 1,
+          'created_at': DateTime.now().toIso8601String(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+
+    await batch.commit(noResult: true);
+    log('Saved ${assemblies.length} assemblies for survey_id: $surveyId');
+  }
+
+  Future<List<Map<String, dynamic>>> getAssemblies(String surveyId) async {
+    final db = await _dbHelper.database;
+    return await db.query(
+      'assemblies',
       where: 'survey_id = ?',
       whereArgs: [surveyId],
     );
@@ -470,6 +504,7 @@ class SurveyLocalRepository {
     String surveyId,
     Map<String, dynamic> surveyDetails,
     List<Map<String, dynamic>> languages,
+    List<Map<String, dynamic>> assemblies,
     List<Map<String, dynamic>> zpWards,
     List<Map<String, dynamic>> areas,
     List<Map<String, dynamic>> casts,
@@ -483,6 +518,8 @@ class SurveyLocalRepository {
           where: 'survey_id = ?', whereArgs: [surveyId]);
       await txn
           .delete('languages', where: 'survey_id = ?', whereArgs: [surveyId]);
+      await txn
+          .delete('assemblies', where: 'survey_id = ?', whereArgs: [surveyId]);
       await txn
           .delete('zp_wards', where: 'survey_id = ?', whereArgs: [surveyId]);
       await txn.delete('areas', where: 'survey_id = ?', whereArgs: [surveyId]);
@@ -533,6 +570,20 @@ class SurveyLocalRepository {
         );
       }
 
+      // Save assemblies
+      for (var assembly in assemblies) {
+        await txn.insert(
+          'assemblies',
+          {
+            'survey_id': surveyId,
+            'assembly_id': assembly['assembly_id'],
+            'assembly_name': assembly['assembly_name'],
+            'synced': 1,
+            'created_at': DateTime.now().toIso8601String(),
+          },
+        );
+      }
+
       // Save zp_wards
       for (var ward in zpWards) {
         await txn.insert(
@@ -541,6 +592,7 @@ class SurveyLocalRepository {
             'survey_id': surveyId,
             'zp_ward_id': ward['zp_ward_id'],
             'ward_name': ward['ward_name'],
+            'assembly_id': ward['assembly_id'],
             'synced': 1,
             'created_at': DateTime.now().toIso8601String(),
           },
