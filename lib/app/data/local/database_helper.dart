@@ -21,7 +21,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 14,
+      version: 15,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -97,6 +97,7 @@ class DatabaseHelper {
         offline_survey_id TEXT UNIQUE,
         survey_id TEXT NOT NULL,
         survey_language_id TEXT,
+        assembly_id TEXT,
         village_area_id TEXT,
         zp_ward_id TEXT,
         user_id TEXT NOT NULL,
@@ -112,8 +113,7 @@ class DatabaseHelper {
         synced INTEGER DEFAULT 0,
         created_at TEXT NOT NULL,
         updated_at TEXT,
-        retry_count INTEGER DEFAULT 0,
-        UNIQUE(survey_id, user_id, village_area_id, interviewer_name, interviewer_phone)
+        retry_count INTEGER DEFAULT 0
       )
     ''');
 
@@ -396,6 +396,55 @@ class DatabaseHelper {
         log('✅ Database upgraded to version 11: Added actual_completion_time column');
       } catch (e) {
         log('⚠️ Error upgrading to version 11: $e');
+      }
+    }
+
+    if (oldVersion < 15) {
+      try {
+        await db.execute('DROP TABLE IF EXISTS pending_submissions_v15_old');
+        await db.execute('ALTER TABLE pending_submissions RENAME TO pending_submissions_v15_old');
+        await db.execute('''
+          CREATE TABLE pending_submissions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            survey_app_side_id TEXT,
+            offline_survey_id TEXT UNIQUE,
+            survey_id TEXT NOT NULL,
+            survey_language_id TEXT,
+            assembly_id TEXT,
+            village_area_id TEXT,
+            zp_ward_id TEXT,
+            user_id TEXT NOT NULL,
+            interviewer_name TEXT,
+            interviewer_age TEXT,
+            interviewer_gender TEXT,
+            interviewer_phone TEXT,
+            interviewer_cast TEXT,
+            answers TEXT NOT NULL,
+            audio_path TEXT,
+            completion_stage TEXT DEFAULT "questions_only",
+            actual_completion_time TEXT,
+            synced INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL,
+            updated_at TEXT,
+            retry_count INTEGER DEFAULT 0
+          )
+        ''');
+        await db.execute('''
+          INSERT OR IGNORE INTO pending_submissions
+          (id, survey_app_side_id, offline_survey_id, survey_id, survey_language_id,
+           village_area_id, zp_ward_id, user_id, interviewer_name, interviewer_age,
+           interviewer_gender, interviewer_phone, interviewer_cast, answers, audio_path,
+           completion_stage, actual_completion_time, synced, created_at, updated_at, retry_count)
+          SELECT id, survey_app_side_id, offline_survey_id, survey_id, survey_language_id,
+           village_area_id, zp_ward_id, user_id, interviewer_name, interviewer_age,
+           interviewer_gender, interviewer_phone, interviewer_cast, answers, audio_path,
+           completion_stage, actual_completion_time, synced, created_at, updated_at, retry_count
+          FROM pending_submissions_v15_old
+        ''');
+        await db.execute('DROP TABLE pending_submissions_v15_old');
+        log('✅ Database upgraded to version 15: Removed bad UNIQUE constraint, added assembly_id');
+      } catch (e) {
+        log('⚠️ Error upgrading to version 15: \$e');
       }
     }
 
