@@ -160,8 +160,10 @@ class SurveyInterviewerController extends GetxController {
         );
       }
     } catch (e) {
-      AppLogger.e('Error loading validation settings: $e',
-          tag: 'SurveyInterviewerController');
+      AppLogger.e(
+        'Error loading validation settings: $e',
+        tag: 'SurveyInterviewerController',
+      );
     }
   }
 
@@ -206,8 +208,10 @@ class SurveyInterviewerController extends GetxController {
 
     // Prevent double submission
     if (isSubmitting.value) {
-      AppLogger.w('Submission already in progress',
-          tag: 'SurveyInterviewerController');
+      AppLogger.w(
+        'Submission already in progress',
+        tag: 'SurveyInterviewerController',
+      );
       return null;
     }
 
@@ -215,8 +219,10 @@ class SurveyInterviewerController extends GetxController {
     if (audioRecorder.isRecording.value) {
       final stoppedPath = await audioRecorder.stopRecording();
       if (stoppedPath != null) {
-        AppLogger.i('Recording stopped: $stoppedPath',
-            tag: 'SurveyInterviewerController');
+        AppLogger.i(
+          'Recording stopped: $stoppedPath',
+          tag: 'SurveyInterviewerController',
+        );
       }
     }
 
@@ -233,8 +239,12 @@ class SurveyInterviewerController extends GetxController {
 
       return surveyAppId;
     } catch (e, s) {
-      AppLogger.e('Error saving interviewer info',
-          error: e, stackTrace: s, tag: 'SurveyInterviewerController');
+      AppLogger.e(
+        'Error saving interviewer info',
+        error: e,
+        stackTrace: s,
+        tag: 'SurveyInterviewerController',
+      );
       AppSnackbarStyles.showError(
         title: 'Error',
         message: 'Failed to save interviewer info',
@@ -261,8 +271,10 @@ class SurveyInterviewerController extends GetxController {
       );
 
       // Log ALL pending submissions BEFORE update
-      final allBefore =
-          await db.query('pending_submissions', where: 'synced = 0');
+      final allBefore = await db.query(
+        'pending_submissions',
+        where: 'synced = 0',
+      );
       AppLogger.d(
         '📊 ALL PENDING SUBMISSIONS BEFORE UPDATE (${allBefore.length}):\n${allBefore.map((s) => '  ID: ${s['id']}, offline_survey_id: ${s['offline_survey_id']}, name: ${s['interviewer_name']}, created: ${s['created_at']}').join('\n')}',
         tag: 'SurveyInterviewerController',
@@ -408,8 +420,10 @@ class SurveyInterviewerController extends GetxController {
         });
       }
 
-      AppLogger.i('✅ Interviewer info saved successfully',
-          tag: 'SurveyInterviewerController');
+      AppLogger.i(
+        '✅ Interviewer info saved successfully',
+        tag: 'SurveyInterviewerController',
+      );
 
       // Clear question controller data after successful save
       if (Get.isRegistered<SurveyQuestionController>()) {
@@ -426,8 +440,12 @@ class SurveyInterviewerController extends GetxController {
         message: 'Survey saved successfully!',
       );
     } catch (e, stackTrace) {
-      AppLogger.e('Error saving interviewer info locally',
-          error: e, stackTrace: stackTrace, tag: 'SurveyInterviewerController');
+      AppLogger.e(
+        'Error saving interviewer info locally',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'SurveyInterviewerController',
+      );
       rethrow;
     }
   }
@@ -522,7 +540,8 @@ class SurveyInterviewerController extends GetxController {
                             child: Text(
                               'Dashboard',
                               style: AppStyle
-                                  .buttonTextSmallPoppinsBlack.responsive,
+                                  .buttonTextSmallPoppinsBlack
+                                  .responsive,
                               maxLines: 1,
                             ),
                           ),
@@ -559,7 +578,8 @@ class SurveyInterviewerController extends GetxController {
                             child: Text(
                               'Next Survey',
                               style: AppStyle
-                                  .buttonTextSmallPoppinsWhite.responsive,
+                                  .buttonTextSmallPoppinsWhite
+                                  .responsive,
                               maxLines: 1,
                             ),
                           ),
@@ -708,8 +728,10 @@ class SurveyInterviewerController extends GetxController {
               filename: audioPath.split('/').last,
             ),
           );
-          AppLogger.i('📎 Audio file attached',
-              tag: 'SurveyInterviewerController');
+          AppLogger.i(
+            '📎 Audio file attached',
+            tag: 'SurveyInterviewerController',
+          );
         }
       }
 
@@ -740,13 +762,19 @@ class SurveyInterviewerController extends GetxController {
             );
           }
         } catch (e) {
-          AppLogger.w('Could not parse response or delete submission: $e',
-              tag: 'SurveyInterviewerController');
+          AppLogger.w(
+            'Could not parse response or delete submission: $e',
+            tag: 'SurveyInterviewerController',
+          );
         }
       }
     } catch (e, stackTrace) {
-      AppLogger.e('Test API call failed',
-          error: e, stackTrace: stackTrace, tag: 'SurveyInterviewerController');
+      AppLogger.e(
+        'Test API call failed',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'SurveyInterviewerController',
+      );
     }
   }
 
@@ -767,19 +795,22 @@ class SurveyInterviewerController extends GetxController {
       final casts = await _localRepo.getCasts(surveyId);
       if (casts.isNotEmpty) {
         castList.value = casts
-            .map((c) => CastData(
-                  castId: c['cast_id'],
-                  castName: c['cast_name'],
-                ))
+            .map(
+              (c) => CastData(castId: c['cast_id'], castName: c['cast_name']),
+            )
             .toList();
-        AppLogger.i('✅ Loaded ${casts.length} casts from cache',
-            tag: 'SurveyInterviewer');
+        AppLogger.i(
+          '✅ Loaded ${casts.length} casts from cache',
+          tag: 'SurveyInterviewer',
+        );
       } else {
         AppLogger.w('⚠️ No cached casts found', tag: 'SurveyInterviewer');
       }
     } catch (e) {
-      AppLogger.e('Error loading casts from cache: $e',
-          tag: 'SurveyInterviewer');
+      AppLogger.e(
+        'Error loading casts from cache: $e',
+        tag: 'SurveyInterviewer',
+      );
     } finally {
       isLoadingCast.value = false;
     }
@@ -1228,7 +1259,9 @@ class SurveyInterviewerController extends GetxController {
   // -----------------------------------------------------------------
   @override
   void onClose() {
-    audioRecorder.stopRecording();
+    if (audioRecorder.isRecording.value) {
+      audioRecorder.stopRecording();
+    }
     nameController.dispose();
     phoneController.dispose();
     super.onClose();
