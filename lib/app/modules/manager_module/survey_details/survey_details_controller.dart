@@ -3,7 +3,6 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:record/record.dart';
 import 'package:rudra/app/data/local/survey_local_repository.dart';
 import 'package:rudra/app/data/models/survey_detail/get_area_response.dart';
 import 'package:rudra/app/data/models/survey_detail/get_survey_detail_response.dart';
@@ -35,9 +34,7 @@ class SurveyDetailsController extends GetxController {
   RxString selectedAssemblyName = RxString("");
   RxString selectedAssemblyId = RxString("");
 
-  final AudioRecorderController audioRecorder = Get.put(
-    AudioRecorderController(),
-  );
+  late final AudioRecorderController audioRecorder;
   final SurveyLocalRepository _localRepo = SurveyLocalRepository();
   final ConnectivityService _connectivityService =
       Get.find<ConnectivityService>();
@@ -68,13 +65,18 @@ class SurveyDetailsController extends GetxController {
   // -----------------------------------------------------------------
   // AUDIO RECORDING
   // -----------------------------------------------------------------
-  final AudioRecorder _audioRecorder = AudioRecorder();
   RxBool isRecording = false.obs;
   RxString recordingPath = ''.obs;
 
   @override
   void onInit() {
     super.onInit();
+
+    // Always create a fresh AudioRecorderController for each survey session
+    if (Get.isRegistered<AudioRecorderController>()) {
+      Get.delete<AudioRecorderController>(force: true);
+    }
+    audioRecorder = Get.put(AudioRecorderController());
 
     // Sync language ID when name changes
     ever(selectedLanguage, (String name) {
@@ -587,9 +589,6 @@ class SurveyDetailsController extends GetxController {
   // -----------------------------------------------------------------
   @override
   void onClose() {
-    // Stop recording if still active
-
-    _audioRecorder.dispose();
     super.onClose();
   }
 }

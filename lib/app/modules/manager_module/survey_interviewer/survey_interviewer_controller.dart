@@ -125,7 +125,8 @@ class SurveyInterviewerController extends GetxController {
   void onInit() {
     super.onInit();
 
-    audioRecorder = Get.put(AudioRecorderController());
+    // Reuse the existing AudioRecorderController created by SurveyDetailsController
+    audioRecorder = Get.find<AudioRecorderController>();
 
     final args = Get.arguments as Map<String, dynamic>?;
     surveyId = args?['survey_id']?.toString() ?? "";
