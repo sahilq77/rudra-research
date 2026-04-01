@@ -330,7 +330,7 @@ class BackgroundSyncService {
         requiresDeviceIdle: false, // Allow sync even when device is active
         requiresStorageNotLow: true, // Only require sufficient storage
       ),
-      existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
+      existingWorkPolicy: ExistingWorkPolicy.keep,
       backoffPolicy: BackoffPolicy.exponential,
       backoffPolicyDelay: const Duration(minutes: 5),
     );

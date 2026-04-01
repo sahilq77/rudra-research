@@ -21,8 +21,12 @@ Future<void> main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Initialize services
-  await BackgroundSyncService.initialize();
-  await BackgroundSyncService.registerPeriodicSync();
+  try {
+    await BackgroundSyncService.initialize();
+    await BackgroundSyncService.registerPeriodicSync();
+  } catch (e) {
+    debugPrint('WorkManager init failed: $e');
+  }
   await SyncNotificationService.initialize();
 
   final NotificationServices notificationServices = NotificationServices();
@@ -47,7 +51,7 @@ class MyApp extends StatelessWidget {
 
     return ClarityWidget(
       app: GetMaterialApp(
-        title: 'Flutter Demo',
+        title: 'Rudra and Research',
         theme: ThemeData(
           textSelectionTheme: const TextSelectionThemeData(
             selectionHandleColor: AppColors.primary,
