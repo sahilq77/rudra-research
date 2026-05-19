@@ -18,6 +18,8 @@ class ExecutiveSurveyDetailController extends GetxController {
   RxList<AreaData> areaList = <AreaData>[].obs;
   RxList<AreaData> allAreasList = <AreaData>[].obs;
   RxList<ZpWardData> zpWardsList = <ZpWardData>[].obs;
+  RxList<ZpWardData> allZpWardsList = <ZpWardData>[].obs;
+  RxList<AssemblyData> assembliesList = <AssemblyData>[].obs;
   RxList<SurveyDetailData> surveyDetailList = <SurveyDetailData>[].obs;
   var isLoadingArea = false.obs;
   var errorMessageArea = ''.obs;
@@ -28,6 +30,8 @@ class ExecutiveSurveyDetailController extends GetxController {
   RxString? selectedAreaVal = RxString("");
   RxString selectedWardName = RxString("");
   RxString selectedWardId = RxString("");
+  RxString selectedAssemblyName = RxString("");
+  RxString selectedAssemblyId = RxString("");
 
   final AudioRecorderController audioRecorder = Get.put(
     AudioRecorderController(),
@@ -57,7 +61,7 @@ class ExecutiveSurveyDetailController extends GetxController {
   // -----------------------------------------------------------------
   // AUDIO RECORDING
   // -----------------------------------------------------------------
- final AudioRecorder _audioRecorder = AudioRecorder();
+  final AudioRecorder _audioRecorder = AudioRecorder();
   RxBool isRecording = false.obs;
   RxString recordingPath = ''.obs;
 
@@ -77,10 +81,16 @@ class ExecutiveSurveyDetailController extends GetxController {
     // Load data
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _loadLanguagesFromCache();
+      await _loadAssembliesFromCache();
       await _loadZpWardsFromCache();
       await _loadAreasFromCache();
       await _loadSurveyDetailFromCache();
       await audioRecorder.autoStartRecording();
+    });
+
+    // Listen to assembly selection changes and filter wards
+    ever(selectedAssemblyId, (assemblyId) {
+      _filterWardsByAssembly(assemblyId);
     });
 
     // Listen to ward selection changes and filter villages
@@ -113,36 +123,83 @@ class ExecutiveSurveyDetailController extends GetxController {
             teamId: detail['team_id'] ?? '',
           ),
         );
-        AppLogger.i('✅ Loaded survey details from cache',
-            tag: 'ExecutiveSurveyDetail');
+        AppLogger.i(
+          '✅ Loaded survey details from cache',
+          tag: 'ExecutiveSurveyDetail',
+        );
       } else {
-        AppLogger.w('⚠️ No cached survey details found',
-            tag: 'ExecutiveSurveyDetail');
+        AppLogger.w(
+          '⚠️ No cached survey details found',
+          tag: 'ExecutiveSurveyDetail',
+        );
       }
     } catch (e) {
-      AppLogger.e('Error loading survey detail from cache: $e',
-          tag: 'ExecutiveSurveyDetail');
+      AppLogger.e(
+        'Error loading survey detail from cache: $e',
+        tag: 'ExecutiveSurveyDetail',
+      );
     } finally {
       isLoading.value = false;
     }
   }
 
+  Future<void> _loadAssembliesFromCache() async {
+    try {
+      assembliesList.clear();
+      final assemblies = await _localRepo.getAssemblies(surveyId);
+      if (assemblies.isNotEmpty) {
+        assembliesList.value = assemblies
+            .map(
+              (a) => AssemblyData(
+                assemblyId: a['assembly_id'],
+                assemblyName: a['assembly_name'],
+              ),
+            )
+            .toList();
+        AppLogger.i(
+          '✅ Loaded ${assemblies.length} assemblies from cache',
+          tag: 'ExecutiveSurveyDetail',
+        );
+      } else {
+        AppLogger.w(
+          '⚠️ No cached assemblies found',
+          tag: 'ExecutiveSurveyDetail',
+        );
+      }
+    } catch (e) {
+      AppLogger.e(
+        'Error loading assemblies from cache: $e',
+        tag: 'ExecutiveSurveyDetail',
+      );
+    }
+  }
+
   Future<void> _loadZpWardsFromCache() async {
     try {
+      allZpWardsList.clear();
       zpWardsList.clear();
       final wards = await _localRepo.getZpWards(surveyId);
       if (wards.isNotEmpty) {
-        zpWardsList.value = wards
-            .map((w) => ZpWardData(
-                  zpWardId: w['zp_ward_id'],
-                  wardName: w['ward_name'],
-                ))
+        allZpWardsList.value = wards
+            .map(
+              (w) => ZpWardData(
+                zpWardId: w['zp_ward_id'],
+                wardName: w['ward_name'],
+                assemblyId: w['assembly_id'],
+              ),
+            )
             .toList();
-        AppLogger.i('✅ Loaded ${wards.length} zp_wards from cache',
-            tag: 'ExecutiveSurveyDetail');
+        // Show all wards initially until an assembly is selected
+        zpWardsList.value = List.from(allZpWardsList);
+        AppLogger.i(
+          '✅ Loaded ${wards.length} zp_wards from cache',
+          tag: 'ExecutiveSurveyDetail',
+        );
       } else {
-        AppLogger.w('⚠️ No cached zp_wards found',
-            tag: 'ExecutiveSurveyDetail');
+        AppLogger.w(
+          '⚠️ No cached zp_wards found',
+          tag: 'ExecutiveSurveyDetail',
+        );
       }
     } catch (e, stackTrace) {
       AppLogger.e(
@@ -152,6 +209,27 @@ class ExecutiveSurveyDetailController extends GetxController {
         tag: 'ExecutiveSurveyDetail',
       );
     }
+  }
+
+  void _filterWardsByAssembly(String assemblyId) {
+    if (assemblyId.isEmpty) {
+      zpWardsList.value = List.from(allZpWardsList);
+    } else {
+      zpWardsList.value = allZpWardsList
+          .where((w) => w.assemblyId == assemblyId)
+          .toList();
+    }
+    // Reset ward and area when assembly changes
+    selectedWardName.value = '';
+    selectedWardId.value = '';
+    selectedAreaVal?.value = '';
+    selectedAreaId.value = '';
+    areaList.value = [];
+
+    AppLogger.d(
+      '🏛️ Assembly filter applied: "$assemblyId" → ${zpWardsList.length} wards',
+      tag: 'ExecutiveSurveyDetail',
+    );
   }
 
   Future<void> _loadAreasFromCache() async {
@@ -165,17 +243,21 @@ class ExecutiveSurveyDetailController extends GetxController {
       final areas = await _localRepo.getAreas(surveyId);
       if (areas.isNotEmpty) {
         allAreasList.value = areas
-            .map((a) => AreaData(
-                  villageAreaId: a['village_area_id'],
-                  areaName: a['area_name'],
-                  zpWardId: a['zp_ward_id'],
-                  wardName: a['ward_name'],
-                ))
+            .map(
+              (a) => AreaData(
+                villageAreaId: a['village_area_id'],
+                areaName: a['area_name'],
+                zpWardId: a['zp_ward_id'],
+                wardName: a['ward_name'],
+              ),
+            )
             .toList();
         // Don't show villages by default - wait for ward selection
         areaList.value = [];
-        AppLogger.i('✅ Loaded ${areas.length} areas from cache',
-            tag: 'ExecutiveSurveyDetail');
+        AppLogger.i(
+          '✅ Loaded ${areas.length} areas from cache',
+          tag: 'ExecutiveSurveyDetail',
+        );
       } else {
         AppLogger.w('⚠️ No cached areas found', tag: 'ExecutiveSurveyDetail');
       }
@@ -199,11 +281,14 @@ class ExecutiveSurveyDetailController extends GetxController {
 
     if (wardId.isEmpty) {
       areaList.value = [];
-      AppLogger.d('📋 No ward selected, showing empty villages',
-          tag: 'ExecutiveSurveyDetail');
+      AppLogger.d(
+        '📋 No ward selected, showing empty villages',
+        tag: 'ExecutiveSurveyDetail',
+      );
     } else {
-      areaList.value =
-          allAreasList.where((area) => area.zpWardId == wardId).toList();
+      areaList.value = allAreasList
+          .where((area) => area.zpWardId == wardId)
+          .toList();
 
       AppLogger.i(
         '✅ Filtered ${areaList.length} villages for ward_id: "$wardId"',
@@ -230,6 +315,22 @@ class ExecutiveSurveyDetailController extends GetxController {
   void setSelectedArea(String? areaName) {
     selectedAreaVal?.value = areaName ?? '';
     selectedAreaId.value = getAreaId(areaName ?? '') ?? '';
+  }
+
+  List<String> getAssemblyNames() {
+    return assembliesList.map((a) => a.assemblyName).toSet().toList();
+  }
+
+  String? getAssemblyId(String assemblyName) {
+    return assembliesList
+            .firstWhereOrNull((a) => a.assemblyName == assemblyName)
+            ?.assemblyId ??
+        '';
+  }
+
+  void setSelectedAssembly(String? assemblyName) {
+    selectedAssemblyName.value = assemblyName ?? '';
+    selectedAssemblyId.value = getAssemblyId(assemblyName ?? '') ?? '';
   }
 
   List<String> getWardNames() {
@@ -306,8 +407,10 @@ class ExecutiveSurveyDetailController extends GetxController {
     // Delete old interviewer controller if exists
     if (Get.isRegistered<ExecutiveSurveyInterviewerController>()) {
       Get.delete<ExecutiveSurveyInterviewerController>();
-      AppLogger.d('Deleted old ExecutiveSurveyInterviewerController',
-          tag: 'ExecutiveSurveyDetail');
+      AppLogger.d(
+        'Deleted old ExecutiveSurveyInterviewerController',
+        tag: 'ExecutiveSurveyDetail',
+      );
     }
 
     Get.toNamed(
@@ -351,30 +454,42 @@ class ExecutiveSurveyDetailController extends GetxController {
           if (!cachedLanguages.contains(selectedLanguage.value)) {
             selectedLanguage.value = cachedLanguages.first;
           }
-          AppLogger.i('✅ Loaded ${cachedLanguages.length} languages from cache',
-              tag: 'ExecutiveSurveyDetail');
+          AppLogger.i(
+            '✅ Loaded ${cachedLanguages.length} languages from cache',
+            tag: 'ExecutiveSurveyDetail',
+          );
         } else {
           availableLanguages.assignAll(allLanguages);
-          AppLogger.w('⚠️ No matching languages in cache, showing all',
-              tag: 'ExecutiveSurveyDetail');
+          AppLogger.w(
+            '⚠️ No matching languages in cache, showing all',
+            tag: 'ExecutiveSurveyDetail',
+          );
         }
       } else {
         availableLanguages.assignAll(allLanguages);
-        AppLogger.w('⚠️ No cached languages found, showing all',
-            tag: 'ExecutiveSurveyDetail');
+        AppLogger.w(
+          '⚠️ No cached languages found, showing all',
+          tag: 'ExecutiveSurveyDetail',
+        );
       }
     } catch (e) {
       availableLanguages.assignAll(allLanguages);
-      AppLogger.e('Error loading languages from cache: $e',
-          tag: 'ExecutiveSurveyDetail');
+      AppLogger.e(
+        'Error loading languages from cache: $e',
+        tag: 'ExecutiveSurveyDetail',
+      );
     }
   }
 
   void _resetForm() {
+    selectedAssemblyName.value = '';
+    selectedAssemblyId.value = '';
     selectedWardName.value = "";
     selectedWardId.value = "";
     selectedAreaVal?.value = "";
     selectedAreaId.value = "";
+    areaList.value = [];
+    zpWardsList.value = List.from(allZpWardsList);
   }
 
   @override
