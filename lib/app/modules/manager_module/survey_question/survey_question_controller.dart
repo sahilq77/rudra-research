@@ -97,11 +97,14 @@ class SurveyQuestionController extends GetxController {
       errorMessageq.value = '';
 
       AppLogger.i(
-          'Loading questions from cache for survey: $surveyId, language: $languageId',
-          tag: 'SurveyQuestionController');
+        'Loading questions from cache for survey: $surveyId, language: $languageId',
+        tag: 'SurveyQuestionController',
+      );
 
-      final questions =
-          await _localRepo.getSurveyQuestions(surveyId, languageId);
+      final questions = await _localRepo.getSurveyQuestions(
+        surveyId,
+        languageId,
+      );
 
       if (questions.isNotEmpty) {
         questionDetail.clear();
@@ -123,11 +126,13 @@ class SurveyQuestionController extends GetxController {
               parentQuestionId: q['parent_question_id'],
               parentOptionId: q['parent_option_id'],
               options: (q['options'] as List)
-                  .map((o) => Option(
-                        optionId: o['option_id'],
-                        choiceText: o['choice_text'],
-                        textFieldType: o['text_field_type'],
-                      ))
+                  .map(
+                    (o) => Option(
+                      optionId: o['option_id'],
+                      choiceText: o['choice_text'],
+                      textFieldType: o['text_field_type'],
+                    ),
+                  )
                   .toList(),
             ),
           );
@@ -137,11 +142,14 @@ class SurveyQuestionController extends GetxController {
         _buildVisibleQuestions();
 
         AppLogger.i(
-            '✅ Loaded ${allQuestions.length} questions, ${questionDetail.length} visible',
-            tag: 'SurveyQuestionController');
+          '✅ Loaded ${allQuestions.length} questions, ${questionDetail.length} visible',
+          tag: 'SurveyQuestionController',
+        );
       } else {
-        AppLogger.w('⚠️ No cached questions found',
-            tag: 'SurveyQuestionController');
+        AppLogger.w(
+          '⚠️ No cached questions found',
+          tag: 'SurveyQuestionController',
+        );
         errorMessageq.value = 'No questions available';
         AppSnackbarStyles.showError(
           title: 'No Questions',
@@ -149,8 +157,12 @@ class SurveyQuestionController extends GetxController {
         );
       }
     } catch (e, stackTrace) {
-      AppLogger.e('Error loading questions from cache',
-          error: e, stackTrace: stackTrace, tag: 'SurveyQuestionController');
+      AppLogger.e(
+        'Error loading questions from cache',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'SurveyQuestionController',
+      );
       errorMessageq.value = 'Failed to load questions';
       AppSnackbarStyles.showError(
         title: 'Error',
@@ -176,14 +188,13 @@ class SurveyQuestionController extends GetxController {
     if (!formKey.currentState!.validate()) return;
 
     final bool hasAnswer = isTextField
-        ? (textControllers[questionDetail[currentIndex.value].questionId]
-                ?.text
-                .trim()
-                .isNotEmpty ??
-            false)
+        ? (textControllers[questionDetail[currentIndex.value].questionId]?.text
+                  .trim()
+                  .isNotEmpty ??
+              false)
         : isMultiSelect
-            ? selectedAnswerIds.isNotEmpty
-            : selectedAnswerId.value.isNotEmpty;
+        ? selectedAnswerIds.isNotEmpty
+        : selectedAnswerId.value.isNotEmpty;
 
     if (!hasAnswer) {
       AppSnackbarStyles.showError(
@@ -304,8 +315,10 @@ class SurveyQuestionController extends GetxController {
   void _addChildQuestions(String parentQuestionId) {
     final parentAnswer = answers.entries
         .firstWhere(
-          (e) => allQuestions.any((q) =>
-              q.surveyQuestionId == e.key && q.questionId == parentQuestionId),
+          (e) => allQuestions.any(
+            (q) =>
+                q.surveyQuestionId == e.key && q.questionId == parentQuestionId,
+          ),
           orElse: () => const MapEntry('', ''),
         )
         .value;
@@ -332,18 +345,23 @@ class SurveyQuestionController extends GetxController {
 
   Future<void> _submitAllAnswers() async {
     if (isSubmitting.value) {
-      AppLogger.w('⚠️ Already submitting, ignoring duplicate call',
-          tag: 'SurveyQuestionController');
+      AppLogger.w(
+        '⚠️ Already submitting, ignoring duplicate call',
+        tag: 'SurveyQuestionController',
+      );
       return;
     }
     isSubmitting.value = true;
 
     try {
-      AppLogger.i('🚀 Starting survey submission (offline-first)',
-          tag: 'SurveyQuestionController');
       AppLogger.i(
-          '📊 Current state: questionDetail.length=${questionDetail.length}',
-          tag: 'SurveyQuestionController');
+        '🚀 Starting survey submission (offline-first)',
+        tag: 'SurveyQuestionController',
+      );
+      AppLogger.i(
+        '📊 Current state: questionDetail.length=${questionDetail.length}',
+        tag: 'SurveyQuestionController',
+      );
 
       Get.dialog(
         const Center(child: CircularProgressIndicator()),
@@ -359,8 +377,9 @@ class SurveyQuestionController extends GetxController {
 
         if (q.questionType == "2") {
           // Text field type
-          final textFieldType =
-              q.options.isNotEmpty ? q.options.first.textFieldType : "0";
+          final textFieldType = q.options.isNotEmpty
+              ? q.options.first.textFieldType
+              : "0";
           payloadQuestions.add({
             "question_id": q.questionId,
             "question_type": "2",
@@ -383,8 +402,10 @@ class SurveyQuestionController extends GetxController {
         }
       }
 
-      AppLogger.d('Prepared ${payloadQuestions.length} answers',
-          tag: 'SurveyQuestionController');
+      AppLogger.d(
+        'Prepared ${payloadQuestions.length} answers',
+        tag: 'SurveyQuestionController',
+      );
 
       // Always save locally first (offline-first approach)
       await _saveSubmissionLocally(payloadQuestions);
@@ -397,8 +418,12 @@ class SurveyQuestionController extends GetxController {
       // Small delay to ensure dialog closes
       await Future.delayed(const Duration(milliseconds: 100));
     } catch (e, stackTrace) {
-      AppLogger.e('Error during submission',
-          error: e, stackTrace: stackTrace, tag: 'SurveyQuestionController');
+      AppLogger.e(
+        'Error during submission',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'SurveyQuestionController',
+      );
       Get.back();
       AppSnackbarStyles.showError(
         title: 'Error',
@@ -410,7 +435,8 @@ class SurveyQuestionController extends GetxController {
   }
 
   Future<void> _saveSubmissionLocally(
-      List<Map<String, dynamic>> payloadQuestions) async {
+    List<Map<String, dynamic>> payloadQuestions,
+  ) async {
     try {
       AppLogger.i(
         '\n${'💾 ' * 20}\n💾 SAVING OFFLINE SUBMISSION\n${'💾 ' * 20}',
@@ -464,7 +490,11 @@ class SurveyQuestionController extends GetxController {
         '  village_area_id in map: "${submission['village_area_id']}"',
         tag: 'SurveyQuestionController',
       );
-
+      AppLogger.d(
+        '💾 Full submission data:\n'
+        '${jsonEncode(submission)}',
+        tag: 'SurveyQuestionController',
+      );
       await _localRepo.savePendingSubmission(submission);
 
       AppLogger.i(
@@ -486,8 +516,10 @@ class SurveyQuestionController extends GetxController {
         tag: 'SurveyQuestionController',
       );
 
-      AppLogger.i('🚀 Navigating to interviewer page',
-          tag: 'SurveyQuestionController');
+      AppLogger.i(
+        '🚀 Navigating to interviewer page',
+        tag: 'SurveyQuestionController',
+      );
 
       // Navigate to interviewer page
       Get.offNamed(

@@ -46,8 +46,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final config =
-        ClarityConfig(projectId: "u6e5jenh2e", logLevel: LogLevel.None);
+    final config = ClarityConfig(
+      projectId: "u6e5jenh2e",
+      logLevel: LogLevel.None,
+    );
 
     return ClarityWidget(
       app: GetMaterialApp(
