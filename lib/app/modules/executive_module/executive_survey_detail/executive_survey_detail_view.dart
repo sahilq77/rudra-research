@@ -97,26 +97,39 @@ class _ExecutiveSurveyDetailViewState extends State<ExecutiveSurveyDetailView> {
                       value: controller.surveyDetailList.first.loksabhaName,
                     ),
                     const SizedBox(height: 16),
-                    _buildReadOnlyField(
-                      label: 'Select Assembly',
-                      value: controller.surveyDetailList.first.assemblyName,
-                    ),
-                    const SizedBox(height: 16),
                   ] else
                     ...[],
+
+                  // ASSEMBLY DROPDOWN
+                  Obx(
+                    () => _buildDropdownField(
+                      label: 'Select Assembly',
+                      value: controller.selectedAssemblyName.value,
+                      items: controller.getAssemblyNames(),
+                      onChanged: (value) {
+                        controller.setSelectedAssembly(value);
+                      },
+                      validator: controller.assembliesList.isNotEmpty
+                          ? TextValidator.isEmpty
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   // WARD DROPDOWN
-                  Obx(() => _buildDropdownField(
-                        label: 'Select Ward/ZP',
-                        value: controller.selectedWardName.value,
-                        items: controller.getWardNames(),
-                        onChanged: (value) {
-                          controller.setSelectedWard(value);
-                          debugPrint(
-                            'Selected Ward: $value  →  ID: ${controller.selectedWardId.value}',
-                          );
-                        },
-                        validator: TextValidator.isEmpty,
-                      )),
+                  Obx(
+                    () => _buildDropdownField(
+                      label: 'Select Ward/ZP',
+                      value: controller.selectedWardName.value,
+                      items: controller.getWardNames(),
+                      onChanged: (value) {
+                        controller.setSelectedWard(value);
+                        debugPrint(
+                          'Selected Ward: $value  →  ID: ${controller.selectedWardId.value}',
+                        );
+                      },
+                      validator: TextValidator.isEmpty,
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   // AREA DROPDOWN (Filtered by Ward)
                   Obx(() => _buildAreaDropdown()),
@@ -192,8 +205,10 @@ class _ExecutiveSurveyDetailViewState extends State<ExecutiveSurveyDetailView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Select Area/Village',
-            style: AppStyle.labelPrimaryPoppinsGrey.responsive),
+        Text(
+          'Select Area/Village',
+          style: AppStyle.labelPrimaryPoppinsGrey.responsive,
+        ),
         const SizedBox(height: 8),
         DropdownSearch<String>(
           selectedItem: controller.selectedAreaVal?.value ?? '',
